@@ -1,0 +1,272 @@
+[
+    {
+        "model": "home.oraliqdarslar",
+        "id": 16,
+        "oraliq": 1,
+        "name_uz": "1.Ogohlantiruvchi belgilar",
+        "name_ru": "1.Предупреждающие знаки",
+        "name_cry": "1.Огоҳлантирувчи белгилар",
+        "created_at": "2024-09-09T09:50:20.373Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 17,
+        "oraliq": 1,
+        "name_uz": "2.Imtiyoz belgilari",
+        "name_ru": "2.Знаки приоритета",
+        "name_cry": "2.Имтиёз белгилари",
+        "created_at": "2024-09-09T09:54:21.542Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 18,
+        "oraliq": 1,
+        "name_uz": "3.Taqiqlovchi belgilar",
+        "name_ru": "3.Запрещающие знаки",
+        "name_cry": "3.Тақиқловчи белгилар",
+        "created_at": "2024-09-09T09:55:24.336Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 19,
+        "oraliq": 1,
+        "name_uz": "4.Buyuruvchi belgilar",
+        "name_ru": "4.Предписывающие знаки",
+        "name_cry": "4.Буюрувчи белгилар",
+        "created_at": "2024-09-09T09:56:23.864Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 20,
+        "oraliq": 1,
+        "name_uz": "5.Axborot-ishora belgilari",
+        "name_ru": "5.Информационно-указательные знаки",
+        "name_cry": "5.Ахборот-ишора белгилари",
+        "created_at": "2024-09-09T09:57:13.370Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 22,
+        "oraliq": 1,
+        "name_uz": "6.Qo'shimcha-axborot belgilari",
+        "name_ru": "6.Знаки дополнительной информации",
+        "name_cry": "6.Қўшимча-ахборот белгилари",
+        "created_at": "2024-09-09T09:59:45.429Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 23,
+        "oraliq": 1,
+        "name_uz": "7.Yo'l chiziqlari",
+        "name_ru": "7.Дорожные разметки",
+        "name_cry": "7.Йўл чизиқлари",
+        "created_at": "2024-09-09T10:00:27.978Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 25,
+        "oraliq": 2,
+        "name_uz": "1.Atamalar",
+        "name_ru": "1.Термины",
+        "name_cry": "1.Атамалар",
+        "created_at": "2024-09-09T10:02:41.237Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 26,
+        "oraliq": 2,
+        "name_uz": "2.Haydovchining vazifalari",
+        "name_ru": "2.Обязанности водителей",
+        "name_cry": "2.Ҳайдовчининг вазифалари",
+        "created_at": "2024-09-09T10:03:37.415Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 27,
+        "oraliq": 2,
+        "name_uz": "3.Piyodaning vazifalari",
+        "name_ru": "3.Обязанности пешеходов",
+        "name_cry": "3.Пиёданинг вазифалари",
+        "created_at": "2024-09-09T10:04:58.057Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 28,
+        "oraliq": 2,
+        "name_uz": "4.Teng ahamiyatli chorraha",
+        "name_ru": "4.Равнозначный перекресток",
+        "name_cry": "4.Тенг аҳамиятли чорраҳа",
+        "created_at": "2024-09-09T10:05:40.387Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 29,
+        "oraliq": 2,
+        "name_uz": "5.Teng ahamiyat ega bo'lmagan chorraha",
+        "name_ru": "5.Неравнозначный перекресток",
+        "name_cry": "5.Тенг аҳамият эга бўлмаган чорраҳa",
+        "created_at": "2024-09-09T10:06:25.460Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 30,
+        "oraliq": 2,
+        "name_uz": "6.Tartibga soluvchi",
+        "name_ru": "6.Регулировщик",
+        "name_cry": "6.Тартибга солувчи",
+        "created_at": "2024-09-09T10:07:26.671Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 31,
+        "oraliq": 2,
+        "name_uz": "7.Svetafor",
+        "name_ru": "7.Светофор",
+        "name_cry": "7.Светафор",
+        "created_at": "2024-09-09T10:08:12.541Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 33,
+        "oraliq": 4,
+        "name_uz": "1.Ogohlantiruvchi ishoralar",
+        "name_ru": "1.Предупредительные сигналы",
+        "name_cry": "1.Огоҳлантирувчи ишоралар",
+        "created_at": "2024-09-09T10:09:49.243Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 34,
+        "oraliq": 4,
+        "name_uz": "2.Harakatni boshlash. Manevrlarni bajarish",
+        "name_ru": "2.Начало движения, маневрирование",
+        "name_cry": "2.Ҳаракатни бошлаш. Маневрларни бажариш",
+        "created_at": "2024-09-09T10:10:46.764Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 35,
+        "oraliq": 4,
+        "name_uz": "3.Transport vositalarining qatnov qismida joylashuvi",
+        "name_ru": "3.Расположение транспортных средств на проезжей части",
+        "name_cry": "3.Транспорт воситаларининг қатнов қисмида жойлашуви",
+        "created_at": "2024-09-09T10:11:44.265Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 36,
+        "oraliq": 4,
+        "name_uz": "4.Harakatlanish tezligi",
+        "name_ru": "4.Скорость движения",
+        "name_cry": "4.Ҳаракатланиш тезлиги",
+        "created_at": "2024-09-09T10:12:26.306Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 37,
+        "oraliq": 4,
+        "name_uz": "5.Quvib o'tish",
+        "name_ru": "5.Обгон",
+        "name_cry": "5.Қувиб ўтиш",
+        "created_at": "2024-09-09T10:13:15.973Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 38,
+        "oraliq": 4,
+        "name_uz": "6.To'xtash va to'xtab turish",
+        "name_ru": "6.Остановка и стоянка",
+        "name_cry": "6.Тўхташ ва тўхтаб туриш",
+        "created_at": "2024-09-09T10:13:58.411Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 24,
+        "oraliq": 4,
+        "name_uz": "7.Taniqlilik belgilari",
+        "name_ru": "7.Опознавательные знаки",
+        "name_cry": "7.Таниқлилик белгилари",
+        "created_at": "2024-09-09T10:01:38.369Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 45,
+        "oraliq": 4,
+        "name_uz": "8.Transport vositalarining toifalari",
+        "name_ru": "8.Категории транспортных средств",
+        "name_cry": "8.Транспорт воситаларининг тоифалари",
+        "created_at": "2024-09-09T10:01:38.369Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 21,
+        "oraliq": 5,
+        "name_uz": "1.Avtomagistral",
+        "name_ru": "1.Автомагистрал",
+        "name_cry": "1.Автомагистрал",
+        "created_at": "2024-09-09T09:58:32.958Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 32,
+        "oraliq": 5,
+        "name_uz": "2.Temir yo'l kesishmalari",
+        "name_ru": "2.Железнодорожные переезды",
+        "name_cry": "2.Темир йўл кесишмалари",
+        "created_at": "2024-09-09T10:09:01.004Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 39,
+        "oraliq": 5,
+        "name_uz": "3.Tashqi yoritish asboblari",
+        "name_ru": "3.Фары",
+        "name_cry": "3.Ташқи ёритиш асбоблари",
+        "created_at": "2024-09-09T10:15:02.040Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 40,
+        "oraliq": 5,
+        "name_uz": "4.Shatakka olish",
+        "name_ru": "4.Буксировка",
+        "name_cry": "4.Шатакка олиш",
+        "created_at": "2024-09-09T10:16:08.324Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 41,
+        "oraliq": 5,
+        "name_uz": "5.Odam va yuk tashish",
+        "name_ru": "5.Перевозка людей и грузов",
+        "name_cry": "5.Одам ва юк ташиш",
+        "created_at": "2024-09-09T10:16:56.441Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 42,
+        "oraliq": 5,
+        "name_uz": "6.Transport vositasidan foydalanishni taqiqlovchi shartlar",
+        "name_ru": "6.Условия при которых запрещается эксплуатация транспортных средств",
+        "name_cry": "6.Транспорт воситасидан фойдаланишни тақиқловчи шартлар",
+        "created_at": "2024-09-09T10:17:36.559Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 43,
+        "oraliq": 5,
+        "name_uz": "7.Avtomobilni xavfsiz boshqarish",
+        "name_ru": "7.Безопасное управление автомбиля",
+        "name_cry": "7.Автомобилни хавфсиз бошқариш",
+        "created_at": "2024-09-09T10:18:19.552Z"
+    },
+    {
+        "model": "home.oraliqdarslar",
+        "id": 44,
+        "oraliq": 5,
+        "name_uz": "8.Tibbiyot",
+        "name_ru": "8.Медицина",
+        "name_cry": "8.Тиббиёт",
+        "created_at": "2024-09-09T10:18:58.151Z"
+    }
+]

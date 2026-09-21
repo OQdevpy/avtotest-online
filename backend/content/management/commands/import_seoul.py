@@ -34,7 +34,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--path",
-            required=True,
+            default="seed_data",
             help="`src/db` papkasiga yo'l (avtotest-desktop-seoul reposidan)",
         )
         parser.add_argument(
