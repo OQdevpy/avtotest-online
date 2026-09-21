@@ -9,6 +9,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d avtotest_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   web:
     build: .
@@ -21,7 +26,8 @@ services:
       - DATABASE_URL=postgres://postgres:password@db:5432/avtotest_db
       - DEBUG=1
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
