@@ -43,10 +43,10 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         if obj.image:
-            # The image path is like 'images/abc.png', we replace the extension with '.webp'
             import os
-            base, ext = os.path.splitext(obj.image)
-            return base + '.webp'
+            base = os.path.basename(obj.image)
+            name, ext = os.path.splitext(base)
+            return name + '.webp'
         return ''
 
 class TicketSerializer(serializers.ModelSerializer):
