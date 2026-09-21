@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            border: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div></div>
+</body>
+<script>
+    // DevTools-ni aniqlash
+    const defaultWidth = window.innerWidth;
+    const defaultHeight = window.innerHeight;
+
+    function detectDevTools() {
+        let devtools = false;
+
+        if (defaultHeight !== window.innerHeight || defaultWidth !== window.innerWidth) {
+            window.location.href = "https://localhost:5173/login";
+            
+            
+        }
+
+        const element = new Image();
+        Object.defineProperty(element, 'id', {
+            get: function () {
+                if (!devtools) {
+                    devtools = true;
+                    window.location.href = "https://localhost:5173/login";
+                   }
+            }
+        });
+
+        
+
+        return devtools;
+    }
+
+    setInterval(detectDevTools, 1000); // Har 1 soniyada tekshirib turish
+
+    document.addEventListener('keydown', function (event) {
+        if ((event.ctrlKey && event.key === 's') || (event.ctrlKey && event.key === 'p' || event.key === 'F12')) {
+            console.log('DevTools-ni ochish mumkin emas!');
+            
+            window.location.href = "https://localhost:5173/login";
+
+        }
+    });
+
+    // O'ng tugmani bloklash
+    document.addEventListener('contextmenu', function (event) {
+        window.location.href = "https://localhost:5173/login";
+
+    });
+
+    // Sichqoncha mavjudligini aniqlash
+    let isMousePresent = false;
+    document.addEventListener('mousemove', function () {
+        if (!isMousePresent) {
+            isMousePresent = true;
+            console.log('Sichqoncha mavjud!');
+        }
+    });
+
+    // Sahifani tark etishni aniqlash
+    document.addEventListener('mouseleave', function () {
+        window.location.href = "https://localhost:5173/login";
+
+    });
+
+</script>
+
+</html>

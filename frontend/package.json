@@ -1,0 +1,76 @@
+{
+  "name": "avto-quiz",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/main.cjs",
+  "description": "A quiz application about vehicles.",
+  "author": "Your Name <your.email@example.com>",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "electron": "electron .",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "electron:serve": "concurrently -k \"cross-env BROWSER=none npm run electron:start\"",
+    "electron:build": "electron-builder --win",
+    "electron:packager": "npm run build && xcopy /y public\\*.cjs dist\\ && electron-packager . AvtoQuiz --platform=win32 --arch=x64 --icon=public/static-images/icon.ico --out=new_dist --overwrite",
+    "electron:start": "wait-on tcp:5174 && electron ."
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "pdf-viewer-reactjs": "^2.2.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^5.2.1",
+    "react-router-dom": "^6.23.1",
+    "react-spinners": "^0.13.8",
+    "react-toastify": "^10.0.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "daisyui": "^4.11.1",
+    "electron": "^31.6.0",
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.6",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "vite": "^5.2.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.example.avtoquiz",
+    "productName": "Avto Quiz",
+    "icon": "public/static-images/icon.ico",
+    "files": [
+      "build/**/*",
+      "dist/**/*"
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "new_dist"
+    },
+    "linux": {
+      "target": [
+        "deb"
+      ],
+      "maintainer": "Your Name <your.email@example.com>",
+      "category": "Education"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/static-images/icon.ico"
+    }
+  }
+}

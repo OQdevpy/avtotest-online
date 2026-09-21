@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="./static-images/removebg.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./static-images/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./static-images/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./static-images/favicon-16x16.png" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avto Test</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="./src/main.jsx"></script>
+</body>
+
+</html>
+
+<!-- 
+<script>
+  // DevTools-ni aniqlash
+  const defaultWidth = window.innerWidth;
+  const defaultHeight = window.innerHeight;
+
+  function detectDevTools() {
+    let devtools = false;
+
+    if (defaultHeight !== window.innerHeight || defaultWidth !== window.innerWidth) {
+      event.preventDefault();
+
+
+
+    }
+
+    const element = new Image();
+    Object.defineProperty(element, 'id', {
+      get: function () {
+        if (!devtools) {
+          devtools = true;
+          event.preventDefault();
+
+        }
+      }
+    });
+
+
+
+    return devtools;
+  }
+
+  setInterval(detectDevTools, 1000); // Har 1 soniyada tekshirib turish
+
+  document.addEventListener('keydown', function (event) {
+    if (
+        (event.ctrlKey && (event.key === 's' || event.key === 'p' ||(event.shiftKey && event.key==='P') || (event.shiftKey && event.key === 'I'))) ||
+        event.key === 'F12' ||
+        event.key === 'Tab'
+    ) {
+        event.preventDefault();  // Prevents the default action
+
+        let message;
+        if (event.key === 's') {
+            message = 'Saqlash mumkin emas!';
+        } else if (event.key === 'p' || event.key === 'F12') {
+            message = 'Amal mumkin emas!';
+        } else if (event.key === 'Tab') {
+            message = 'Tab key is disabled!';
+        } else {
+            message = 'Amal mumkin emas!';
+        }
+
+        const confirmed = confirm(message);
+        if (!confirmed) {
+            event.preventDefault(); 
+        }
+    }
+});
+
+
+
+  document.addEventListener('contextmenu', function (event) {
+    event.preventDefault();
+
+  });
+
+  // Sichqoncha mavjudligini aniqlash
+  let isMousePresent = false;
+  document.addEventListener('mousemove', function () {
+    if (!isMousePresent) {
+      isMousePresent = true;
+    }
+  });
+
+  // Sahifani tark etishni aniqlash
+  document.addEventListener('mouseleave', function () {
+    window.location.href = "http://localhost:5173/login/";
+
+
+
+  });
+
+</script> -->

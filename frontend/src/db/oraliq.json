@@ -1,0 +1,39 @@
+[
+    {
+        "model": "home.oraliq",
+        "id": 1,
+        "name_uz": "1-bo'lim",
+        "name_ru": "1-bo'lim ru",
+        "name_cry": "1-bo'lim kril",
+        "tartib": 1,
+        "created_at": "2024-08-20T07:31:45.097Z"
+    },
+    {
+        "model": "home.oraliq",
+        "id": 2,
+        "name_uz": "2-bo'lim",
+        "name_ru": "2-bo'lim ru",
+        "name_cry": "2-bo'lim kril",
+        "tartib": 2,
+        "created_at": "2024-08-20T09:55:47.112Z"
+    },
+    {
+        "model": "home.oraliq",
+        "id": 4,
+        "name_uz": "3-bo'lim",
+        "name_ru": "3-bo'lim ru",
+        "name_cry": "3-bo'lim kril",
+        "tartib": 3,
+        "created_at": "2024-09-07T18:01:26.565Z"
+    },
+
+    {
+        "model": "home.oraliq",
+        "id": 5,
+        "name_uz": "4-bo'lim",
+        "name_ru": "4-bo'lim ru",
+        "name_cry": "4-bo'lim kril",
+        "tartib": 4,
+        "created_at": "2024-09-07T18:01:26.565Z"
+    }
+]

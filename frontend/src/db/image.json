@@ -1,0 +1,38 @@
+[
+    {
+        "model": "home.image",
+        "pk": 1,
+        "image": "static-images/default_image.jpg",
+        "name": "default image"
+    },
+    {
+        "model": "home.image",
+        "pk": 2,
+        "image": "static-images/apple-touch-icon.png",
+        "name": "apple touch png"
+    },
+    {
+        "model": "home.image",
+        "pk": 3,
+        "image": "static-images/favicon-16x16.png",
+        "name": "16x16"
+    },
+    {
+        "model": "home.image",
+        "pk": 4,
+        "image": "static-images/favicon-32x32.png",
+        "name": "32x32"
+    },
+    {
+        "model": "home.image",
+        "pk": 5,
+        "image": "static-images/removebg.png",
+        "name": "remove bg"
+    },
+    {
+        "model": "home.image",
+        "pk": 6,
+        "image": "static-images/romo-sagan-thumb.jpg",
+        "name": "bg"
+    }
+]

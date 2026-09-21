@@ -1,0 +1,12 @@
+node_modules/  
+new_dist/  
+dist/  
+build/  
+__pycache__/  
+*.pyc  
+.env  
+.DS_Store  
+venv/  
+env/  
+*.sqlite3 
+*.zip 
