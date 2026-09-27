@@ -1,0 +1,109 @@
+import re
+
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils import timezone
+
+PHONE_RE = re.compile(r"^\+998\d{9}$")
+
+
+def normalize_phone(raw: str) -> str:
+    """Accept '901234567', '+998 90 123 45 67', '998901234567' -> '+998901234567'."""
+    digits = re.sub(r"\D", "", raw or "")
+    if len(digits) == 9:
+        digits = "998" + digits
+    phone = "+" + digits
+    if not PHONE_RE.match(phone):
+        raise ValidationError("Telefon raqam +998XXXXXXXXX ko'rinishida bo'lishi kerak.")
+    return phone
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, phone: str, password: str | None = None, **extra):
+        phone = normalize_phone(phone)
+        user = self.model(phone=phone, **extra)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, phone: str, password: str, **extra):
+        extra.setdefault("is_staff", True)
+        extra.setdefault("is_superuser", True)
+        extra.setdefault("is_active", True)
+        if not extra["is_staff"] or not extra["is_superuser"]:
+            raise ValueError("Superuser is_staff va is_superuser bo'lishi shart.")
+        return self.create_user(phone, password, **extra)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    class Language(models.TextChoices):
+        UZ = "uz", "O'zbekcha (lotin)"
+        KR = "kr", "Ўзбекча (кирилл)"
+        QQ = "qq", "Qaraqalpaqsha"
+        RU = "ru", "Русский"
+
+    phone = models.CharField(max_length=13, unique=True, db_index=True)
+    full_name = models.CharField(max_length=120, blank=True)
+    language = models.CharField(max_length=3, choices=Language.choices, default=Language.UZ)
+    dark_theme = models.BooleanField(default=False)
+
+    # PRO subscription (the mobile Home screen shows a PRO banner)
+    is_pro = models.BooleanField(default=False)
+    pro_until = models.DateTimeField(null=True, blank=True)
+
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = "phone"
+    REQUIRED_FIELDS: list[str] = []
+
+    class Meta:
+        verbose_name = "Foydalanuvchi"
+        verbose_name_plural = "Foydalanuvchilar"
+
+    def __str__(self) -> str:
+        return f"{self.full_name or 'user'} ({self.phone})"
+
+    @property
+    def pro_active(self) -> bool:
+        if not self.is_pro:
+            return False
+        return self.pro_until is None or self.pro_until > timezone.now()
+
+    @property
+    def initials(self) -> str:
+        parts = [p for p in self.full_name.split() if p]
+        return "".join(p[0].upper() for p in parts[:2]) or self.phone[-2:]
+
+
+class SocialAccount(models.Model):
+    """Links an external identity (Apple / Google / Telegram) to a User.
+
+    The mobile Login screen offers these providers; verification of the
+    provider token happens in the auth view before a row is created here.
+    """
+
+    class Provider(models.TextChoices):
+        APPLE = "apple", "Apple"
+        GOOGLE = "google", "Google"
+        TELEGRAM = "telegram", "Telegram"
+        EMAIL = "email", "Email"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="social_accounts")
+    provider = models.CharField(max_length=16, choices=Provider.choices)
+    uid = models.CharField(max_length=191)
+    email = models.EmailField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("provider", "uid")
+
+    def __str__(self) -> str:
+        return f"{self.provider}:{self.uid}"

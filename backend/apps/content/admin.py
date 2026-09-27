@@ -1,0 +1,87 @@
+from django.contrib import admin
+
+from .models import Answer, Lesson, Question, Section, Ticket, TicketQuestion, Topic
+
+
+class LessonInline(admin.TabularInline):
+    model = Lesson
+    extra = 0
+    fields = ("name_uz", "name_ru", "name_cry", "order")
+
+
+@admin.register(Section)
+class SectionAdmin(admin.ModelAdmin):
+    list_display = ("order", "name_uz", "name_ru", "lesson_count")
+    ordering = ("order",)
+    search_fields = ("name_uz", "name_ru", "name_cry")
+    inlines = [LessonInline]
+
+    @admin.display(description="Darslar")
+    def lesson_count(self, obj):
+        return obj.lessons.count()
+
+
+@admin.register(Lesson)
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ("order", "name_uz", "section", "question_count")
+    list_filter = ("section",)
+    search_fields = ("name_uz", "name_ru", "name_cry")
+
+    @admin.display(description="Savollar")
+    def question_count(self, obj):
+        return obj.questions.count()
+
+
+class AnswerInline(admin.TabularInline):
+    model = Answer
+    extra = 0
+    fields = ("text_uz", "text_ru", "text_cry", "is_true", "order")
+
+
+@admin.register(Question)
+class QuestionAdmin(admin.ModelAdmin):
+    list_display = ("id", "short_text", "lesson", "has_image", "answer_count")
+    list_filter = ("lesson__section", "lesson")
+    search_fields = ("text_uz", "text_ru", "text_cry")
+    inlines = [AnswerInline]
+    list_select_related = ("lesson",)
+
+    @admin.display(description="Savol")
+    def short_text(self, obj):
+        return obj.text_uz[:70]
+
+    @admin.display(boolean=True, description="Rasm")
+    def has_image(self, obj):
+        return bool(obj.image)
+
+    @admin.display(description="Javoblar")
+    def answer_count(self, obj):
+        return obj.answers.count()
+
+
+class TicketQuestionInline(admin.TabularInline):
+    model = TicketQuestion
+    extra = 0
+    raw_id_fields = ("question",)
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ("number", "question_count", "is_pro")
+    list_filter = ("is_pro",)
+    list_editable = ("is_pro",)
+    inlines = [TicketQuestionInline]
+
+    @admin.display(description="Savollar")
+    def question_count(self, obj):
+        return obj.items.count()
+
+
+@admin.register(Topic)
+class TopicAdmin(admin.ModelAdmin):
+    list_display = ("order", "name_uz", "question_count")
+    search_fields = ("name_uz", "name_ru", "name_cry")
+
+    @admin.display(description="Savollar")
+    def question_count(self, obj):
+        return obj.questions.count()
