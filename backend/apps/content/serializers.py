@@ -1,12 +1,21 @@
 from django.conf import settings
 from rest_framework import serializers
 
+from common.compat import CompatFieldsMixin
 from common.lang import TranslatedField
 from .models import Answer, Blits, Lesson, Question, Section, Ticket, Topic
 
 
-class AnswerSerializer(serializers.ModelSerializer):
+class AnswerSerializer(CompatFieldsMixin, serializers.ModelSerializer):
     text = TranslatedField("text")
+
+    # Eski frontlar (web, darslik) uchun ?compat=1 da qo'shiladigan nomlar.
+    compat_aliases = {
+        "answer_uz": "text_uz",
+        "answer_ru": "text_ru",
+        "answer_cry": "text_cry",
+        "tartib": "order",
+    }
 
     class Meta:
         model = Answer
@@ -23,13 +32,20 @@ class AnswerPublicSerializer(AnswerSerializer):
         fields = ("id", "text", "order")
 
 
-class QuestionSerializer(serializers.ModelSerializer):
+class QuestionSerializer(CompatFieldsMixin, serializers.ModelSerializer):
     text = TranslatedField("text")
     explanation = TranslatedField("explanation")
     image_url = serializers.SerializerMethodField()
     explanation_image_url = serializers.SerializerMethodField()
     audio_url = serializers.SerializerMethodField()
     answers = AnswerSerializer(many=True, read_only=True)
+
+    compat_aliases = {
+        "question_uz": "text_uz",
+        "question_ru": "text_ru",
+        "question_cry": "text_cry",
+        "tartib": "order",
+    }
 
     class Meta:
         model = Question
