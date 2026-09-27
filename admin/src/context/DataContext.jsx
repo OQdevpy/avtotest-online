@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import JSZip from 'jszip';
 import { fetchJSON, postJSON, patchJSON, deleteResource, uploadFile } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext(null);
 
@@ -46,7 +47,15 @@ const translations = {
   },
 };
 
+// DRF javobini xavfsiz massivga aylantirish (paginated bo'lsa results dan oladi)
+function toList(res) {
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.results)) return res.results;
+  return [];
+}
+
 export function DataProvider({ children }) {
+  const { user } = useAuth();
   const [sections, setSections] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [questions, setQuestions] = useState([]);
@@ -55,38 +64,44 @@ export function DataProvider({ children }) {
   const [lang, setLang] = useState('cry');
   const [loading, setLoading] = useState(true);
 
-  // Initial load
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [sec, les, bli] = await Promise.all([
-          fetchJSON('/manage/sections/'),
-          fetchJSON('/manage/lessons/'),
-          fetchJSON('/manage/blits/'),
-        ]);
-        setSections(sec);
-        setLessons(les);
-        setBlits(bli);
-        console.log('✅ Asosiy ma\'lumotlar backenddan yuklandi');
-      } catch (err) {
-        console.error('❌ Ma\'lumotlarni yuklashda xatolik:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+  // Ma'lumotlarni yuklash funksiyasi
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [sec, les, bli] = await Promise.all([
+        fetchJSON('/manage/sections/?page_size=200'),
+        fetchJSON('/manage/lessons/?page_size=200'),
+        fetchJSON('/manage/blits/?page_size=200'),
+      ]);
+      setSections(toList(sec));
+      setLessons(toList(les));
+      setBlits(toList(bli));
+      console.log('✅ Asosiy ma\'lumotlar backenddan yuklandi');
+    } catch (err) {
+      console.error('❌ Ma\'lumotlarni yuklashda xatolik:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // Foydalanuvchi tizimga kirganida ma'lumotlarni yuklash
+  useEffect(() => {
+    if (user) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [user, loadData]);
 
   const t = useCallback((key) => translations[lang]?.[key] || key, [lang]);
 
   // Maydon nomlari backendda: question/answer uchun text, boshqalar uchun name
   const getVal = useCallback((obj, field) => {
+    if (!obj) return '';
     const suffix = `_${lang}`;
-    // Agar text (question, answer uchun) so'ralsa va u bor bo'lsa
     if (obj['text' + suffix] !== undefined && (field === 'question' || field === 'answer' || field === 'text')) {
-        return obj['text' + suffix];
+      return obj['text' + suffix];
     }
-    // Asosiy tekshiruv
     return obj[field + suffix] || obj[field + '_uz'] || '';
   }, [lang]);
 
@@ -102,7 +117,7 @@ export function DataProvider({ children }) {
   
   const addSection = useCallback(async () => {
     try {
-      const order = sections.length > 0 ? Math.max(...sections.map(s => s.order || s.tartib || 0)) + 1 : 1;
+      const order = sections.length > 0 ? Math.max(...sections.map(s => s.order || 0)) + 1 : 1;
       const newS = await postJSON('/manage/sections/', {
         name_uz: "Yangi bo'lim", name_ru: "Новый раздел", name_cry: "Янги бўлим", order
       });
@@ -124,7 +139,11 @@ export function DataProvider({ children }) {
 
   // ── Lesson CRUD ──
   const getLessonsBySection = useCallback((sectionId) =>
-    lessons.filter(l => l.section === sectionId).sort((a, b) => (a.order || 0) - (b.order || 0)), [lessons]);
+    sections && lessons
+      ? lessons.filter(l => l.section === sectionId).sort((a, b) => (a.order || 0) - (b.order || 0))
+      : [],
+    [sections, lessons]
+  );
     
   const updateLesson = useCallback(async (id, updates) => {
     try {
@@ -138,7 +157,7 @@ export function DataProvider({ children }) {
   const addLesson = useCallback(async (sectionId) => {
     try {
       const sectionLessons = lessons.filter(l => l.section === sectionId);
-      const order = sectionLessons.length > 0 ? Math.max(...sectionLessons.map(l => l.order || l.tartib || 0)) + 1 : 1;
+      const order = sectionLessons.length > 0 ? Math.max(...sectionLessons.map(l => l.order || 0)) + 1 : 1;
       const newL = await postJSON('/manage/lessons/', {
         section: sectionId, name_uz: "Yangi dars", name_ru: "Новый урок", name_cry: "Янги дарс", order
       });
@@ -164,7 +183,7 @@ export function DataProvider({ children }) {
       setLessons(prev => prev.map(l => {
         if (l.section !== sectionId) return l;
         const idx = orderedIds.indexOf(l.id);
-        return idx >= 0 ? { ...l, order: idx + 1, tartib: idx + 1 } : l;
+        return idx >= 0 ? { ...l, order: idx + 1 } : l;
       }));
     } catch (err) {
       console.error('Lesson reorder error:', err);
@@ -172,21 +191,17 @@ export function DataProvider({ children }) {
   }, []);
 
   // ── Question CRUD ──
-  
-  // Lazy loading uchun yordamchi state (qaysi darslar yuklangan)
   const [loadedLessons, setLoadedLessons] = useState(new Set());
   
   const getQuestionsByLesson = useCallback((lessonId) => {
-    // Agar dars savollari hali yuklanmagan bo'lsa, yuklaymiz
     if (!loadedLessons.has(lessonId)) {
       setLoadedLessons(prev => new Set(prev).add(lessonId));
-      fetchJSON(`/manage/questions/?lesson=${lessonId}`).then(data => {
-        // Savollar
+      fetchJSON(`/manage/questions/?lesson=${lessonId}&page_size=200`).then(res => {
+        const data = toList(res);
         setQuestions(prev => {
           const others = prev.filter(q => q.lesson !== lessonId);
           return [...others, ...data];
         });
-        // Ular bilan kelgan javoblar
         const newAnswers = [];
         data.forEach(q => {
           if (q.answers && Array.isArray(q.answers)) {
@@ -210,8 +225,8 @@ export function DataProvider({ children }) {
     }
     
     return questions
-        .filter(q => q.lesson === lessonId)
-        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      .filter(q => q.lesson === lessonId)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [questions, loadedLessons]);
 
   const getQuestionById = useCallback((id) => questions.find(q => q.id === id), [questions]);
@@ -228,7 +243,7 @@ export function DataProvider({ children }) {
   const addQuestion = useCallback(async (lessonId) => {
     try {
       const lessonQs = questions.filter(q => q.lesson === lessonId);
-      const order = lessonQs.length > 0 ? Math.max(...lessonQs.map(q => q.order || q.tartib || 0)) + 1 : 1;
+      const order = lessonQs.length > 0 ? Math.max(...lessonQs.map(q => q.order || 0)) + 1 : 1;
       const newQ = await postJSON('/manage/questions/', {
         lesson: lessonId,
         text_uz: "Yangi savol", text_ru: "Новый вопрос", text_cry: "Янги савол",
@@ -257,7 +272,7 @@ export function DataProvider({ children }) {
       setQuestions(prev => prev.map(q => {
         if (q.lesson !== lessonId) return q;
         const idx = orderedIds.indexOf(q.id);
-        return idx >= 0 ? { ...q, order: idx + 1, tartib: idx + 1 } : q;
+        return idx >= 0 ? { ...q, order: idx + 1 } : q;
       }));
     } catch (err) {
       console.error('Question reorder error:', err);
@@ -313,7 +328,6 @@ export function DataProvider({ children }) {
       const newB = await postJSON('/manage/blits/', {
         name_uz: "Yangi blits", name_ru: "Новый блиц", name_cry: "Янги блиц"
       });
-      // Ensure items array exists
       newB.items = newB.items || [];
       setBlits(prev => [...prev, newB]);
       return newB;
@@ -354,7 +368,6 @@ export function DataProvider({ children }) {
     try {
       const blitsObj = blits.find(b => b.id === blitsId);
       if (!blitsObj) return;
-      // topish: shu blitsdagi questionId ga mos keluvchi items
       const bqItem = blitsObj.items?.find(i => i.question === questionId);
       if (bqItem) {
         await deleteResource(`/manage/blits-questions/${bqItem.id}/`);
@@ -368,18 +381,17 @@ export function DataProvider({ children }) {
     }
   }, [blits]);
 
-  // ── Rasm yuklash (File obyekti bilan) ──
+  // ── Rasm yuklash ──
   const uploadQuestionImage = useCallback(async (questionId, file, type = 'image') => {
     if (!file) return null;
     try {
       const fieldName = 'file';
       const url = type === 'explanation_image' 
         ? `/manage/questions/${questionId}/explanation-image/`
-        : `/manage/questions/${questionId}/${type}/`; // 'image' yoki 'audio'
+        : `/manage/questions/${questionId}/${type}/`;
         
       const result = await uploadFile(url, file, fieldName);
       
-      // Update local state automatically after upload
       setQuestions(prev => prev.map(q => {
         if (q.id === questionId) {
           if (type === 'explanation_image') return { ...q, explanation_image: result.explanation_image };
@@ -389,7 +401,6 @@ export function DataProvider({ children }) {
         return q;
       }));
       
-      console.log(`✅ File saved successfully for question ${questionId}`);
       return type === 'explanation_image' ? result.explanation_image : result.image;
     } catch (err) {
       console.error('❌ Failed to upload image:', err);
@@ -397,7 +408,21 @@ export function DataProvider({ children }) {
     }
   }, []);
 
-  // Rasmlarni eksport qilish (To'g'ridan to'g'ri image maydonidan)
+  const uploadExplanationImage = useCallback(async (questionId, file) => {
+    if (!file) return null;
+    try {
+      const result = await uploadFile(`/manage/questions/${questionId}/explanation-image/`, file, 'file');
+      setQuestions(prev => prev.map(q =>
+        q.id === questionId ? { ...q, explanation_image: result.explanation_image } : q
+      ));
+      return result.explanation_image;
+    } catch (err) {
+      console.error('Izoh rasmi yuklashda xatolik:', err);
+      return null;
+    }
+  }, []);
+
+  // ── Eksport rasmlar ──
   const exportAllQuestionImages = useCallback(async () => {
     const sortedQuestions = [...questions].sort((a, b) => b.id - a.id).slice(0, 50);
     const questionsWithImages = sortedQuestions.filter(q => q.image || q.explanation_image);
@@ -422,19 +447,6 @@ export function DataProvider({ children }) {
           }
         } catch (error) {
           console.warn('Image export skipped:', q.id, error);
-        }
-      }
-      if (q.explanation_image) {
-        try {
-          const response = await fetch(`/media/${q.explanation_image}`);
-          if (response.ok) {
-            const blob = await response.blob();
-            const fileName = q.explanation_image.split('/').pop();
-            zip.file(fileName, blob);
-            exportedCount += 1;
-          }
-        } catch (error) {
-          console.warn('Exp. Image export skipped:', q.id, error);
         }
       }
     }
@@ -496,25 +508,13 @@ export function DataProvider({ children }) {
   const value = {
     sections, lessons, questions, answers, blits, loading,
     lang, setLang, t, getVal,
+    loadData,
     updateSection, addSection, deleteSection,
     getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons,
     getQuestionsByLesson, getQuestionById, updateQuestion, addQuestion, deleteQuestion, reorderQuestions,
     getAnswersByQuestion, updateAnswer, addAnswer, deleteAnswer,
     updateBlits, addBlits, deleteBlits, addQuestionToBlits, removeQuestionFromBlits,
-    exportAllQuestionImages, exportDescriptionImages, uploadQuestionImage,
-    uploadExplanationImage: useCallback(async (questionId, file) => {
-      if (!file) return null;
-      try {
-        const result = await uploadFile(`/manage/questions/${questionId}/explanation-image/`, file, 'file');
-        setQuestions(prev => prev.map(q =>
-          q.id === questionId ? { ...q, explanation_image: result.explanation_image } : q
-        ));
-        return result.explanation_image;
-      } catch (err) {
-        console.error('Izoh rasmi yuklashda xatolik:', err);
-        return null;
-      }
-    }, []),
+    exportAllQuestionImages, exportDescriptionImages, uploadQuestionImage, uploadExplanationImage,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

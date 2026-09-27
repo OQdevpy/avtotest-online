@@ -41,19 +41,20 @@ export default function BlitsPage() {
     getVal, t, lang,
   } = useData();
 
-  const [selectedBlitsId, setSelectedBlitsId] = useState(blits[0]?.id || null);
+  const blitsList = Array.isArray(blits) ? blits : [];
+  const [selectedBlitsId, setSelectedBlitsId] = useState(blitsList[0]?.id || null);
   const [editingNameId, setEditingNameId] = useState(null);
   const [editName, setEditName] = useState({});
   const [showPicker, setShowPicker] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
-    if (!selectedBlitsId && blits.length > 0) {
-      setSelectedBlitsId(blits[0].id);
+    if (!selectedBlitsId && blitsList.length > 0) {
+      setSelectedBlitsId(blitsList[0].id);
     }
-  }, [blits, selectedBlitsId]);
+  }, [blitsList, selectedBlitsId]);
 
-  const selectedBlits = blits.find(b => b.id === selectedBlitsId);
+  const selectedBlits = blitsList.find(b => b.id === selectedBlitsId);
 
   // Blits items ichidagi savollarni olish
   const blitsQuestions = selectedBlits && selectedBlits.items
@@ -138,7 +139,7 @@ export default function BlitsPage() {
       <div className="w-56 shrink-0 flex flex-col gap-1.5 py-5 px-3 overflow-y-auto"
         style={{ borderRight: '1px solid rgba(100,140,220,0.12)', background: 'rgba(10,18,40,0.3)' }}>
         <div className="text-[11px] text-slate-500 uppercase tracking-wider mb-2 px-2">⚡ {t('blits')}</div>
-        {blits.map(b => (
+        {blitsList.map(b => (
           <div key={b.id}
             className={`flex items-center px-3 py-2.5 rounded-md cursor-pointer transition-all gap-2 group`}
             style={{

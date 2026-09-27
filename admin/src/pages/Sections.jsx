@@ -26,7 +26,7 @@ export default function Sections() {
   };
 
   // Backend: order maydoni (eski tartib emas)
-  const sorted = [...sections].sort((a, b) => a.order - b.order);
+  const sorted = [...(Array.isArray(sections) ? sections : [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
     <div className="flex flex-col items-center px-6 py-10">
