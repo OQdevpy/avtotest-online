@@ -16,6 +16,8 @@ urlpatterns = [
     path("tickets/stats/", views.TicketStatsView.as_view(), name="ticket-stats"),
     path("tickets/<int:number>/", views.TicketDetailView.as_view(), name="ticket-detail"),
 
+    path("questions/", views.QuestionListView.as_view(), name="question-list"),
+
     path("blits/", views.BlitsListView.as_view(), name="blits-list"),
     path("blits/<int:pk>/", views.BlitsDetailView.as_view(), name="blits-detail"),
 

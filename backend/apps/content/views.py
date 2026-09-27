@@ -1,7 +1,7 @@
 import random
 
 from django.conf import settings
-from django.db.models import Count, OuterRef, Prefetch, Subquery
+from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
@@ -343,3 +343,48 @@ class BlitsDetailView(BlitsContextMixin, LangSerializerContextMixin,
 
     serializer_class = BlitsDetailSerializer
     queryset = Blits.objects.filter(is_active=True)
+
+
+# --- Questions --------------------------------------------------------------
+
+@extend_schema(
+    tags=["content"],
+    parameters=[
+        LANG_PARAM,
+        OpenApiParameter("lesson", description="Dars id'si bo'yicha filtr",
+                         required=False, type=int),
+        OpenApiParameter("section", description="Bo'lim id'si bo'yicha filtr",
+                         required=False, type=int),
+        OpenApiParameter("search", description="Savol matni bo'yicha qidiruv "
+                                              "(uz, ru va kirill ustunlari)",
+                         required=False, type=str),
+        OpenApiParameter("mode", description="`study` bo'lsa to'g'ri javob ochiq keladi",
+                         required=False, type=str),
+    ],
+)
+class QuestionListView(LangSerializerContextMixin, generics.ListAPIView):
+    """Savollar ro'yxati va qidiruv — admin-panel va darslik frontlari uchun."""
+
+    def get_serializer_class(self):
+        return question_serializer_for(self.request)
+
+    def get_queryset(self):
+        qs = visible_questions(self.request).prefetch_related("answers")
+        params = self.request.query_params
+
+        lesson = params.get("lesson")
+        if lesson:
+            qs = qs.filter(lesson_id=lesson)
+
+        section = params.get("section")
+        if section:
+            qs = qs.filter(lesson__section_id=section)
+
+        search = (params.get("search") or "").strip()
+        if search:
+            qs = qs.filter(
+                Q(text_uz__icontains=search)
+                | Q(text_ru__icontains=search)
+                | Q(text_cry__icontains=search)
+            )
+        return qs
