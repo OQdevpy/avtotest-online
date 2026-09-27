@@ -34,12 +34,18 @@ class UserManager(BaseUserManager):
         extra.setdefault("is_staff", True)
         extra.setdefault("is_superuser", True)
         extra.setdefault("is_active", True)
+        extra.setdefault("role", User.Role.ADMIN)
         if not extra["is_staff"] or not extra["is_superuser"]:
             raise ValueError("Superuser is_staff va is_superuser bo'lishi shart.")
         return self.create_user(phone, password, **extra)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    class Role(models.TextChoices):
+        STUDENT = "student", "O'quvchi"
+        TEACHER = "teacher", "O'qituvchi"
+        ADMIN = "admin", "Shef"
+
     class Language(models.TextChoices):
         UZ = "uz", "O'zbekcha (lotin)"
         KR = "kr", "Ўзбекча (кирилл)"
@@ -48,6 +54,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     phone = models.CharField(max_length=13, unique=True, db_index=True)
     full_name = models.CharField(max_length=120, blank=True)
+    role = models.CharField(
+        max_length=10, choices=Role.choices, default=Role.STUDENT, db_index=True,
+        verbose_name="Rol",
+    )
     language = models.CharField(max_length=3, choices=Language.choices, default=Language.UZ)
     dark_theme = models.BooleanField(default=False)
 
@@ -70,6 +80,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return f"{self.full_name or 'user'} ({self.phone})"
+
+    @property
+    def is_teacher(self) -> bool:
+        """O'qituvchi huquqi — o'quvchilar natijasini ko'rish. Shefda ham bor."""
+        return self.role in (self.Role.TEACHER, self.Role.ADMIN)
+
+    @property
+    def is_content_admin(self) -> bool:
+        """Kontent, foydalanuvchi va to'lovni boshqarish huquqi."""
+        return self.role == self.Role.ADMIN or self.is_superuser
 
     @property
     def pro_active(self) -> bool:

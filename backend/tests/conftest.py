@@ -38,15 +38,13 @@ def other_student(django_user_model):
 
 @pytest.fixture
 def teacher(django_user_model):
-    # Task 2 da `role="teacher"` ga o'tkaziladi.
     return django_user_model.objects.create_user(
-        "+998901110003", PASSWORD, full_name="O'qituvchi", is_staff=True
+        "+998901110003", PASSWORD, full_name="O'qituvchi", role="teacher"
     )
 
 
 @pytest.fixture
 def admin_user(django_user_model):
-    # Task 2 da `role="admin"` ga o'tkaziladi.
-    return django_user_model.objects.create_superuser(
-        "+998901110004", PASSWORD, full_name="Shef"
+    return django_user_model.objects.create_user(
+        "+998901110004", PASSWORD, full_name="Shef", role="admin", is_staff=True
     )

@@ -30,10 +30,11 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            "id", "phone", "full_name", "language", "dark_theme",
+            "id", "phone", "full_name", "role", "language", "dark_theme",
             "is_pro", "pro_until", "pro_active", "initials", "date_joined",
         )
-        read_only_fields = ("id", "phone", "is_pro", "pro_until", "date_joined")
+        # Rolni foydalanuvchi o'zi o'zgartira olmaydi — faqat shef (manage/users/).
+        read_only_fields = ("id", "phone", "role", "is_pro", "pro_until", "date_joined")
 
 
 class RegisterSerializer(serializers.Serializer):
