@@ -216,11 +216,8 @@ def test_lesson_question_count_excludes_unpublished(api, student, auth, lesson,
 
 def test_topic_question_count_excludes_unpublished(api, student, auth, lesson,
                                                    make_question, question):
-    from apps.content.models import Topic
-
-    draft = make_question(lesson, "Qoralama", order=9, published=False)
-    topic = Topic.objects.create(name_uz="Mavzu", order=1)
-    topic.questions.add(question, draft)
+    """`Mavzular` = `Darslar` — hisob ham dars bo'yicha keladi."""
+    make_question(lesson, "Qoralama", order=9, published=False)
     auth(api, student)
     assert api.get("/api/v1/topics/").json()[0]["question_count"] == 1
 

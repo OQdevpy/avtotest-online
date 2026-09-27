@@ -96,12 +96,10 @@ def test_admin_creates_section_and_lesson(api, admin_user, auth):
     assert lesson.status_code == 201
 
 
-def test_admin_creates_blits_and_topic(api, admin_user, auth):
+def test_admin_creates_blits(api, admin_user, auth):
     auth(api, admin_user)
     assert api.post("/api/v1/manage/blits/",
                     {"name_uz": "Blits 9", "order": 9}, format="json").status_code == 201
-    assert api.post("/api/v1/manage/topics/",
-                    {"name_uz": "Mavzu", "order": 1}, format="json").status_code == 201
 
 
 def test_admin_creates_ticket(api, admin_user, auth):

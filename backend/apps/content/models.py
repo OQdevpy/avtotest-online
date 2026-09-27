@@ -157,28 +157,6 @@ class TicketQuestion(models.Model):
         unique_together = ("ticket", "question")
 
 
-class Topic(models.Model):
-    """PDD topics list shown on the mobile Topics screen.
-
-    Kept separate from `Section` because the design lists ~7 finer-grained
-    topics with their own question counts.
-    """
-
-    name_uz = models.CharField(max_length=255)
-    name_ru = models.CharField(max_length=255, blank=True)
-    name_cry = models.CharField(max_length=255, blank=True)
-    order = models.PositiveIntegerField(default=0, db_index=True)
-    questions = models.ManyToManyField(Question, related_name="topics", blank=True)
-
-    class Meta:
-        ordering = ("order", "id")
-        verbose_name = "Mavzu"
-        verbose_name_plural = "Mavzular"
-
-    def __str__(self) -> str:
-        return self.name_uz
-
-
 class Blits(models.Model):
     """Blits — nomlangan savollar to'plami (admin-panel'dagi `blits.json`).
 

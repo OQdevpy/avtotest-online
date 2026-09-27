@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 
 from common.compat import CompatFieldsMixin
 from common.lang import TranslatedField
-from .models import Answer, Blits, Lesson, Question, Section, Ticket, Topic
+from .models import Answer, Blits, Lesson, Question, Section, Ticket
 
 
 class AnswerSerializer(CompatFieldsMixin, serializers.ModelSerializer):
@@ -172,41 +172,6 @@ class SectionDetailSerializer(SectionSerializer):
 
     class Meta(SectionSerializer.Meta):
         fields = SectionSerializer.Meta.fields + ("lessons",)
-
-
-class TopicSerializer(serializers.ModelSerializer):
-    name = TranslatedField("name")
-    question_count = serializers.IntegerField(read_only=True, default=0)
-
-    class Meta:
-        model = Topic
-        fields = ("id", "name", "order", "question_count")
-
-
-class TopicDetailSerializer(TopicSerializer):
-    """Mavzu + uning savollari (mobil `TopicDetail` ekrani)."""
-
-    questions = serializers.SerializerMethodField()
-
-    class Meta(TopicSerializer.Meta):
-        fields = TopicSerializer.Meta.fields + ("questions",)
-
-    @extend_schema_field(QuestionSerializer(many=True))
-    def get_questions(self, obj):
-        qs = self._visible(obj.questions).prefetch_related("answers")
-        serializer_cls = (
-            QuestionPublicSerializer
-            if self.context.get("hide_answers")
-            else QuestionSerializer
-        )
-        return serializer_cls(qs, many=True, context=self.context).data
-
-    def _visible(self, related):
-        """Nashr etilmaganini kesib tashlaydi (o'qituvchi/shefga hammasi ochiq)."""
-        allowed = self.context.get("visible_questions")
-        if allowed is None:
-            return related
-        return related.filter(pk__in=allowed.values("pk"))
 
 
 class TicketSerializer(serializers.ModelSerializer):

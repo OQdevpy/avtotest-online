@@ -48,14 +48,11 @@ def test_unpublished_hidden_from_ticket_detail(api, student, auth, ticket, lesso
 
 
 def test_unpublished_hidden_from_topic_detail(api, student, auth, lesson, make_question):
-    from apps.content.models import Topic
-
-    shown = make_question(lesson, "Ko'rinadigan", order=1)
-    hidden = make_question(lesson, "Yashirin mavzu savoli", order=2, published=False)
-    topic = Topic.objects.create(name_uz="Mavzu", order=1)
-    topic.questions.add(shown, hidden)
+    """`Mavzular` = `Darslar` — /topics/{lesson.id}/ ham dars filtriga bo'ysunadi."""
+    make_question(lesson, "Ko'rinadigan", order=1)
+    make_question(lesson, "Yashirin mavzu savoli", order=2, published=False)
     auth(api, student)
-    body = api.get(f"/api/v1/topics/{topic.id}/").json()
+    body = api.get(f"/api/v1/topics/{lesson.id}/").json()
     assert "Yashirin mavzu savoli" not in _texts(body["questions"])
 
 

@@ -30,10 +30,9 @@ from .manage_serializers import (
     ManageQuestionSerializer,
     ManageSectionSerializer,
     ManageTicketSerializer,
-    ManageTopicSerializer,
     ReorderSerializer,
 )
-from .models import Answer, Blits, BlitsQuestion, Lesson, Question, Section, Ticket, Topic
+from .models import Answer, Blits, BlitsQuestion, Lesson, Question, Section, Ticket
 
 
 class ReorderMixin:
@@ -165,13 +164,6 @@ class ManageAnswerViewSet(ReorderMixin, viewsets.ModelViewSet):
         qs = super().get_queryset()
         question = self.request.query_params.get("question")
         return qs.filter(question_id=question) if question else qs
-
-
-@extend_schema(tags=["manage"])
-class ManageTopicViewSet(ReorderMixin, viewsets.ModelViewSet):
-    permission_classes = [IsAdminRole]
-    queryset = Topic.objects.all()
-    serializer_class = ManageTopicSerializer
 
 
 @extend_schema(tags=["manage"])

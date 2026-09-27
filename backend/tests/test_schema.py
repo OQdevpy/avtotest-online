@@ -44,7 +44,6 @@ PROMISED = [
     "/api/v1/manage/lessons/",
     "/api/v1/manage/questions/",
     "/api/v1/manage/answers/",
-    "/api/v1/manage/topics/",
     "/api/v1/manage/tickets/",
     "/api/v1/manage/blits/",
     "/api/v1/manage/questions/{id}/image/",

@@ -9,7 +9,6 @@ from .models import (
     Section,
     Ticket,
     TicketQuestion,
-    Topic,
 )
 
 
@@ -99,15 +98,6 @@ class TicketAdmin(admin.ModelAdmin):
     def question_count(self, obj):
         return obj.items.count()
 
-
-@admin.register(Topic)
-class TopicAdmin(admin.ModelAdmin):
-    list_display = ("order", "name_uz", "question_count")
-    search_fields = ("name_uz", "name_ru", "name_cry")
-
-    @admin.display(description="Savollar")
-    def question_count(self, obj):
-        return obj.questions.count()
 
 
 class BlitsQuestionInline(admin.TabularInline):

@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 
 from apps.progress.models import LessonResult, TicketResult
 from common.lang import LangSerializerContextMixin, resolve_lang
-from .models import Blits, Lesson, Question, Section, Ticket, Topic
+from .models import Blits, Lesson, Question, Section, Ticket
 
 
 def visible_questions(request):
@@ -52,8 +52,6 @@ from .serializers import (
     SectionSerializer,
     TicketDetailSerializer,
     TicketSerializer,
-    TopicDetailSerializer,
-    TopicSerializer,
 )
 
 LANG_PARAM = OpenApiParameter(
@@ -195,48 +193,19 @@ class LessonDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
         return ctx
 
 
-# --- Topics -----------------------------------------------------------------
+# --- Topics -------------------------------------------------------------
+# "Mavzular" (Topic) alohida jadval sifatida hech qachon to'ldirilmagan
+# (import buyruqlarining birortasi uni yozmagan) — shef panelida u doim
+# bo'sh ko'rinardi. Shef qarori: Mavzular = Darslar, bitta ma'lumot manbai.
+# /topics/ yo'li mobil ilova bilan moslik uchun saqlanadi, lekin endi
+# to'g'ridan-to'g'ri Lesson'dan uzatiladi.
 
-@extend_schema(tags=["content"], parameters=[LANG_PARAM])
-class TopicListView(LangSerializerContextMixin, generics.ListAPIView):
-    """Mavzular ro'yxati (mobil `Topics` ekrani)."""
-
-    serializer_class = TopicSerializer
-    pagination_class = None
-
-    def get_queryset(self):
-        return Topic.objects.annotate(
-            question_count=count_questions(self.request, "questions")
-        )
+class TopicListView(LessonListView):
+    """Mavzular ro'yxati — Darslar bilan bir xil (mobil `Topics` ekrani)."""
 
 
-@extend_schema(
-    tags=["content"],
-    parameters=[
-        LANG_PARAM,
-        OpenApiParameter(
-            "mode",
-            description="`study` bo'lsa to'g'ri javob ochiq qaytadi, aks holda yashiriladi",
-            required=False,
-            type=str,
-        ),
-    ],
-)
-class TopicDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
-    """Bitta mavzu va uning savollari (mobil `TopicDetail` ekrani)."""
-
-    serializer_class = TopicDetailSerializer
-
-    def get_queryset(self):
-        return Topic.objects.annotate(
-            question_count=count_questions(self.request, "questions")
-        )
-
-    def get_serializer_context(self):
-        ctx = super().get_serializer_context()
-        ctx["hide_answers"] = hide_answers_for(self.request)
-        ctx["visible_questions"] = visible_questions(self.request)
-        return ctx
+class TopicDetailView(LessonDetailView):
+    """Bitta mavzu va uning savollari — Darslar bilan bir xil."""
 
 
 # --- Tickets ----------------------------------------------------------------

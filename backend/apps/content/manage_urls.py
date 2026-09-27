@@ -9,7 +9,6 @@ router.register(r"sections", manage_views.ManageSectionViewSet, basename="manage
 router.register(r"lessons", manage_views.ManageLessonViewSet, basename="manage-lesson")
 router.register(r"questions", manage_views.ManageQuestionViewSet, basename="manage-question")
 router.register(r"answers", manage_views.ManageAnswerViewSet, basename="manage-answer")
-router.register(r"topics", manage_views.ManageTopicViewSet, basename="manage-topic")
 router.register(r"tickets", manage_views.ManageTicketViewSet, basename="manage-ticket")
 router.register(r"blits", manage_views.ManageBlitsViewSet, basename="manage-blits")
 router.register(r"blits-questions", manage_views.ManageBlitsQuestionViewSet,

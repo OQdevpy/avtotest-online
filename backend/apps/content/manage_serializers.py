@@ -16,7 +16,6 @@ from .models import (
     Section,
     Ticket,
     TicketQuestion,
-    Topic,
 )
 
 
@@ -43,12 +42,6 @@ class ManageQuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Question
-        fields = "__all__"
-
-
-class ManageTopicSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Topic
         fields = "__all__"
 
 
