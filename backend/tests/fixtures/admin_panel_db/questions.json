@@ -1,0 +1,5 @@
+[
+  {"id": 55, "lesson_id": 16, "question_uz": "Yo'l belgilari nechta guruhga bo'linadi?", "question_ru": "Сколько групп дорожных знаков?", "question_cry": "Йўл белгилари нечта гуруҳга бўлинади?", "image": "", "tartib": 1, "is_in_web": false, "description_image": ""},
+  {"id": 56, "lesson_id": 16, "question_uz": "Ogohlantiruvchi belgi qanday shaklda?", "question_ru": "Какой формы предупреждающий знак?", "question_cry": "Огоҳлантирувчи белги қандай шаклда?", "image": "images/56.webp", "tartib": 2, "is_in_web": true, "description_image": "images/desc_56.webp"},
+  {"id": 57, "lesson_id": 17, "question_uz": "Ustuvorlik belgisi nima?", "question_ru": "Что такое знак приоритета?", "question_cry": "Устуворлик белгиси нима?", "image": "", "tartib": 1, "is_in_web": false, "description_image": ""}
+]
