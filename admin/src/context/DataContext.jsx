@@ -76,7 +76,26 @@ export function DataProvider({ children }) {
       setSections(toList(sec));
       setLessons(toList(les));
       setBlits(toList(bli));
-      console.log('✅ Asosiy ma\'lumotlar backenddan yuklandi');
+
+      // Barcha savollarni yuklash (har birida answers bor)
+      const allQuestions = [];
+      const allAnswers = [];
+      let page = 1;
+      while (true) {
+        const qRes = await fetchJSON(`/manage/questions/?page_size=200&page=${page}`);
+        const qList = toList(qRes);
+        allQuestions.push(...qList);
+        qList.forEach(q => {
+          if (q.answers && Array.isArray(q.answers)) {
+            allAnswers.push(...q.answers);
+          }
+        });
+        if (!qRes.next || qList.length === 0) break;
+        page++;
+      }
+      setQuestions(allQuestions);
+      setAnswers(allAnswers);
+      console.log(`✅ ${allQuestions.length} ta savol va ${allAnswers.length} ta javob yuklandi`);
     } catch (err) {
       console.error('❌ Ma\'lumotlarni yuklashda xatolik:', err);
     } finally {
@@ -280,8 +299,11 @@ export function DataProvider({ children }) {
   }, []);
 
   // ── Answer CRUD ──
-  const getAnswersByQuestion = useCallback((questionId) =>
-    answers.filter(a => a.question === questionId).sort((a, b) => a.id - b.id), [answers]);
+  const getAnswersByQuestion = useCallback((questionId) => {
+    const q = questions.find(item => item.id === questionId);
+    if (q && q.answers && q.answers.length > 0) return q.answers;
+    return answers.filter(a => a.question === questionId).sort((a, b) => a.id - b.id);
+  }, [questions, answers]);
     
   const updateAnswer = useCallback(async (id, updates) => {
     try {
