@@ -21,6 +21,7 @@ api_v1 = [
     path("auth/", include("apps.accounts.urls")),
     path("auth/", include("apps.telegramauth.urls")),
     path("manage/", include("apps.accounts.manage_urls")),
+    path("manage/", include("apps.content.manage_urls")),
     path("", include("apps.content.urls")),
     path("progress/", include("apps.progress.urls")),
     path("notifications/", include("apps.notifications.urls")),
