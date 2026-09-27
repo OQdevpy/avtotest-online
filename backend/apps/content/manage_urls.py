@@ -12,5 +12,7 @@ router.register(r"answers", manage_views.ManageAnswerViewSet, basename="manage-a
 router.register(r"topics", manage_views.ManageTopicViewSet, basename="manage-topic")
 router.register(r"tickets", manage_views.ManageTicketViewSet, basename="manage-ticket")
 router.register(r"blits", manage_views.ManageBlitsViewSet, basename="manage-blits")
+router.register(r"blits-questions", manage_views.ManageBlitsQuestionViewSet,
+                basename="manage-blits-question")
 
 urlpatterns = router.urls

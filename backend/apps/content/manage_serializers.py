@@ -67,9 +67,15 @@ class ManageTicketSerializer(serializers.ModelSerializer):
 
 
 class ManageBlitsQuestionSerializer(serializers.ModelSerializer):
+    """Blits ichidagi savol bog'lanishi.
+
+    `blits` maydoni yozish uchun ochiq — admin-panel bitta so'rov bilan qaysi
+    blitsga qaysi savol tegishli ekanini bildiradi (`manage/blits-questions/`).
+    """
+
     class Meta:
         model = BlitsQuestion
-        fields = ("id", "question", "order")
+        fields = ("id", "blits", "question", "order")
 
 
 class ManageBlitsSerializer(serializers.ModelSerializer):

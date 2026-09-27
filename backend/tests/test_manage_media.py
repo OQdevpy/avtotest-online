@@ -96,6 +96,33 @@ def test_audio_upload_keeps_extension(api, admin_user, auth, question, media_roo
     assert (media_root / question.audio).exists()
 
 
+def test_explanation_image_uploaded_as_webp(api, admin_user, auth, question, media_root):
+    auth(api, admin_user)
+    response = upload(api, question,
+                      {"file": SimpleUploadedFile("izoh.png", png_bytes(), "image/png")},
+                      field="explanation-image")
+    assert response.status_code == 200
+    assert response.json()["explanation_image"].endswith(".webp")
+    question.refresh_from_db()
+    assert (media_root / question.explanation_image).exists()
+
+
+def test_explanation_image_rejects_non_image(api, admin_user, auth, question, media_root):
+    auth(api, admin_user)
+    response = upload(api, question,
+                      {"file": SimpleUploadedFile("a.txt", b"salom", "text/plain")},
+                      field="explanation-image")
+    assert response.status_code == 400
+
+
+def test_student_cannot_upload_explanation_image(api, student, auth, question, media_root):
+    auth(api, student)
+    response = upload(api, question,
+                      {"file": SimpleUploadedFile("izoh.png", png_bytes(), "image/png")},
+                      field="explanation-image")
+    assert response.status_code == 403
+
+
 def test_audio_rejects_unsupported_extension(api, admin_user, auth, question, media_root):
     auth(api, admin_user)
     response = upload(api, question,

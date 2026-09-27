@@ -5,7 +5,9 @@ const TestContext = createContext(null);
 const ContextProvider = ({ children }) => {
     const [active, setActive] = useState(true);
     const [loading, setLoading] = useState(true);
+    // const URL = import.meta.env.VITE_API_URL;
     const URL = import.meta.env.VITE_API_URL;
+
     const media_path = import.meta.env.VITE_MEDIA_BASE_URL;
 
     const DefaultImge = './static-images/default_image.jpg';

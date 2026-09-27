@@ -156,3 +156,60 @@ def test_student_cannot_reorder(api, student, auth, lesson):
     auth(api, student)
     assert api.post("/api/v1/manage/lessons/reorder/",
                     {"ids": [lesson.id]}, format="json").status_code == 403
+
+
+# --- Blits ichidagi savollar (manage/blits-questions/) ----------------------
+# admin-panel's blits sahifasi savolni blitsga qo'shadi, o'chiradi va
+# tartiblaydi — `ManageBlitsSerializer.items` faqat o'qish uchun bo'lgani
+# sabab bu yozish yo'li alohida kerak edi.
+
+def test_admin_adds_question_to_blits(api, admin_user, auth, blits, lesson, make_question):
+    from apps.content.models import BlitsQuestion
+
+    extra = make_question(lesson, "Yangi blits savoli", order=9)
+    auth(api, admin_user)
+    response = api.post("/api/v1/manage/blits-questions/",
+                        {"blits": blits.id, "question": extra.id, "order": 3},
+                        format="json")
+    assert response.status_code == 201
+    assert BlitsQuestion.objects.filter(blits=blits, question=extra).exists()
+
+
+def test_admin_removes_question_from_blits(api, admin_user, auth, blits):
+    from apps.content.models import BlitsQuestion, Question
+
+    link = blits.items.first()
+    question_id = link.question_id
+    auth(api, admin_user)
+    assert api.delete(f"/api/v1/manage/blits-questions/{link.id}/").status_code == 204
+    assert not BlitsQuestion.objects.filter(pk=link.pk).exists()
+    # Savolning o'zi o'chmaydi — faqat blitsdagi bog'lanish.
+    assert Question.objects.filter(pk=question_id).exists()
+
+
+def test_admin_lists_blits_questions_filtered_by_blits(api, admin_user, auth, blits):
+    auth(api, admin_user)
+    response = api.get(f"/api/v1/manage/blits-questions/?blits={blits.id}")
+    assert response.status_code == 200
+    assert len(response.json()["results"]) == 3
+
+
+def test_admin_reorders_questions_within_blits(api, admin_user, auth, blits):
+    from apps.content.models import BlitsQuestion
+
+    ids = list(blits.items.order_by("order").values_list("id", flat=True))
+    auth(api, admin_user)
+    response = api.post("/api/v1/manage/blits-questions/reorder/",
+                        {"ids": [ids[2], ids[0], ids[1]]}, format="json")
+    assert response.status_code == 200
+    assert list(BlitsQuestion.objects.order_by("order").values_list("id", flat=True)) == [
+        ids[2], ids[0], ids[1],
+    ]
+
+
+def test_student_cannot_add_question_to_blits(api, student, auth, blits, question):
+    auth(api, student)
+    response = api.post("/api/v1/manage/blits-questions/",
+                        {"blits": blits.id, "question": question.id, "order": 0},
+                        format="json")
+    assert response.status_code == 403

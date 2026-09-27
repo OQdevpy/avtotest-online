@@ -24,6 +24,7 @@ from .media import (
 )
 from .manage_serializers import (
     ManageAnswerSerializer,
+    ManageBlitsQuestionSerializer,
     ManageBlitsSerializer,
     ManageLessonSerializer,
     ManageQuestionSerializer,
@@ -32,7 +33,7 @@ from .manage_serializers import (
     ManageTopicSerializer,
     ReorderSerializer,
 )
-from .models import Answer, Blits, Lesson, Question, Section, Ticket, Topic
+from .models import Answer, Blits, BlitsQuestion, Lesson, Question, Section, Ticket, Topic
 
 
 class ReorderMixin:
@@ -103,6 +104,24 @@ class _MediaUploadMixin:
         question.save(update_fields=["audio"])
         return Response({"audio": relative})
 
+    # admin-panel'dagi "izoh rasmi" (description_image) shu maydonga to'g'ri
+    # keladi. `image` bilan bir xil qoida: WebP'ga o'giriladi, eskisi o'chadi.
+    @extend_schema(request=None, responses={200: None})
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser],
+            url_path="explanation-image")
+    def explanation_image(self, request, pk=None):
+        question = self.get_object()
+        upload = self._uploaded(request)
+        try:
+            relative = to_webp(upload, unique_name(f"q{question.pk}_izoh"))
+        except UnreadableImage as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+
+        remove_quietly(question.explanation_image)
+        question.explanation_image = relative
+        question.save(update_fields=["explanation_image"])
+        return Response({"explanation_image": relative})
+
 
 @extend_schema(tags=["manage"])
 class ManageSectionViewSet(ReorderMixin, viewsets.ModelViewSet):
@@ -167,3 +186,25 @@ class ManageBlitsViewSet(ReorderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
     queryset = Blits.objects.prefetch_related("items")
     serializer_class = ManageBlitsSerializer
+
+
+@extend_schema(tags=["manage"])
+class ManageBlitsQuestionViewSet(ReorderMixin, viewsets.ModelViewSet):
+    """Blits ichidagi savollarni qo'shish/o'chirish/tartiblash.
+
+    `ManageBlitsSerializer.items` faqat o'qish uchun edi — shef qaysi savolni
+    qaysi blitsga qo'shishni shu endpoint orqali yozadi:
+    `POST manage/blits-questions/ {"blits": 1, "question": 55, "order": 0}`,
+    `DELETE manage/blits-questions/{id}/` bog'lanishni (savolni o'zini emas)
+    o'chiradi, `POST manage/blits-questions/reorder/ {"ids": [...]}` bitta
+    blits ichidagi tartibni belgilaydi.
+    """
+
+    permission_classes = [IsAdminRole]
+    queryset = BlitsQuestion.objects.select_related("question", "blits")
+    serializer_class = ManageBlitsQuestionSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        blits = self.request.query_params.get("blits")
+        return qs.filter(blits_id=blits) if blits else qs
