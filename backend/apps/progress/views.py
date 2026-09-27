@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.lang import LangSerializerContextMixin
+from .services import user_stats
 from .models import (
     BlitsResult,
     ExamAttempt, LessonResult, Mistake, QuestionAttempt, SavedQuestion, TicketResult,
@@ -171,37 +172,7 @@ class SavedQuestionDeleteView(APIView):
 @extend_schema(tags=["progress"], description="Statistika ekrani uchun umumiy raqamlar.")
 class StatsView(APIView):
     def get(self, request):
-        user = request.user
-        attempts = QuestionAttempt.objects.filter(user=user).aggregate(
-            started=Count("id"),
-            right=Count("id", filter=Q(is_correct=True)),
-            wrong=Count("id", filter=Q(is_correct=False)),
-        )
-        lessons = LessonResult.objects.filter(user=user).aggregate(
-            runs=Count("id"), best=Sum("score")
-        )
-        exams = ExamAttempt.objects.filter(user=user)
-        return Response(
-            {
-                "questions": attempts,
-                "lessons": {
-                    "runs": lessons["runs"] or 0,
-                    "distinct": LessonResult.objects.filter(user=user)
-                    .values("lesson").distinct().count(),
-                },
-                "tickets": {
-                    "done": TicketResult.objects.filter(user=user)
-                    .values("ticket").distinct().count(),
-                },
-                "exams": {
-                    "attempts": exams.count(),
-                    "passed": sum(1 for e in exams if e.passed),
-                },
-                "mistakes": Mistake.objects.filter(
-                    user=user, resolved=False, wrong_count__gt=0
-                ).count(),
-            }
-        )
+        return Response(user_stats(request.user))
 
 
 @extend_schema(tags=["progress"], description="Barcha statistikani tozalash (mobil Profil ekrani).")

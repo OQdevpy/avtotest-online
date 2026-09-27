@@ -20,6 +20,7 @@ from common.views import privacy_policy
 api_v1 = [
     path("auth/", include("apps.accounts.urls")),
     path("auth/", include("apps.telegramauth.urls")),
+    path("teacher/", include("apps.accounts.teacher_urls")),
     path("manage/", include("apps.accounts.manage_urls")),
     path("manage/", include("apps.content.manage_urls")),
     path("manage/", include("apps.billing.urls")),
