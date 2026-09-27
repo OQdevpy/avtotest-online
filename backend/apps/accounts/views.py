@@ -12,7 +12,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import AccessCode, SocialAccount, User
+from .models import AccessCode, SocialAccount, User, placeholder_phone
 from .serializers import (
     AccessCodeLoginSerializer,
     AccessCodeSerializer,
@@ -28,6 +28,7 @@ from .serializers import (
 from common.permissions import IsAdminRole
 
 from .devices import DeviceLimitReached, device_for_refresh, rotate
+from .social import SocialVerificationError, verify_social_token
 from .models import Device
 
 
@@ -76,11 +77,10 @@ class LoginView(generics.GenericAPIView):
 
 @extend_schema(tags=["auth"])
 class SocialLoginView(generics.GenericAPIView):
-    """Apple / Google / Telegram / Email sign-in.
+    """Apple / Google / Telegram orqali kirish.
 
-    TODO(auth): verify the provider token server-side before trusting `uid`
-    (Apple: identity token JWT; Google: tokeninfo; Telegram: login-widget hash).
-    Until then this endpoint must not be exposed in production.
+    Provayder tokeni server tomonda tekshiriladi (`apps.accounts.social`).
+    Mijoz yuborgan `uid` ga o'z-o'zidan ishonilmaydi.
     """
 
     serializer_class = SocialLoginSerializer
@@ -91,6 +91,15 @@ class SocialLoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
+        try:
+            verified = verify_social_token(
+                data["provider"], data.get("token", ""), data["uid"]
+            )
+        except SocialVerificationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_401_UNAUTHORIZED)
+        data["uid"] = verified["uid"]
+        data["email"] = data.get("email") or verified["email"]
 
         link = (
             SocialAccount.objects
@@ -105,10 +114,10 @@ class SocialLoginView(generics.GenericAPIView):
         user = User.objects.filter(phone=phone).first() if phone else None
         created = False
         if user is None:
-            # Social-only accounts have no phone yet; a placeholder keeps the
-            # unique constraint satisfied until the user adds a real number.
+            # Telefonsiz ijtimoiy hisob — unique cheklovi buzilmasligi uchun
+            # o'rinbosar raqam. Foydalanuvchi haqiqiy raqamini kiritgach almashadi.
             user = User.objects.create_user(
-                phone=phone or f"+998{data['uid'][-9:].rjust(9, '0')}",
+                phone=phone or placeholder_phone(data["provider"], data["uid"]),
                 full_name=data.get("full_name", ""),
             )
             created = True

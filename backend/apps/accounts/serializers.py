@@ -91,13 +91,14 @@ class LoginSerializer(serializers.Serializer):
 
 
 class SocialLoginSerializer(serializers.Serializer):
-    """Signs a user in via an external provider.
+    """Tashqi provayder orqali kirish.
 
-    `uid` must already be verified against the provider by the caller/view —
-    see the TODO in `views.SocialLoginView`.
+    `token` majburiy — `views.SocialLoginView` uni provayderda tekshiradi va
+    `uid` ni tasdiqlangan qiymat bilan almashtiradi.
     """
 
     provider = serializers.ChoiceField(choices=SocialAccount.Provider.choices)
+    token = serializers.CharField()
     uid = serializers.CharField(max_length=191)
     email = serializers.EmailField(required=False, allow_blank=True)
     full_name = serializers.CharField(max_length=120, required=False, allow_blank=True)

@@ -237,6 +237,12 @@ ACCESS_CODE_DAYS = 12
 # Token faqat .env'da saqlanadi (hech qachon kodga yozilmaydi).
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
 
+# --- Ijtimoiy kirish --------------------------------------------------------
+# Provayder sozlanmagan bo'lsa u orqali kirish ham ochilmaydi — token
+# tekshiruvisiz ishlash imkoni yo'q (apps/accounts/social.py).
+APPLE_BUNDLE_ID = env("APPLE_BUNDLE_ID")
+GOOGLE_CLIENT_IDS = env_list("GOOGLE_CLIENT_IDS")
+
 # --- Redis ------------------------------------------------------------------
 # Bir martalik tasdiqlash kodlari (OTP) TTL bilan Redis'da saqlanadi
 # (bazada emas). Bog'lanish (TelegramAccount) esa Postgres'da qoladi.
