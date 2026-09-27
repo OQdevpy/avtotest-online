@@ -7,7 +7,7 @@ follows the user across devices.
 from django.conf import settings
 from django.db import models
 
-from apps.content.models import Answer, Lesson, Question, Ticket
+from apps.content.models import Answer, Blits, Lesson, Question, Ticket
 
 
 class LessonResult(models.Model):
@@ -45,6 +45,23 @@ class TicketResult(models.Model):
     class Meta:
         ordering = ("-created_at",)
         indexes = [models.Index(fields=["user", "ticket", "-score"])]
+
+
+class BlitsResult(models.Model):
+    """Bitta blits to'plamining yakunlangan urinishi."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             related_name="blits_results")
+    blits = models.ForeignKey(Blits, on_delete=models.CASCADE, related_name="results")
+    score = models.PositiveIntegerField()
+    total = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["user", "blits", "-score"])]
+        verbose_name = "Blits natijasi"
+        verbose_name_plural = "Blits natijalari"
 
 
 class ExamAttempt(models.Model):

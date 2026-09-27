@@ -6,9 +6,12 @@ from rest_framework.views import APIView
 
 from common.lang import LangSerializerContextMixin
 from .models import (
+    BlitsResult,
     ExamAttempt, LessonResult, Mistake, QuestionAttempt, SavedQuestion, TicketResult,
 )
 from .serializers import (
+    BlitsResultSerializer,
+    BlitsSubmitSerializer,
     ExamAttemptSerializer,
     ExamSubmitSerializer,
     LessonResultSerializer,
@@ -82,6 +85,24 @@ class ExamAttemptListCreateView(OwnedListMixin, generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         attempt = serializer.save()
         return Response(ExamAttemptSerializer(attempt).data, status=status.HTTP_201_CREATED)
+
+
+@extend_schema(tags=["progress"], description="Blits natijasini yuborish va ro'yxat.")
+class BlitsResultListCreateView(OwnedListMixin, generics.ListCreateAPIView):
+    queryset = BlitsResult.objects.all()
+
+    def get_serializer_class(self):
+        return (
+            BlitsSubmitSerializer if self.request.method == "POST"
+            else BlitsResultSerializer
+        )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        return Response(BlitsResultSerializer(result).data,
+                        status=status.HTTP_201_CREATED)
 
 
 # --- Mistakes ---------------------------------------------------------------
@@ -190,6 +211,7 @@ class ResetProgressView(APIView):
         deleted = {
             "lesson_results": LessonResult.objects.filter(user=user).delete()[0],
             "ticket_results": TicketResult.objects.filter(user=user).delete()[0],
+            "blits_results": BlitsResult.objects.filter(user=user).delete()[0],
             "exam_attempts": ExamAttempt.objects.filter(user=user).delete()[0],
             "question_attempts": QuestionAttempt.objects.filter(user=user).delete()[0],
             "mistakes": Mistake.objects.filter(user=user).delete()[0],

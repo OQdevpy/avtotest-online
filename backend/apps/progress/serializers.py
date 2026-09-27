@@ -2,9 +2,10 @@ from django.conf import settings
 from django.db import transaction
 from rest_framework import serializers
 
-from apps.content.models import Answer, Lesson, Question, Ticket
+from apps.content.models import Answer, Blits, Lesson, Question, Ticket
 from apps.content.serializers import QuestionSerializer
 from .models import (
+    BlitsResult,
     ExamAttempt, LessonResult, Mistake, QuestionAttempt, SavedQuestion, TicketResult,
 )
 
@@ -85,6 +86,26 @@ class TicketResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketResult
         fields = ("id", "ticket", "score", "total", "created_at")
+
+
+class BlitsSubmitSerializer(serializers.Serializer):
+    blits = serializers.PrimaryKeyRelatedField(queryset=Blits.objects.all())
+    items = AttemptItemSerializer(many=True)
+
+    @transaction.atomic
+    def create(self, validated):
+        user = self.context["request"].user
+        items = validated["items"]
+        score = record_attempts(user, items)
+        return BlitsResult.objects.create(
+            user=user, blits=validated["blits"], score=score, total=len(items)
+        )
+
+
+class BlitsResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlitsResult
+        fields = ("id", "blits", "score", "total", "created_at")
 
 
 class ExamSubmitSerializer(serializers.Serializer):

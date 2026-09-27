@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    BlitsResult,
     ExamAttempt, LessonResult, Mistake, QuestionAttempt, SavedQuestion, TicketResult,
 )
 
@@ -48,3 +49,9 @@ class MistakeAdmin(admin.ModelAdmin):
     list_filter = ("resolved",)
     search_fields = ("user__phone",)
     list_select_related = ("user", "question")
+
+
+@admin.register(BlitsResult)
+class BlitsResultAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "blits", "score", "total", "created_at")
+    search_fields = ("user__phone", "user__full_name")

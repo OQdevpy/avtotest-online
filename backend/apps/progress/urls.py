@@ -7,6 +7,8 @@ urlpatterns = [
     path("ticket-results/", views.TicketResultListCreateView.as_view(), name="ticket-results"),
     path("exam-attempts/", views.ExamAttemptListCreateView.as_view(), name="exam-attempts"),
 
+    path("blits-results/", views.BlitsResultListCreateView.as_view(),
+         name="blits-result-list"),
     path("mistakes/", views.MistakeListView.as_view(), name="mistake-list"),
     path("mistakes/<int:pk>/resolve/", views.MistakeResolveView.as_view(), name="mistake-resolve"),
 
