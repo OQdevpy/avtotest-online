@@ -110,3 +110,9 @@ def blits(lesson, make_question):
         question = make_question(lesson, f"Blits savol {index}", order=index)
         BlitsQuestion.objects.create(blits=blits, question=question, order=index)
     return blits
+
+
+@pytest.fixture
+def many_questions(lesson):
+    """Imtihon uchun yetarli savol (20 rejimi 20 ta savol so'raydi)."""
+    return [_make_question(lesson, f"Savol {i}", order=i) for i in range(25)]

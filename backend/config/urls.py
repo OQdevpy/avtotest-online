@@ -23,6 +23,7 @@ api_v1 = [
     path("manage/", include("apps.accounts.manage_urls")),
     path("manage/", include("apps.content.manage_urls")),
     path("", include("apps.content.urls")),
+    path("exams/", include("apps.exams.urls")),
     path("progress/", include("apps.progress.urls")),
     path("notifications/", include("apps.notifications.urls")),
 ]

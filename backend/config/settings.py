@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     # local
     "apps.accounts",
     "apps.content",
+    "apps.exams",
     "apps.progress",
     "apps.notifications",
     "apps.telegramauth",

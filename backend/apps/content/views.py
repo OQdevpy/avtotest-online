@@ -263,6 +263,7 @@ class TicketStatsView(APIView):
 
 @extend_schema(
     tags=["exam"],
+    deprecated=True,
     parameters=[
         LANG_PARAM,
         OpenApiParameter("count", description="20 yoki 50", required=False, type=int),
@@ -277,6 +278,12 @@ class TicketStatsView(APIView):
     description="Tasodifiy imtihon savollarini generatsiya qiladi (mobil `Exam` ekrani).",
 )
 class ExamGenerateView(APIView):
+    """DEPRECATED — `POST exams/start/` ni ishlating.
+
+    Do'kondagi mobil ilova shu yo'ldan foydalanadi, shuning uchun ishlashda
+    davom etadi. Server bu yerda sessiya yozmaydi va vaqtni nazorat qilmaydi.
+    """
+
     def get(self, request):
         try:
             count = int(request.query_params.get("count", 20))

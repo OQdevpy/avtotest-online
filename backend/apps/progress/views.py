@@ -66,6 +66,12 @@ class TicketResultListCreateView(OwnedListMixin, generics.ListCreateAPIView):
 
 @extend_schema(tags=["progress"])
 class ExamAttemptListCreateView(OwnedListMixin, generics.ListCreateAPIView):
+    """POST — DEPRECATED, `POST exams/{id}/finish/` ni ishlating.
+
+    Do'kondagi mobil ilova natijani shu yerga yuboradi. GET (statistika uchun)
+    o'z kuchida qoladi.
+    """
+
     queryset = ExamAttempt.objects.all()
 
     def get_serializer_class(self):
