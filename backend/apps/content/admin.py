@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Answer, Lesson, Question, Section, Ticket, TicketQuestion, Topic
+from .models import Blits, BlitsQuestion, Answer, Lesson, Question, Section, Ticket, TicketQuestion, Topic
 
 
 class LessonInline(admin.TabularInline):
@@ -85,3 +85,17 @@ class TopicAdmin(admin.ModelAdmin):
     @admin.display(description="Savollar")
     def question_count(self, obj):
         return obj.questions.count()
+
+
+class BlitsQuestionInline(admin.TabularInline):
+    model = BlitsQuestion
+    extra = 0
+    autocomplete_fields = ("question",)
+
+
+@admin.register(Blits)
+class BlitsAdmin(admin.ModelAdmin):
+    list_display = ("id", "name_uz", "order", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name_uz", "name_ru", "name_cry")
+    inlines = [BlitsQuestionInline]

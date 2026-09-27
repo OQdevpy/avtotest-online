@@ -2,7 +2,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from common.lang import TranslatedField
-from .models import Answer, Lesson, Question, Section, Ticket, Topic
+from .models import Answer, Blits, Lesson, Question, Section, Ticket, Topic
 
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -216,3 +216,40 @@ class TicketDetailSerializer(TicketSerializer):
             else QuestionSerializer
         )
         return serializer_cls(qs, many=True, context=self.context).data
+
+
+class BlitsSerializer(serializers.ModelSerializer):
+    name = TranslatedField("name")
+    question_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Blits
+        fields = ("id", "name", "order", "question_count")
+
+    def get_question_count(self, obj) -> int:
+        allowed = self.context.get("visible_questions")
+        items = obj.items
+        if allowed is not None:
+            items = items.filter(question__in=allowed.values("pk"))
+        return items.count()
+
+
+class BlitsDetailSerializer(BlitsSerializer):
+    questions = serializers.SerializerMethodField()
+
+    class Meta(BlitsSerializer.Meta):
+        fields = BlitsSerializer.Meta.fields + ("questions",)
+
+    def get_questions(self, obj):
+        items = obj.items.select_related("question").prefetch_related("question__answers")
+        allowed = self.context.get("visible_questions")
+        if allowed is not None:
+            visible_ids = set(allowed.values_list("pk", flat=True))
+            items = [item for item in items if item.question_id in visible_ids]
+        serializer_cls = (
+            QuestionPublicSerializer
+            if self.context.get("hide_answers")
+            else QuestionSerializer
+        )
+        return serializer_cls([i.question for i in items], many=True,
+                              context=self.context).data

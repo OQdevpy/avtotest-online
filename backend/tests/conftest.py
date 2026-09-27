@@ -98,3 +98,15 @@ def ticket(question):
     ticket = Ticket.objects.create(number=1)
     TicketQuestion.objects.create(ticket=ticket, question=question, order=0)
     return ticket
+
+
+@pytest.fixture
+def blits(lesson, make_question):
+    from apps.content.models import Blits, BlitsQuestion
+
+    blits = Blits.objects.create(name_uz="Blits 1", name_ru="Блиц 1",
+                                 name_cry="Блиц 1", order=1)
+    for index in range(3):
+        question = make_question(lesson, f"Blits savol {index}", order=index)
+        BlitsQuestion.objects.create(blits=blits, question=question, order=index)
+    return blits

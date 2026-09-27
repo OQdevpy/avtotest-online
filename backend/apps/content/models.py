@@ -177,3 +177,39 @@ class Topic(models.Model):
 
     def __str__(self) -> str:
         return self.name_uz
+
+
+class Blits(models.Model):
+    """Blits — nomlangan savollar to'plami (admin-panel'dagi `blits.json`).
+
+    Biletdan farqi: savollar soni erkin (odatda ~60) va to'plam shef tomonidan
+    qo'lda yig'iladi, `var_id` bo'yicha avtomatik guruhlanmaydi.
+    """
+
+    name_uz = models.CharField(max_length=255)
+    name_ru = models.CharField(max_length=255, blank=True)
+    name_cry = models.CharField(max_length=255, blank=True)
+    order = models.PositiveIntegerField(default=0, db_index=True)
+    questions = models.ManyToManyField(
+        Question, through="BlitsQuestion", related_name="blits_sets"
+    )
+    is_active = models.BooleanField(default=True, db_index=True, verbose_name="Faol")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("order", "id")
+        verbose_name = "Blits"
+        verbose_name_plural = "Blitslar"
+
+    def __str__(self) -> str:
+        return self.name_uz
+
+
+class BlitsQuestion(models.Model):
+    blits = models.ForeignKey(Blits, on_delete=models.CASCADE, related_name="items")
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ("order", "id")
+        unique_together = ("blits", "question")

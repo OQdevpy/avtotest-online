@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 
 from apps.progress.models import LessonResult, TicketResult
 from common.lang import LangSerializerContextMixin, resolve_lang
-from .models import Lesson, Question, Section, Ticket, Topic
+from .models import Blits, Lesson, Question, Section, Ticket, Topic
 
 
 def visible_questions(request):
@@ -44,6 +44,8 @@ def hide_answers_for(request) -> bool:
 from .serializers import (
     LessonDetailSerializer,
     LessonSerializer,
+    BlitsDetailSerializer,
+    BlitsSerializer,
     QuestionPublicSerializer,
     QuestionSerializer,
     SectionDetailSerializer,
@@ -301,3 +303,43 @@ class ExamGenerateView(APIView):
                 "questions": data,
             }
         )
+
+
+# --- Blits ------------------------------------------------------------------
+
+class BlitsContextMixin:
+    """Blits view'lari uchun umumiy kontekst: til, javob yashirish, ko'rinish."""
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["hide_answers"] = hide_answers_for(self.request)
+        ctx["visible_questions"] = visible_questions(self.request)
+        return ctx
+
+
+@extend_schema(tags=["content"], parameters=[LANG_PARAM])
+class BlitsListView(BlitsContextMixin, LangSerializerContextMixin, generics.ListAPIView):
+    """Blits to'plamlari ro'yxati."""
+
+    serializer_class = BlitsSerializer
+    queryset = Blits.objects.filter(is_active=True)
+
+
+@extend_schema(
+    tags=["content"],
+    parameters=[
+        LANG_PARAM,
+        OpenApiParameter(
+            "mode",
+            description="`study` bo'lsa to'g'ri javob ochiq qaytadi, aks holda yashiriladi",
+            required=False,
+            type=str,
+        ),
+    ],
+)
+class BlitsDetailView(BlitsContextMixin, LangSerializerContextMixin,
+                      generics.RetrieveAPIView):
+    """Bitta blits to'plami va uning savollari."""
+
+    serializer_class = BlitsDetailSerializer
+    queryset = Blits.objects.filter(is_active=True)
