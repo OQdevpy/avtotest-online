@@ -116,3 +116,28 @@ def blits(lesson, make_question):
 def many_questions(lesson):
     """Imtihon uchun yetarli savol (20 rejimi 20 ta savol so'raydi)."""
     return [_make_question(lesson, f"Savol {i}", order=i) for i in range(25)]
+
+
+@pytest.fixture
+def branch_a(db):
+    from apps.billing.models import Branch
+
+    return Branch.objects.create(name="Chilonzor filiali")
+
+
+@pytest.fixture
+def branch_b(db):
+    from apps.billing.models import Branch
+
+    return Branch.objects.create(name="Yunusobod filiali")
+
+
+@pytest.fixture
+def payment(student, branch_a):
+    from decimal import Decimal
+
+    from apps.billing.models import StudentPayment
+
+    student.branch = branch_a
+    student.save(update_fields=["branch"])
+    return StudentPayment.objects.create(user=student, amount=Decimal("1000000"))

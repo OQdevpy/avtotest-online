@@ -76,6 +76,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     phone = models.CharField(max_length=13, unique=True, db_index=True)
     full_name = models.CharField(max_length=120, blank=True)
+    branch = models.ForeignKey(
+        "billing.Branch", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="users", verbose_name="Filial",
+    )
+    # Eski web backendidagi maydon — o'quvchi hujjatini topshirganmi.
+    hujjat = models.CharField(
+        max_length=1, choices=(("+", "+"), ("-", "-")), default="-", verbose_name="Hujjat"
+    )
     role = models.CharField(
         max_length=10, choices=Role.choices, default=Role.STUDENT, db_index=True,
         verbose_name="Rol",
@@ -103,6 +111,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS: list[str] = []
 
     class Meta:
+        ordering = ("-date_joined", "id")
         verbose_name = "Foydalanuvchi"
         verbose_name_plural = "Foydalanuvchilar"
 

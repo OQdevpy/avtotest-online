@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     # local
     "apps.accounts",
+    "apps.billing",
     "apps.content",
     "apps.exams",
     "apps.progress",
