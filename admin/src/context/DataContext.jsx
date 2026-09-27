@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import JSZip from 'jszip';
-import { fetchJSON, postJSON, patchJSON, deleteResource, uploadFile } from '../api';
+import { fetchJSON, postJSON, patchJSON, deleteResource, uploadFile } from '../services/api';
 
 const DataContext = createContext(null);
 
@@ -501,7 +501,20 @@ export function DataProvider({ children }) {
     getQuestionsByLesson, getQuestionById, updateQuestion, addQuestion, deleteQuestion, reorderQuestions,
     getAnswersByQuestion, updateAnswer, addAnswer, deleteAnswer,
     updateBlits, addBlits, deleteBlits, addQuestionToBlits, removeQuestionFromBlits,
-    exportAllQuestionImages, exportDescriptionImages, uploadQuestionImage
+    exportAllQuestionImages, exportDescriptionImages, uploadQuestionImage,
+    uploadExplanationImage: useCallback(async (questionId, file) => {
+      if (!file) return null;
+      try {
+        const result = await uploadFile(`/manage/questions/${questionId}/explanation-image/`, file, 'file');
+        setQuestions(prev => prev.map(q =>
+          q.id === questionId ? { ...q, explanation_image: result.explanation_image } : q
+        ));
+        return result.explanation_image;
+      } catch (err) {
+        console.error('Izoh rasmi yuklashda xatolik:', err);
+        return null;
+      }
+    }, []),
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -77,9 +77,9 @@ export async function login(phone, password) {
   });
   
   if (!res.ok) {
-    if (res.status === 403) throw new Error('Boshqa qurilmadan chiqing yoki kuting');
-    if (res.status === 429) throw new Error('Kirish cheklangan. Keyinroq urinib ko\\'ring');
-    throw new Error('Telefon yoki parol noto\\'g\\'ri');
+    if (res.status === 403) throw new Error("Boshqa qurilmadan chiqing yoki kuting");
+    if (res.status === 429) throw new Error("Kirish cheklangan. Keyinroq urinib ko'ring");
+    throw new Error("Telefon yoki parol noto'g'ri");
   }
   
   const data = await res.json();

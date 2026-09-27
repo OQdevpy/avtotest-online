@@ -25,9 +25,9 @@ export default function Login() {
       if (err.message.includes('403') || err.message.includes('Boshqa qurilmadan')) {
         setError('Ushbu hisob boshqa qurilmada ochiq. Avval u qurilmadan chiqing.');
       } else if (err.message.includes('429') || err.message.includes('cheklangan')) {
-        setError('Kirish cheklangan. 1 soatdan keyin urinib ko\\'ring.');
+        setError("Kirish cheklangan. 1 soatdan keyin urinib ko'ring.");
       } else {
-        setError('Telefon yoki parol noto\\'g\\'ri');
+        setError("Telefon yoki parol noto'g'ri");
       }
     } finally {
       setIsLoading(false);
