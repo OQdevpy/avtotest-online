@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Blits, BlitsQuestion, Answer, Lesson, Question, Section, Ticket, TicketQuestion, Topic
+from .models import (
+    Answer,
+    Blits,
+    BlitsQuestion,
+    Lesson,
+    Question,
+    Section,
+    Ticket,
+    TicketQuestion,
+    Topic,
+)
 
 
 class LessonInline(admin.TabularInline):
@@ -99,3 +109,11 @@ class BlitsAdmin(admin.ModelAdmin):
     list_filter = ("is_active",)
     search_fields = ("name_uz", "name_ru", "name_cry")
     inlines = [BlitsQuestionInline]
+
+
+@admin.register(Answer)
+class AnswerAdmin(admin.ModelAdmin):
+    list_display = ("id", "question", "text_uz", "is_true", "order")
+    list_filter = ("is_true",)
+    search_fields = ("text_uz", "text_ru", "text_cry")
+    autocomplete_fields = ("question",)
