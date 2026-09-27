@@ -681,6 +681,27 @@ export default function QuestionDetail() {
         </div>
       )}
 
+      {/* ─── Izoh rasmini to'liq o'lchamda ko'rish modali ─── */}
+      {previewDescImage && (
+        <div
+          className="fixed inset-0 z-[2500] flex items-center justify-center p-4 cursor-pointer"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)' }}
+          onClick={() => setPreviewDescImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewDescImage(null)}
+              className="absolute -top-10 right-0 text-white text-2xl font-bold hover:text-red-400 cursor-pointer bg-transparent border-none"
+            >✕</button>
+            <img
+              src={previewDescImage}
+              alt="Izoh rasmi to'liq"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
