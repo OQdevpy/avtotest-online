@@ -48,3 +48,53 @@ def admin_user(django_user_model):
     return django_user_model.objects.create_user(
         "+998901110004", PASSWORD, full_name="Shef", role="admin", is_staff=True
     )
+
+
+# --- Kontent fixture'lari ---------------------------------------------------
+
+@pytest.fixture
+def section(db):
+    from apps.content.models import Section
+
+    return Section.objects.create(name_uz="1-bo'lim", name_ru="Раздел 1",
+                                  name_cry="1-бўлим", order=1)
+
+
+@pytest.fixture
+def lesson(section):
+    from apps.content.models import Lesson
+
+    return Lesson.objects.create(section=section, name_uz="Yo'l belgilari",
+                                 name_ru="Дорожные знаки", name_cry="Йўл белгилари",
+                                 order=1)
+
+
+def _make_question(lesson, text="Savol", order=0, published=True):
+    from apps.content.models import Answer, Question
+
+    question = Question.objects.create(
+        lesson=lesson, text_uz=text, text_ru=f"{text} ru", text_cry=f"{text} cry",
+        order=order, is_published=published,
+    )
+    Answer.objects.create(question=question, text_uz="To'g'ri", is_true=True, order=0)
+    Answer.objects.create(question=question, text_uz="Xato", is_true=False, order=1)
+    return question
+
+
+@pytest.fixture
+def make_question():
+    return _make_question
+
+
+@pytest.fixture
+def question(lesson):
+    return _make_question(lesson, "Nechta guruh bor?", order=0)
+
+
+@pytest.fixture
+def ticket(question):
+    from apps.content.models import Ticket, TicketQuestion
+
+    ticket = Ticket.objects.create(number=1)
+    TicketQuestion.objects.create(ticket=ticket, question=question, order=0)
+    return ticket

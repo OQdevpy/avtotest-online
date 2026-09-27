@@ -81,10 +81,21 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class LessonDetailSerializer(LessonSerializer):
-    questions = QuestionSerializer(many=True, read_only=True)
+    questions = serializers.SerializerMethodField()
 
     class Meta(LessonSerializer.Meta):
         fields = LessonSerializer.Meta.fields + ("questions",)
+
+    def get_questions(self, obj):
+        # `hide_answers` bo'lsa to'g'ri javob chiqmaydi. Ilgari bu yerda
+        # QuestionSerializer shartsiz ishlatilardi va javob kaliti test
+        # rejimida ham oshkor bo'lardi.
+        serializer_cls = (
+            QuestionPublicSerializer
+            if self.context.get("hide_answers")
+            else QuestionSerializer
+        )
+        return serializer_cls(obj.questions.all(), many=True, context=self.context).data
 
 
 class SectionSerializer(serializers.ModelSerializer):
@@ -161,13 +172,20 @@ class TopicDetailSerializer(TopicSerializer):
         fields = TopicSerializer.Meta.fields + ("questions",)
 
     def get_questions(self, obj):
-        qs = obj.questions.prefetch_related("answers")
+        qs = self._visible(obj.questions).prefetch_related("answers")
         serializer_cls = (
             QuestionPublicSerializer
             if self.context.get("hide_answers")
             else QuestionSerializer
         )
         return serializer_cls(qs, many=True, context=self.context).data
+
+    def _visible(self, related):
+        """Nashr etilmaganini kesib tashlaydi (o'qituvchi/shefga hammasi ochiq)."""
+        allowed = self.context.get("visible_questions")
+        if allowed is None:
+            return related
+        return related.filter(pk__in=allowed.values("pk"))
 
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -187,6 +205,10 @@ class TicketDetailSerializer(TicketSerializer):
 
     def get_questions(self, obj):
         items = obj.items.select_related("question").prefetch_related("question__answers")
+        allowed = self.context.get("visible_questions")
+        if allowed is not None:
+            visible_ids = set(allowed.values_list("pk", flat=True))
+            items = [item for item in items if item.question_id in visible_ids]
         qs = [item.question for item in items]
         serializer_cls = (
             QuestionPublicSerializer

@@ -54,6 +54,13 @@ class Lesson(models.Model):
         return self.name_uz
 
 
+class PublishedQuestionManager(models.Manager):
+    """Faqat nashr etilgan savollar — o'quvchiga ko'rinadigan barcha yo'llar shundan o'qiydi."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_published=True)
+
+
 class Question(TimeStampedModel):
     """Legacy `home.oraliqdarslarquestion` (~1151 rows).
 
@@ -77,6 +84,16 @@ class Question(TimeStampedModel):
     # Audio izoh — media ichidagi ovozli fayl yo'li (bo'lsa karnay ikoni chiqadi).
     audio = models.CharField(max_length=255, blank=True)
     order = models.PositiveIntegerField(default=0)
+    # admin-panel'dagi maydon — web versiyada ko'rsatish belgisi.
+    is_in_web = models.BooleanField(default=False, verbose_name="Webda")
+    # Nashr etilmagan savol o'quvchiga hech qayerda ko'rinmaydi. Import
+    # qilinganlar True (migratsiya), API orqali yangi yaratilgani False —
+    # shef yarim yozilgan savolni tasodifan jonli qilib qo'ymasin.
+    is_published = models.BooleanField(default=False, db_index=True,
+                                       verbose_name="Nashr etilgan")
+
+    objects = models.Manager()
+    published = PublishedQuestionManager()
 
     class Meta:
         ordering = ("order", "id")

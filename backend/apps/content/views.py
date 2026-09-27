@@ -11,6 +11,36 @@ from rest_framework.views import APIView
 from apps.progress.models import LessonResult, TicketResult
 from common.lang import LangSerializerContextMixin, resolve_lang
 from .models import Lesson, Question, Section, Ticket, Topic
+
+
+def visible_questions(request):
+    """Shu so'rov ko'rishi mumkin bo'lgan savollar.
+
+    O'quvchi faqat nashr etilganini ko'radi; o'qituvchi va shef hammasini —
+    ular kontentni tekshiradi.
+    """
+    user = getattr(request, "user", None)
+    if user is not None and user.is_authenticated and user.is_teacher:
+        return Question.objects.all()
+    return Question.published.all()
+
+
+def question_serializer_for(request):
+    """To'g'ri javob ochiq keladigan serializer tanlanadimi.
+
+    `?mode=study` so'ralgan yoki so'rovchi o'qituvchi/shef bo'lsa — ochiq.
+    """
+    user = getattr(request, "user", None)
+    if user is not None and user.is_authenticated and user.is_teacher:
+        return QuestionSerializer
+    if request.query_params.get("mode") == "study":
+        return QuestionSerializer
+    return QuestionPublicSerializer
+
+
+def hide_answers_for(request) -> bool:
+    """Serializer kontekstidagi `hide_answers` qiymati."""
+    return question_serializer_for(request) is QuestionPublicSerializer
 from .serializers import (
     LessonDetailSerializer,
     LessonSerializer,
@@ -107,11 +137,16 @@ class LessonDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
     serializer_class = LessonDetailSerializer
 
     def get_queryset(self):
-        questions = Question.objects.prefetch_related("answers")
+        questions = visible_questions(self.request).prefetch_related("answers")
         return annotate_lesson_progress(
             Lesson.objects.prefetch_related(Prefetch("questions", queryset=questions)),
             self.request.user,
         )
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["hide_answers"] = hide_answers_for(self.request)
+        return ctx
 
 
 # --- Topics -----------------------------------------------------------------
@@ -145,7 +180,8 @@ class TopicDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
-        ctx["hide_answers"] = self.request.query_params.get("mode") != "study"
+        ctx["hide_answers"] = hide_answers_for(self.request)
+        ctx["visible_questions"] = visible_questions(self.request)
         return ctx
 
 
@@ -191,8 +227,9 @@ class TicketDetailView(TicketQuerysetMixin, LangSerializerContextMixin, generics
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
-        # Hide the answer key unless the client explicitly asks to study.
-        ctx["hide_answers"] = self.request.query_params.get("mode") != "study"
+        # To'g'ri javob faqat `?mode=study` da yoki o'qituvchi/shefga ochiq.
+        ctx["hide_answers"] = hide_answers_for(self.request)
+        ctx["visible_questions"] = visible_questions(self.request)
         return ctx
 
     def get_object(self):
@@ -245,18 +282,16 @@ class ExamGenerateView(APIView):
             count = 20
         mode = settings.EXAM_MODES.get(count, settings.EXAM_MODES[20])
 
-        ids = list(Question.objects.values_list("id", flat=True))
+        ids = list(visible_questions(request).values_list("id", flat=True))
         picked = random.sample(ids, min(mode["questions"], len(ids)))
-        questions = Question.objects.filter(id__in=picked).prefetch_related("answers")
+        questions = visible_questions(request).filter(
+            id__in=picked
+        ).prefetch_related("answers")
 
         context = {"request": request, "lang": resolve_lang(request)}
         # `study` rejimida to'g'ri javob ochiq keladi — mijoz javob belgilangan
         # zahoti yashil/qizilni ko'rsatadi.
-        serializer_class = (
-            QuestionSerializer
-            if request.query_params.get("mode") == "study"
-            else QuestionPublicSerializer
-        )
+        serializer_class = question_serializer_for(request)
         data = serializer_class(questions, many=True, context=context).data
         return Response(
             {
