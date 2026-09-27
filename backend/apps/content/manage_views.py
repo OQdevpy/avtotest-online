@@ -8,10 +8,20 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from common.permissions import IsAdminRole
 
+from .media import (
+    UnreadableImage,
+    UnsupportedAudio,
+    remove_quietly,
+    save_audio,
+    to_webp,
+    unique_name,
+)
 from .manage_serializers import (
     ManageAnswerSerializer,
     ManageBlitsSerializer,
@@ -51,6 +61,49 @@ class ReorderMixin:
         return Response({"ids": ids})
 
 
+
+# --- Rasm va audio yuklash --------------------------------------------------
+
+class _MediaUploadMixin:
+    """`manage/questions/{id}/image|audio/` — multipart yuklash."""
+
+    def _uploaded(self, request):
+        file = request.data.get("file")
+        if not file:
+            raise ValidationError({"file": "Fayl yuborilmadi."})
+        return file
+
+    @extend_schema(request=None, responses={200: None})
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser])
+    def image(self, request, pk=None):
+        question = self.get_object()
+        upload = self._uploaded(request)
+        try:
+            relative = to_webp(upload, unique_name(f"q{question.pk}"))
+        except UnreadableImage as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+
+        remove_quietly(question.image)
+        question.image = relative
+        question.save(update_fields=["image"])
+        return Response({"image": relative})
+
+    @extend_schema(request=None, responses={200: None})
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser])
+    def audio(self, request, pk=None):
+        question = self.get_object()
+        upload = self._uploaded(request)
+        try:
+            relative = save_audio(upload, unique_name(f"q{question.pk}"), upload.name)
+        except UnsupportedAudio as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+
+        remove_quietly(question.audio)
+        question.audio = relative
+        question.save(update_fields=["audio"])
+        return Response({"audio": relative})
+
+
 @extend_schema(tags=["manage"])
 class ManageSectionViewSet(ReorderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
@@ -71,7 +124,7 @@ class ManageLessonViewSet(ReorderMixin, viewsets.ModelViewSet):
 
 
 @extend_schema(tags=["manage"])
-class ManageQuestionViewSet(ReorderMixin, viewsets.ModelViewSet):
+class ManageQuestionViewSet(_MediaUploadMixin, ReorderMixin, viewsets.ModelViewSet):
     permission_classes = [IsAdminRole]
     # Shef nashr etilmaganini ham ko'radi — `Question.objects`, `published` emas.
     queryset = Question.objects.prefetch_related("answers")
