@@ -1,4 +1,8 @@
 import re
+import secrets
+from datetime import timedelta
+
+from django.conf import settings
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
@@ -171,3 +175,72 @@ class Device(models.Model):
     @property
     def is_expired(self) -> bool:
         return self.expires_at is not None and self.expires_at <= timezone.now()
+
+
+class AccessCode(models.Model):
+    """Shef chiqaradigan kirish kodi — desktop darslik va imtihon uchun.
+
+    Eski web backendidagi `Token` modelining o'rinbosari. Kod har doim aniq bir
+    foydalanuvchiga tegishli: shef avval o'quvchini yaratadi, keyin unga kod
+    beradi — anonim hisob paydo bo'lmaydi. Muddat birinchi ishlatilganda
+    boshlanadi, shuning uchun berilgan-u ishlatilmagan kod "yonib ketmaydi".
+    """
+
+    # Chalkash belgilar (O/0, I/1) chiqarib tashlangan — kod qo'lda kiritiladi.
+    ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    LENGTH = 8
+
+    code = models.CharField(max_length=16, unique=True, db_index=True, verbose_name="Kod")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="access_codes", verbose_name="O'quvchi"
+    )
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="issued_access_codes", verbose_name="Kim berdi",
+    )
+    valid_days = models.PositiveSmallIntegerField(verbose_name="Necha kun")
+    created_at = models.DateTimeField(auto_now_add=True)
+    activated_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True, verbose_name="Faol")
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "Kirish kodi"
+        verbose_name_plural = "Kirish kodlari"
+
+    def __str__(self) -> str:
+        return f"{self.code} → {self.user_id}"
+
+    @classmethod
+    def new_code(cls) -> str:
+        while True:
+            code = "".join(secrets.choice(cls.ALPHABET) for _ in range(cls.LENGTH))
+            if not cls.objects.filter(code=code).exists():
+                return code
+
+    @classmethod
+    def generate(cls, *, user, created_by=None, valid_days: int | None = None):
+        return cls.objects.create(
+            code=cls.new_code(),
+            user=user,
+            created_by=created_by,
+            valid_days=valid_days or settings.ACCESS_CODE_DAYS,
+        )
+
+    @property
+    def is_usable(self) -> bool:
+        if not self.is_active or not self.user.is_active:
+            return False
+        if self.activated_at is None:
+            return True
+        return self.expires_at is None or self.expires_at > timezone.now()
+
+    def activate(self) -> None:
+        """Muddatni birinchi ishlatishda boshlaydi; keyingilari tegmaydi."""
+        if self.activated_at is not None:
+            return
+        now = timezone.now()
+        self.activated_at = now
+        self.expires_at = now + timedelta(days=self.valid_days)
+        self.save(update_fields=["activated_at", "expires_at"])

@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Device, SocialAccount, User, normalize_phone
+from .models import AccessCode, Device, SocialAccount, User, normalize_phone
 
 
 class PhoneField(serializers.CharField):
@@ -112,3 +112,35 @@ class ChangePasswordSerializer(serializers.Serializer):
         if not self.context["request"].user.check_password(value):
             raise serializers.ValidationError("Joriy parol noto'g'ri.")
         return value
+
+
+class AccessCodeLoginSerializer(serializers.Serializer):
+    """Kod bilan kirish — desktop darslik va imtihon uchun."""
+
+    code = serializers.CharField(max_length=16)
+    platform = serializers.CharField(max_length=10, required=False, allow_blank=True)
+    device_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+
+    def validate_code(self, value: str) -> str:
+        code = (
+            AccessCode.objects.select_related("user")
+            .filter(code=value.strip().upper())
+            .first()
+        )
+        if code is None or not code.is_usable:
+            raise serializers.ValidationError("Kod yaroqsiz yoki muddati tugagan.")
+        self.context["access_code"] = code
+        return value
+
+
+class AccessCodeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccessCode
+        fields = (
+            "id", "code", "user", "created_by", "valid_days",
+            "created_at", "activated_at", "expires_at", "is_active",
+        )
+        read_only_fields = (
+            "id", "code", "created_by", "created_at", "activated_at", "expires_at",
+        )
+        extra_kwargs = {"valid_days": {"required": False}}

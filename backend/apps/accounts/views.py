@@ -4,15 +4,18 @@ from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import SocialAccount, User
+from .models import AccessCode, SocialAccount, User
 from .serializers import (
+    AccessCodeLoginSerializer,
+    AccessCodeSerializer,
     ChangePasswordSerializer,
     LoginSerializer,
     RegisterSerializer,
@@ -22,6 +25,8 @@ from .serializers import (
     issue_tokens,
     tokens_for,
 )
+from common.permissions import IsAdminRole
+
 from .devices import DeviceLimitReached, device_for_refresh, rotate
 from .models import Device
 
@@ -210,3 +215,54 @@ class DeviceAwareTokenRefreshView(TokenRefreshView):
         if new_refresh:
             rotate(device, RefreshToken(new_refresh))
         return response
+
+
+@extend_schema(tags=["auth"])
+class AccessCodeLoginView(generics.GenericAPIView):
+    """Shef bergan kod bilan kirish. Muddat birinchi kirishda boshlanadi."""
+
+    serializer_class = AccessCodeLoginSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({"detail": "Kod yaroqsiz yoki muddati tugagan."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        code = serializer.context["access_code"]
+        code.activate()
+        data = serializer.validated_data
+        try:
+            tokens = issue_tokens(
+                code.user,
+                platform=data.get("platform") or "desktop",
+                label=data.get("device_label", ""),
+            )
+        except DeviceLimitReached:
+            return Response({"detail": DEVICE_LIMIT_MESSAGE},
+                            status=status.HTTP_403_FORBIDDEN)
+        return Response({"user": UserSerializer(code.user).data, "tokens": tokens})
+
+
+@extend_schema(tags=["manage"])
+class ManageAccessCodeViewSet(viewsets.ModelViewSet):
+    """Shef uchun kirish kodlari."""
+
+    serializer_class = AccessCodeSerializer
+    permission_classes = [IsAdminRole]
+    queryset = AccessCode.objects.select_related("user", "created_by")
+
+    def perform_create(self, serializer):
+        serializer.instance = AccessCode.generate(
+            user=serializer.validated_data["user"],
+            created_by=self.request.user,
+            valid_days=serializer.validated_data.get("valid_days"),
+        )
+
+    @action(detail=True, methods=["post"])
+    def revoke(self, request, pk=None):
+        code = self.get_object()
+        code.is_active = False
+        code.save(update_fields=["is_active"])
+        return Response(self.get_serializer(code).data)
