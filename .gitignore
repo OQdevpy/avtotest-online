@@ -10,3 +10,7 @@ venv/
 env/  
 *.sqlite3 
 *.zip 
+
+.env
+admin/node_modules/
+admin/dist/
