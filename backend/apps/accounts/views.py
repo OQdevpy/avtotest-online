@@ -27,7 +27,12 @@ from .serializers import (
 )
 from common.permissions import IsAdminRole
 
-from .devices import DeviceLimitReached, device_for_refresh, rotate
+from .devices import (
+    DeviceLimitReached,
+    device_for_refresh,
+    grandfather_device,
+    rotate,
+)
 from .social import SocialVerificationError, verify_social_token
 from .models import Device
 
@@ -110,17 +115,17 @@ class SocialLoginView(generics.GenericAPIView):
         if link:
             return auth_response(link.user, request)
 
-        phone = data.get("phone")
-        user = User.objects.filter(phone=phone).first() if phone else None
-        created = False
-        if user is None:
-            # Telefonsiz ijtimoiy hisob — unique cheklovi buzilmasligi uchun
-            # o'rinbosar raqam. Foydalanuvchi haqiqiy raqamini kiritgach almashadi.
-            user = User.objects.create_user(
-                phone=phone or placeholder_phone(data["provider"], data["uid"]),
-                full_name=data.get("full_name", ""),
-            )
-            created = True
+        # Mijoz yuborgan `phone` ga hisobni topish uchun ISHONILMAYDI: aks holda
+        # o'z provayder tokeni bilan begona raqamni yuborgan odam o'sha hisobning
+        # JWT'sini olardi. Hisob faqat tasdiqlangan `uid` bo'yicha topiladi
+        # (yuqoridagi SocialAccount qidiruvi); topilmasa yangisi yaratiladi.
+        # Haqiqiy raqamni foydalanuvchi keyin `auth/me/` orqali (Telegram OTP
+        # tasdig'i bilan) qo'shadi.
+        user = User.objects.create_user(
+            phone=placeholder_phone(data["provider"], data["uid"]),
+            full_name=data.get("full_name", ""),
+        )
+        created = True
 
         SocialAccount.objects.create(
             user=user,
@@ -213,7 +218,13 @@ class DeviceAwareTokenRefreshView(TokenRefreshView):
             return Response({"detail": "Token yaroqsiz."},
                             status=status.HTTP_401_UNAUTHORIZED)
 
-        device = device_for_refresh(incoming["jti"])
+        device, reason = device_for_refresh(incoming["jti"])
+        if device is None and reason == "unknown":
+            # Bu sessiya `Device` jadvalidan oldin ochilgan (baza eski mobil
+            # backupdan tiklangan). Uni chiqarib tashlamaymiz — yozuvni
+            # to'ldiramiz. Muddati o'tgan yoki uzilgan qurilma esa quyida rad
+            # etiladi, ya'ni 12 kunlik qoida kuchida qoladi.
+            device = grandfather_device(incoming)
         if device is None:
             return Response({"detail": "Sessiya tugagan yoki uzilgan."},
                             status=status.HTTP_401_UNAUTHORIZED)

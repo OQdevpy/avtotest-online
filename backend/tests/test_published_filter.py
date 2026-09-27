@@ -80,16 +80,25 @@ def test_published_manager_excludes_unpublished(question, hidden):
     assert hidden.id not in ids
 
 
-# Spec §6: to'g'ri javob teacher va admin uchun har doim ochiq
-def test_student_never_sees_is_true_without_study_mode(api, student, auth, question):
+# Spec §6: to'g'ri javob test rejimida yopiq, o'rganishda va teacher/admin uchun ochiq.
+# Dars ekrani — o'rganish rejimi (mobil ilova uni `?mode=study` siz chaqiradi),
+# shuning uchun kalit ochiq. Yopiladigan joylar — bilet, blits va imtihon.
+
+def test_student_does_not_see_is_true_in_ticket_test_mode(api, student, auth, ticket):
     auth(api, student)
-    body = api.get(f"/api/v1/lessons/{question.lesson_id}/").json()
+    body = api.get(f"/api/v1/tickets/{ticket.number}/").json()
     assert "is_true" not in body["questions"][0]["answers"][0]
 
 
-def test_student_sees_is_true_in_study_mode(api, student, auth, question):
+def test_student_sees_is_true_in_ticket_study_mode(api, student, auth, ticket):
     auth(api, student)
-    body = api.get(f"/api/v1/lessons/{question.lesson_id}/?mode=study").json()
+    body = api.get(f"/api/v1/tickets/{ticket.number}/?mode=study").json()
+    assert "is_true" in body["questions"][0]["answers"][0]
+
+
+def test_student_sees_is_true_in_lesson_study_screen(api, student, auth, question):
+    auth(api, student)
+    body = api.get(f"/api/v1/lessons/{question.lesson_id}/").json()
     assert "is_true" in body["questions"][0]["answers"][0]
 
 

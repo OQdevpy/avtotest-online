@@ -147,7 +147,11 @@ class LessonDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
-        ctx["hide_answers"] = hide_answers_for(self.request)
+        # Dars ekrani — O'RGANISH rejimi: to'g'ri javob, izoh va audio ataylab
+        # ochiq keladi. Do'kondagi mobil ilova bu yo'lni `?mode=study` siz
+        # chaqiradi va yashil javobni, karnayni, izohni shu maydonlardan
+        # chizadi. Kalit yopiladigan joylar — bilet, blits va imtihon.
+        ctx["hide_answers"] = False
         return ctx
 
 

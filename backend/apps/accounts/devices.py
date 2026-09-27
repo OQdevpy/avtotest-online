@@ -56,15 +56,47 @@ def register_device(user, platform: str, label: str, refresh) -> Device:
     )
 
 
-def device_for_refresh(jti: str) -> Device | None:
-    """Refresh uchun yaroqli qurilma; yo'q, o'chirilgan yoki muddati o'tgan bo'lsa None."""
-    device = Device.objects.filter(refresh_jti=jti, is_active=True).first()
+def device_for_refresh(jti: str) -> tuple[Device | None, str]:
+    """Refresh uchun yaroqli qurilma va sabab.
+
+    Sabab `"ok"`, `"unknown"` (bu `jti` uchun yozuv umuman yo'q) yoki
+    `"revoked"` (yozuv bor, lekin uzilgan yoki muddati o'tgan) bo'ladi.
+    `"unknown"` va `"revoked"` ni ajratish kerak: birinchisi eski, `Device`
+    jadvalidan oldin ochilgan sessiya, ikkinchisi ataylab yopilgani.
+    """
+    device = Device.objects.filter(refresh_jti=jti).first()
     if device is None:
+        return None, "unknown"
+    if not device.is_active or device.is_expired:
+        if device.is_active:
+            Device.objects.filter(pk=device.pk).update(is_active=False)
+        return None, "revoked"
+    return device, "ok"
+
+
+def grandfather_device(refresh) -> Device | None:
+    """`Device` jadvalidan oldin ochilgan sessiya uchun yozuv yaratadi.
+
+    Baza eski mobil backupdan tiklanganda jonli refresh tokenlarning hech
+    birida `Device` yozuvi yo'q. Ularni 401 bilan quvib yuborish butun
+    foydalanuvchi bazasini bir kun ichida tizimdan chiqarardi.
+
+    Limit qo'llanmaydi — bu allaqachon mavjud sessiya, yangi kirish emas.
+    """
+    from django.contrib.auth import get_user_model
+
+    user_id = refresh.payload.get(settings.SIMPLE_JWT["USER_ID_CLAIM"])
+    user = get_user_model().objects.filter(pk=user_id, is_active=True).first()
+    if user is None:
         return None
-    if device.is_expired:
-        Device.objects.filter(pk=device.pk).update(is_active=False)
-        return None
-    return device
+    default = Device.Platform.MOBILE
+    return Device.objects.create(
+        user=user,
+        platform=default,
+        refresh_jti=refresh["jti"],
+        label="(eski sessiya)",
+        expires_at=_expiry(default),
+    )
 
 
 def rotate(device: Device, refresh) -> None:
