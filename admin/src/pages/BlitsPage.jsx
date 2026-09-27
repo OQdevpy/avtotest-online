@@ -241,10 +241,10 @@ export default function BlitsPage() {
                         <img src={currentQ.image} alt="Savol" className="max-w-full max-h-[400px] object-contain" />
                       ) : (
                         <img src={`/media/${currentQ.image}`} alt="Savol" className="max-w-full max-h-[400px] object-contain"
-                          onError={(e) => { e.target.src = '/default_image.jpg'; }} />
+                          onError={(e) => { e.target.src = '/media/default_image.jpg'; }} />
                       )
                     ) : (
-                      <img src="/default_image.jpg" alt="Default" className="max-w-full max-h-[400px] object-contain" />
+                      <img src="/media/default_image.jpg" alt="Default" className="max-w-full max-h-[400px] object-contain" />
                     )}
                   </div>
                 </div>

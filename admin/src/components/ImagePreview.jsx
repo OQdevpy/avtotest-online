@@ -166,7 +166,7 @@ export default function ImagePreview({ src, onClose, onSave }) {
               userSelect: 'none',
             }}
             onLoad={handleImageLoad}
-            onError={(e) => { e.target.src = '/default_image.jpg'; }}
+            onError={(e) => { e.target.src = '/media/default_image.jpg'; }}
             draggable={false}
           />
           {/* Dashed selection border */}
@@ -197,7 +197,7 @@ export default function ImagePreview({ src, onClose, onSave }) {
           alt="Loading"
           style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
           onLoad={handleImageLoad}
-          onError={(e) => { e.target.src = '/default_image.jpg'; }}
+          onError={(e) => { e.target.src = '/media/default_image.jpg'; }}
         />
       )}
 

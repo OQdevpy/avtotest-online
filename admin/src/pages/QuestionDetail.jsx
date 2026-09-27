@@ -56,7 +56,7 @@ function QuestionImageComponent({ currentItem, editing, onClickImage, onClickUpl
   // Backenddan kelgan nisbiy yo'l (masalan "images/q55.webp") → "/media/images/q55.webp"
   const resolvedSrc = hasImage
     ? (imageSrc.startsWith('data:') ? imageSrc : `/media/${imageSrc}`)
-    : '/default_image.jpg';
+    : '/media/default_image.jpg';
 
   return (
     <div
@@ -83,7 +83,7 @@ function QuestionImageComponent({ currentItem, editing, onClickImage, onClickUpl
             alt="Savol rasmi"
             className="object-contain w-full"
             style={{ maxWidth: '100%', maxHeight: '100%' }}
-            onError={(e) => { e.target.src = '/default_image.jpg'; }}
+            onError={(e) => { e.target.src = '/media/default_image.jpg'; }}
           />
           {editing && (
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onImageChange} />
