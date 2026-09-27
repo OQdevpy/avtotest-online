@@ -1,25 +1,47 @@
-from django.db import transaction
 from datetime import timedelta
+
+from django.db import transaction
+from django.http import Http404
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from .models import SocialAccount, User
 from .serializers import (
     ChangePasswordSerializer,
     LoginSerializer,
     RegisterSerializer,
+    DeviceSerializer,
     SocialLoginSerializer,
     UserSerializer,
+    issue_tokens,
     tokens_for,
 )
+from .devices import DeviceLimitReached, device_for_refresh, rotate
+from .models import Device
 
 
-def auth_response(user: User, created: bool = False) -> Response:
+DEVICE_LIMIT_MESSAGE = "Ushbu hisob allaqachon boshqa qurilmada ochiq."
+
+
+def auth_response(user: User, request=None, created: bool = False) -> Response:
+    """Foydalanuvchi va JWT. Sessiya `Device` ga yoziladi; limit to'lsa 403."""
+    data = request.data if request is not None else {}
+    try:
+        tokens = issue_tokens(
+            user,
+            platform=data.get("platform", ""),
+            label=data.get("device_label", ""),
+        )
+    except DeviceLimitReached:
+        return Response({"detail": DEVICE_LIMIT_MESSAGE}, status=status.HTTP_403_FORBIDDEN)
     return Response(
-        {"user": UserSerializer(user).data, "tokens": tokens_for(user)},
+        {"user": UserSerializer(user).data, "tokens": tokens},
         status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
     )
 
@@ -33,7 +55,7 @@ class RegisterView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        return auth_response(user, created=True)
+        return auth_response(user, request, created=True)
 
 
 @extend_schema(tags=["auth"])
@@ -44,7 +66,7 @@ class LoginView(generics.GenericAPIView):
     def post(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return auth_response(serializer.validated_data["user"])
+        return auth_response(serializer.validated_data["user"], request)
 
 
 @extend_schema(tags=["auth"])
@@ -72,7 +94,7 @@ class SocialLoginView(generics.GenericAPIView):
             .first()
         )
         if link:
-            return auth_response(link.user)
+            return auth_response(link.user, request)
 
         phone = data.get("phone")
         user = User.objects.filter(phone=phone).first() if phone else None
@@ -92,7 +114,7 @@ class SocialLoginView(generics.GenericAPIView):
             uid=data["uid"],
             email=data.get("email", ""),
         )
-        return auth_response(user, created=created)
+        return auth_response(user, request, created=created)
 
 
 @extend_schema(tags=["auth"])
@@ -116,3 +138,75 @@ class ChangePasswordView(APIView):
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save(update_fields=["password"])
         return Response({"detail": "Parol yangilandi."})
+
+
+@extend_schema(tags=["auth"])
+class LogoutView(APIView):
+    """Joriy sessiyani yopadi — qurilma slotini bo'shatadi."""
+
+    def post(self, request):
+        token = request.data.get("refresh")
+        jti = None
+        if token:
+            try:
+                jti = RefreshToken(token)["jti"]
+            except TokenError:
+                jti = None
+        queryset = Device.objects.filter(user=request.user, is_active=True)
+        if jti:
+            queryset = queryset.filter(refresh_jti=jti)
+        queryset.update(is_active=False)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["auth"])
+class DeviceListView(generics.ListAPIView):
+    """Foydalanuvchining faol sessiyalari."""
+
+    serializer_class = DeviceSerializer
+
+    def get_queryset(self):
+        return Device.objects.filter(user=self.request.user, is_active=True)
+
+
+@extend_schema(tags=["auth"])
+class DeviceDeleteView(APIView):
+    """Bitta sessiyani uzadi. Boshqa foydalanuvchinikiga tegib bo'lmaydi."""
+
+    def delete(self, request, pk: int):
+        device = Device.objects.filter(
+            pk=pk, user=request.user, is_active=True
+        ).first()
+        if device is None:
+            raise Http404
+        Device.objects.filter(pk=device.pk).update(is_active=False)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["auth"])
+class DeviceAwareTokenRefreshView(TokenRefreshView):
+    """Refresh — faqat qurilma sessiyasi tirik bo'lsa.
+
+    Muddati o'tgan yoki uzilgan qurilma bilan token yangilanmaydi: web va
+    desktopda sotilgan 12 kunlik kirish cheksiz aylanib ketmaydi.
+    """
+
+    def post(self, request, *args, **kwargs):
+        raw = request.data.get("refresh")
+        try:
+            incoming = RefreshToken(raw)
+        except TokenError:
+            return Response({"detail": "Token yaroqsiz."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        device = device_for_refresh(incoming["jti"])
+        if device is None:
+            return Response({"detail": "Sessiya tugagan yoki uzilgan."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        response = super().post(request, *args, **kwargs)
+        # ROTATE_REFRESH_TOKENS yoqilgan — yangi jti shu qurilmaga bog'lanadi.
+        new_refresh = response.data.get("refresh") if response.status_code == 200 else None
+        if new_refresh:
+            rotate(device, RefreshToken(new_refresh))
+        return response

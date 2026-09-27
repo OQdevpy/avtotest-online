@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import SocialAccount, User, normalize_phone
+from .models import Device, SocialAccount, User, normalize_phone
 
 
 class PhoneField(serializers.CharField):
@@ -21,6 +21,24 @@ class PhoneField(serializers.CharField):
 def tokens_for(user: User) -> dict:
     refresh = RefreshToken.for_user(user)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
+
+
+def issue_tokens(user: User, platform: str = "", label: str = "") -> dict:
+    """JWT chiqaradi va sessiyani `Device` ga yozadi.
+
+    Limit to'lgan bo'lsa `devices.DeviceLimitReached` ko'tariladi.
+    """
+    from .devices import register_device
+
+    refresh = RefreshToken.for_user(user)
+    register_device(user, platform, label, refresh)
+    return {"access": str(refresh.access_token), "refresh": str(refresh)}
+
+
+class DeviceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Device
+        fields = ("id", "platform", "label", "created_at", "last_seen", "expires_at")
 
 
 class UserSerializer(serializers.ModelSerializer):

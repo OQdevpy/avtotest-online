@@ -65,6 +65,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_pro = models.BooleanField(default=False)
     pro_until = models.DateTimeField(null=True, blank=True)
 
+    # Null bo'lsa settings.MAX_DEVICES_PER_PLATFORM amal qiladi; to'ldirilgan
+    # bo'lsa barcha platformalar uchun shu son ustun turadi.
+    max_devices = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name="Qurilma limiti"
+    )
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -127,3 +133,41 @@ class SocialAccount(models.Model):
 
     def __str__(self) -> str:
         return f"{self.provider}:{self.uid}"
+
+
+class Device(models.Model):
+    """Bitta kirish sessiyasi — kim, qayerdan, qachongacha.
+
+    Eski web backendidagi `Student.is_online` (bitta qurilma) va 12 kunlik
+    muddat qoidasi shu jadvalda yashaydi. Refresh tokenning `jti` si shu
+    yozuvga bog'lanadi, shuning uchun sessiyani serverdan uzish mumkin.
+    """
+
+    class Platform(models.TextChoices):
+        MOBILE = "mobile", "Mobil"
+        WEB = "web", "Web"
+        DESKTOP = "desktop", "Desktop"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="devices")
+    platform = models.CharField(
+        max_length=10, choices=Platform.choices, default=Platform.MOBILE, db_index=True
+    )
+    refresh_jti = models.CharField(max_length=64, unique=True)
+    label = models.CharField(max_length=120, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ("-last_seen",)
+        indexes = [models.Index(fields=["user", "platform", "is_active"])]
+        verbose_name = "Qurilma"
+        verbose_name_plural = "Qurilmalar"
+
+    def __str__(self) -> str:
+        return f"{self.user_id} · {self.platform} · {self.label or 'nomsiz'}"
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expires_at is not None and self.expires_at <= timezone.now()
