@@ -263,6 +263,10 @@ class AccessCode(models.Model):
             return True
         return self.expires_at is None or self.expires_at > timezone.now()
 
+    def would_expire_at(self):
+        """Hozir faollashtirilsa qachon tugashi — sessiya muddatini bog'lash uchun."""
+        return timezone.now() + timedelta(days=self.valid_days)
+
     def activate(self) -> None:
         """Muddatni birinchi ishlatishda boshlaydi; keyingilari tegmaydi."""
         if self.activated_at is not None:

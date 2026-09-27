@@ -74,7 +74,7 @@ class Command(BaseCommand):
         connection = connect(options["database_url"])
         self.stats = {
             "branches": 0, "users_created": 0, "users_linked": 0, "users_skipped": 0,
-            "payments": 0, "reports": 0,
+            "payments": 0, "payments_existing": 0, "reports": 0,
         }
         try:
             with transaction.atomic():
@@ -159,13 +159,19 @@ class Command(BaseCommand):
             user = users.get(student_id)
             if user is None:
                 continue
-            payment, created = StudentPayment.objects.update_or_create(
+            # `get_or_create` — `update_or_create` emas: qayta ishlatilganda
+            # importdan keyin qabul qilingan to'lovlarni orqaga qaytarmasligi
+            # kerak. Bir necha eski yozuv bitta raqamga normallashsa ham
+            # birinchisining summasi ustiga yozilmaydi (`user` OneToOne).
+            payment, created = StudentPayment.objects.get_or_create(
                 user=user,
                 defaults={"amount": money(amount), "tolagani": money(tolagani)},
             )
             mapping[old_id] = payment
             if created:
                 self.stats["payments"] += 1
+            else:
+                self.stats["payments_existing"] += 1
         return mapping
 
     def _import_reports(self, connection, payments) -> None:
@@ -183,18 +189,19 @@ class Command(BaseCommand):
             payment = payments.get(payment_id)
             if payment is None:
                 continue
-            exists = PaymentReport.objects.filter(
-                student_payment=payment, date=date, paid_amount=money(paid_amount)
-            ).exists()
-            if exists:
+            # Takroriy importni eski qator id'si bo'yicha aniqlaymiz.
+            # Summa va sana bo'yicha tekshirish bir kunda bir xil summada
+            # ikki marta to'lagan o'quvchining bir hisobotini yo'qotardi.
+            marker = f"[web#{old_id}]"
+            if PaymentReport.objects.filter(comment__startswith=marker).exists():
                 continue
+            note = f"{marker} {comment}".strip() if comment else marker
             report = PaymentReport(
                 student_payment=payment,
                 paid_amount=money(paid_amount),
                 date=date,
-                comment=comment or "",
+                comment=note,
             )
-            # `_state.adding` ni saqlab qolmasdan to'g'ridan-to'g'ri INSERT —
-            # `tolagani` qayta oshmasin.
-            super(PaymentReport, report).save(force_insert=True)
+            # `tolagani` eski bazadan tayyor kelgan — qayta oshirilmaydi.
+            report.save(skip_balance=True)
             self.stats["reports"] += 1

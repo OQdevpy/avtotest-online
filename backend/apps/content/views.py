@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -64,9 +64,45 @@ LANG_PARAM = OpenApiParameter(
 )
 
 
-def annotate_lesson_progress(qs, user):
+def int_param(request, name: str):
+    """`?name=` ni butun son sifatida o'qiydi. Yaroqsiz qiymat → 400, 500 emas."""
+    raw = request.query_params.get(name)
+    if raw in (None, ""):
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        raise ValidationError({name: "Butun son bo'lishi kerak."})
+
+
+def published_only(request) -> bool:
+    """So'rovchi faqat nashr etilgan savollarni ko'radimi."""
+    user = getattr(request, "user", None)
+    return not (user is not None and user.is_authenticated and user.is_teacher)
+
+
+def count_questions(request, relation: str):
+    """`question_count` uchun Count — nashr etilmaganini hisobga olmaydi.
+
+    Mijoz progress chizig'ini va savol soniqni shu raqamdan chizadi, shuning
+    uchun u ko'rinadigan savollar soniga teng bo'lishi shart.
+    """
+    if published_only(request):
+        return Count(relation, distinct=True,
+                     filter=Q(**{f"{relation}__is_published": True}))
+    return Count(relation, distinct=True)
+
+
+def annotate_lesson_progress(qs, user, request=None):
     """Attach `question_count` and the user's `best_score` to a Lesson queryset."""
-    qs = qs.annotate(question_count=Count("questions", distinct=True))
+    relation = "questions"
+    if request is not None and published_only(request):
+        qs = qs.annotate(question_count=Count(
+            relation, distinct=True,
+            filter=Q(questions__is_published=True),
+        ))
+    else:
+        qs = qs.annotate(question_count=Count(relation, distinct=True))
     if user and user.is_authenticated:
         best = (
             LessonResult.objects
@@ -90,7 +126,8 @@ class SectionListView(LangSerializerContextMixin, generics.ListAPIView):
     def get_queryset(self):
         # Darslarni foydalanuvchi natijalari bilan prefetch qilamiz —
         # serializer har bo'lim uchun yashil/qizil darslar sonini hisoblaydi.
-        lessons = annotate_lesson_progress(Lesson.objects.all(), self.request.user)
+        lessons = annotate_lesson_progress(Lesson.objects.all(), self.request.user,
+                                           self.request)
         return (
             Section.objects
             .annotate(lesson_count=Count("lessons", distinct=True))
@@ -105,7 +142,8 @@ class SectionDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
     serializer_class = SectionDetailSerializer
 
     def get_queryset(self):
-        lessons = annotate_lesson_progress(Lesson.objects.all(), self.request.user)
+        lessons = annotate_lesson_progress(Lesson.objects.all(), self.request.user,
+                                           self.request)
         return (
             Section.objects
             .annotate(lesson_count=Count("lessons", distinct=True))
@@ -127,8 +165,9 @@ class LessonListView(LangSerializerContextMixin, generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        qs = annotate_lesson_progress(Lesson.objects.all(), self.request.user)
-        section = self.request.query_params.get("section")
+        qs = annotate_lesson_progress(Lesson.objects.all(), self.request.user,
+                                           self.request)
+        section = int_param(self.request, "section")
         return qs.filter(section_id=section) if section else qs
 
 
@@ -143,6 +182,7 @@ class LessonDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
         return annotate_lesson_progress(
             Lesson.objects.prefetch_related(Prefetch("questions", queryset=questions)),
             self.request.user,
+            self.request,
         )
 
     def get_serializer_context(self):
@@ -163,7 +203,11 @@ class TopicListView(LangSerializerContextMixin, generics.ListAPIView):
 
     serializer_class = TopicSerializer
     pagination_class = None
-    queryset = Topic.objects.annotate(question_count=Count("questions", distinct=True))
+
+    def get_queryset(self):
+        return Topic.objects.annotate(
+            question_count=count_questions(self.request, "questions")
+        )
 
 
 @extend_schema(
@@ -182,7 +226,11 @@ class TopicDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
     """Bitta mavzu va uning savollari (mobil `TopicDetail` ekrani)."""
 
     serializer_class = TopicDetailSerializer
-    queryset = Topic.objects.annotate(question_count=Count("questions", distinct=True))
+
+    def get_queryset(self):
+        return Topic.objects.annotate(
+            question_count=count_questions(self.request, "questions")
+        )
 
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -195,7 +243,14 @@ class TopicDetailView(LangSerializerContextMixin, generics.RetrieveAPIView):
 
 class TicketQuerysetMixin:
     def get_queryset(self):
-        qs = Ticket.objects.annotate(question_count=Count("items", distinct=True))
+        if published_only(self.request):
+            counter = Count("items", distinct=True,
+                            filter=Q(items__question__is_published=True))
+        else:
+            counter = Count("items", distinct=True)
+        # `filter=` bilan annotate GROUP BY qo'shadi va Meta.ordering tushib
+        # qoladi — sahifalash barqaror bo'lishi uchun tartib aniq beriladi.
+        qs = Ticket.objects.annotate(question_count=counter).order_by("number")
         user = self.request.user
         if user.is_authenticated:
             best = (
@@ -383,11 +438,11 @@ class QuestionListView(LangSerializerContextMixin, generics.ListAPIView):
         qs = visible_questions(self.request).prefetch_related("answers")
         params = self.request.query_params
 
-        lesson = params.get("lesson")
+        lesson = int_param(self.request, "lesson")
         if lesson:
             qs = qs.filter(lesson_id=lesson)
 
-        section = params.get("section")
+        section = int_param(self.request, "section")
         if section:
             qs = qs.filter(lesson__section_id=section)
 

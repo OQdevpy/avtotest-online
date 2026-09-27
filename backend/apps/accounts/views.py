@@ -251,17 +251,28 @@ class AccessCodeLoginView(generics.GenericAPIView):
                             status=status.HTTP_401_UNAUTHORIZED)
 
         code = serializer.context["access_code"]
-        code.activate()
         data = serializer.validated_data
+
+        # Platforma mijozdan OLINMAYDI: `platform="mobile"` deb yuborish
+        # sotilgan 12 kunlik muddatni ham, qurilma limitini ham chetlab
+        # o'tardi. Kod bilan kirish har doim desktop tarifida.
+        requested = (data.get("platform") or "").strip().lower()
+        platform = requested if requested in ("desktop", "web") else "desktop"
+
         try:
             tokens = issue_tokens(
                 code.user,
-                platform=data.get("platform") or "desktop",
+                platform=platform,
                 label=data.get("device_label", ""),
+                # Sessiya kodning o'zidan uzoq yashamasligi kerak.
+                not_after=code.expires_at or code.would_expire_at(),
             )
         except DeviceLimitReached:
+            # Kod hisoblagichi rad etilgan kirishda boshlanmaydi.
             return Response({"detail": DEVICE_LIMIT_MESSAGE},
                             status=status.HTTP_403_FORBIDDEN)
+
+        code.activate()
         return Response({"user": UserSerializer(code.user).data, "tokens": tokens})
 
 

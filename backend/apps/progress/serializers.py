@@ -13,7 +13,9 @@ from .models import (
 class AttemptItemSerializer(serializers.Serializer):
     """One answered question inside a submitted run."""
 
-    question = serializers.PrimaryKeyRelatedField(queryset=Question.objects.all())
+    # Nashr etilmagan savol o'quvchiga hech qayerda ko'rinmasligi kerak —
+    # natija yuborish orqali ham bazaga tushmaydi.
+    question = serializers.PrimaryKeyRelatedField(queryset=Question.published.all())
     answer = serializers.PrimaryKeyRelatedField(
         queryset=Answer.objects.all(), allow_null=True, required=False
     )
@@ -158,6 +160,8 @@ class SavedQuestionSerializer(serializers.ModelSerializer):
 
 
 class SavedQuestionCreateSerializer(serializers.ModelSerializer):
+    question = serializers.PrimaryKeyRelatedField(queryset=Question.published.all())
+
     class Meta:
         model = SavedQuestion
         fields = ("question",)

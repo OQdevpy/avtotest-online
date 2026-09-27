@@ -23,15 +23,17 @@ def tokens_for(user: User) -> dict:
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
-def issue_tokens(user: User, platform: str = "", label: str = "") -> dict:
+def issue_tokens(user: User, platform: str = "", label: str = "",
+                 not_after=None) -> dict:
     """JWT chiqaradi va sessiyani `Device` ga yozadi.
 
+    `not_after` berilsa sessiya muddati undan oshmaydi (kirish kodi uchun).
     Limit to'lgan bo'lsa `devices.DeviceLimitReached` ko'tariladi.
     """
     from .devices import register_device
 
     refresh = RefreshToken.for_user(user)
-    register_device(user, platform, label, refresh)
+    register_device(user, platform, label, refresh, not_after=not_after)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 

@@ -42,17 +42,27 @@ def active_devices(user, platform: str):
 
 
 @transaction.atomic
-def register_device(user, platform: str, label: str, refresh) -> Device:
-    """Yangi sessiya yozadi. Limit to'lgan bo'lsa `DeviceLimitReached`."""
+def register_device(user, platform: str, label: str, refresh, not_after=None) -> Device:
+    """Yangi sessiya yozadi. Limit to'lgan bo'lsa `DeviceLimitReached`.
+
+    Foydalanuvchi qatori qulflanadi: aks holda bir vaqtda kelgan ikki kirish
+    ikkisi ham bo'sh joy ko'rib, bitta qurilmalik tarifni chetlab o'tardi.
+    `not_after` — sessiya muddatining yuqori chegarasi (kirish kodi uchun).
+    """
     platform = platform or Device.Platform.MOBILE
+    type(user).objects.select_for_update().filter(pk=user.pk).first()
     if active_devices(user, platform).count() >= _limit(user, platform):
         raise DeviceLimitReached
+
+    expires_at = _expiry(platform)
+    if not_after is not None:
+        expires_at = min(expires_at, not_after) if expires_at else not_after
     return Device.objects.create(
         user=user,
         platform=platform,
         refresh_jti=refresh["jti"],
         label=label or "",
-        expires_at=_expiry(platform),
+        expires_at=expires_at,
     )
 
 

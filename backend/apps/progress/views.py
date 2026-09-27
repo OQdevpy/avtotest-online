@@ -111,9 +111,11 @@ class BlitsResultListCreateView(OwnedListMixin, generics.ListCreateAPIView):
 @extend_schema(tags=["progress"], description="Eng ko'p xato qilingan savollar (mobil `Mistakes`).")
 class MistakeListView(LangSerializerContextMixin, OwnedListMixin, generics.ListAPIView):
     serializer_class = MistakeSerializer
+    # `question__is_published` — nashr etilmagan savol (kaliti bilan)
+    # xatolar ro'yxati orqali sizib chiqmasin.
     queryset = (
         Mistake.objects
-        .filter(resolved=False, wrong_count__gt=0)
+        .filter(resolved=False, wrong_count__gt=0, question__is_published=True)
         .select_related("question")
         .prefetch_related("question__answers")
     )
@@ -137,6 +139,7 @@ class SavedQuestionListCreateView(LangSerializerContextMixin, OwnedListMixin,
 
     queryset = (
         SavedQuestion.objects
+        .filter(question__is_published=True)
         .select_related("question")
         .prefetch_related("question__answers")
     )

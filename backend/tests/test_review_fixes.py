@@ -125,3 +125,290 @@ def test_deactivated_device_is_still_rejected(api, student):
     Device.objects.filter(user=student).update(is_active=False)
     response = api.post("/api/v1/auth/token/refresh/", {"refresh": refresh}, format="json")
     assert response.status_code == 401
+
+
+# --- Important #6: nashr etilmagan savol saqlanganlar va xatolar orqali ------
+
+def test_cannot_save_unpublished_question(api, student, auth, lesson, make_question):
+    draft = make_question(lesson, "Qoralama", order=9, published=False)
+    auth(api, student)
+    response = api.post("/api/v1/progress/saved/", {"question": draft.id}, format="json")
+    assert response.status_code == 400
+
+
+def test_saved_list_excludes_unpublished(api, student, auth, lesson, make_question):
+    from apps.progress.models import SavedQuestion
+
+    draft = make_question(lesson, "Qoralama", order=9, published=False)
+    SavedQuestion.objects.create(user=student, question=draft)
+    auth(api, student)
+    body = api.get("/api/v1/progress/saved/").json()
+    rows = body["results"] if isinstance(body, dict) else body
+    assert rows == []
+
+
+def test_cannot_submit_result_for_unpublished_question(api, student, auth, lesson,
+                                                      make_question):
+    draft = make_question(lesson, "Qoralama", order=9, published=False)
+    auth(api, student)
+    response = api.post("/api/v1/progress/lesson-results/", {
+        "lesson": lesson.id,
+        "items": [{"question": draft.id, "answer": None}],
+    }, format="json")
+    assert response.status_code == 400
+
+
+def test_mistakes_list_excludes_unpublished(api, student, auth, lesson, make_question):
+    from apps.progress.models import Mistake
+
+    draft = make_question(lesson, "Qoralama", order=9, published=False)
+    Mistake.objects.create(user=student, question=draft, wrong_count=3)
+    auth(api, student)
+    body = api.get("/api/v1/progress/mistakes/").json()
+    rows = body["results"] if isinstance(body, dict) else body
+    assert rows == []
+
+
+# --- Important #7: platform mijoz tomonidan aytilmasligi --------------------
+
+def test_login_code_cannot_claim_mobile_platform(api, student, admin_user):
+    from apps.accounts.models import AccessCode
+
+    code = AccessCode.generate(user=student, created_by=admin_user)
+    api.post("/api/v1/auth/login-code/",
+             {"code": code.code, "platform": "mobile"}, format="json")
+    device = Device.objects.get(user=student)
+    assert device.platform == "desktop"
+    assert device.expires_at is not None
+
+
+def test_login_code_session_cannot_outlive_the_code(api, student, admin_user):
+    from apps.accounts.models import AccessCode
+
+    code = AccessCode.generate(user=student, created_by=admin_user, valid_days=3)
+    api.post("/api/v1/auth/login-code/", {"code": code.code}, format="json")
+    device = Device.objects.get(user=student)
+    code.refresh_from_db()
+    assert device.expires_at <= code.expires_at
+
+
+# --- Important #8: question_count nashr holatini hisobga olishi -------------
+
+def test_ticket_question_count_excludes_unpublished(api, student, auth, ticket, lesson,
+                                                   make_question):
+    from apps.content.models import TicketQuestion
+
+    draft = make_question(lesson, "Qoralama", order=9, published=False)
+    TicketQuestion.objects.create(ticket=ticket, question=draft, order=1)
+    auth(api, student)
+    body = api.get("/api/v1/tickets/").json()["results"][0]
+    assert body["question_count"] == 1
+
+
+def test_lesson_question_count_excludes_unpublished(api, student, auth, lesson,
+                                                   make_question, question):
+    make_question(lesson, "Qoralama", order=9, published=False)
+    auth(api, student)
+    # lessons/ sahifalanmaydi — to'g'ridan-to'g'ri ro'yxat.
+    rows = api.get(f"/api/v1/lessons/?section={lesson.section_id}").json()
+    assert rows[0]["question_count"] == 1
+
+
+def test_topic_question_count_excludes_unpublished(api, student, auth, lesson,
+                                                   make_question, question):
+    from apps.content.models import Topic
+
+    draft = make_question(lesson, "Qoralama", order=9, published=False)
+    topic = Topic.objects.create(name_uz="Mavzu", order=1)
+    topic.questions.add(question, draft)
+    auth(api, student)
+    assert api.get("/api/v1/topics/").json()[0]["question_count"] == 1
+
+
+# --- Important #10: qurilma limiti poyga holatida ham ishlashi --------------
+
+def test_register_device_locks_the_user_row(student):
+    """Limit tekshiruvi foydalanuvchi qatorini qulflashi kerak."""
+    import inspect
+
+    from apps.accounts import devices
+
+    source = inspect.getsource(devices.register_device)
+    assert "select_for_update" in source
+
+
+# --- Minor: noto'g'ri filtr qiymati 500 emas, 400 bermasligi ----------------
+
+def test_invalid_lesson_filter_returns_400(api, student, auth, question):
+    auth(api, student)
+    assert api.get("/api/v1/questions/?lesson=abc").status_code == 400
+
+
+def test_invalid_branch_filter_returns_400(api, admin_user, auth):
+    # `?branch=` faqat shefda o'qiladi — o'qituvchi baribir o'z filialini ko'radi.
+    auth(api, admin_user)
+    assert api.get("/api/v1/teacher/students/?branch=abc").status_code == 400
+
+
+# --- Minor: kod muddati 403 dan keyin boshlanmasligi ------------------------
+
+def test_access_code_clock_does_not_start_on_rejected_login(api, student, admin_user):
+    from apps.accounts.models import AccessCode
+
+    code = AccessCode.generate(user=student, created_by=admin_user)
+    api.post("/api/v1/auth/login-code/", {"code": code.code}, format="json")
+    Device.objects.filter(user=student).delete()
+    student.max_devices = 0
+    student.save(update_fields=["max_devices"])
+
+    second = AccessCode.generate(user=student, created_by=admin_user)
+    response = api.post("/api/v1/auth/login-code/", {"code": second.code}, format="json")
+    assert response.status_code == 403
+    second.refresh_from_db()
+    assert second.activated_at is None
+
+
+# --- Important #5: hisobot tahrirlansa/o'chirilsa balans to'g'ri qolishi -----
+
+def test_editing_report_adjusts_balance(api, admin_user, auth, payment):
+    from decimal import Decimal
+
+    auth(api, admin_user)
+    created = api.post("/api/v1/manage/payment-reports/",
+                       {"student_payment": payment.id, "paid_amount": "500000"},
+                       format="json").json()
+    api.patch(f"/api/v1/manage/payment-reports/{created['id']}/",
+              {"paid_amount": "50000"}, format="json")
+    payment.refresh_from_db()
+    assert payment.tolagani == Decimal("50000")
+
+
+def test_deleting_report_reduces_balance(api, admin_user, auth, payment):
+    from decimal import Decimal
+
+    auth(api, admin_user)
+    created = api.post("/api/v1/manage/payment-reports/",
+                       {"student_payment": payment.id, "paid_amount": "500000"},
+                       format="json").json()
+    api.delete(f"/api/v1/manage/payment-reports/{created['id']}/")
+    payment.refresh_from_db()
+    assert payment.tolagani == Decimal("0")
+
+
+# --- Important #4: import_web qayta ishlatilsa balansni buzmasligi ----------
+
+def test_import_web_rerun_keeps_later_payments(db, tmp_path):
+    from decimal import Decimal
+
+    from django.core.management import call_command
+
+    from apps.billing.models import StudentPayment
+    from tests.test_import_web import build_old_db
+
+    url = build_old_db(tmp_path / "w.sqlite3")
+    call_command("import_web", database_url=url)
+    payment = StudentPayment.objects.get()
+    # Shef importdan keyin yangi to'lov qabul qildi.
+    from apps.billing.models import PaymentReport
+
+    PaymentReport.objects.create(student_payment=payment, paid_amount=Decimal("300000"))
+    payment.refresh_from_db()
+    assert payment.tolagani == Decimal("550000")
+
+    call_command("import_web", database_url=url)
+    payment.refresh_from_db()
+    assert payment.tolagani == Decimal("550000")
+
+
+def test_import_web_colliding_phones_do_not_overwrite_payment(db, tmp_path):
+    from decimal import Decimal
+
+    from django.core.management import call_command
+
+    from apps.billing.models import StudentPayment
+    from tests.test_import_web import build_old_db
+
+    # Ikki eski yozuv bitta +998 raqamiga normallashadi.
+    url = build_old_db(tmp_path / "w2.sqlite3", students=[
+        (1, "Birinchi", 1, "901234567", "1234", "+", 1),
+        (2, "Ikkinchi", 1, "90 123 45 67", "5678", "-", 1),
+    ])
+    call_command("import_web", database_url=url)
+    assert StudentPayment.objects.count() == 1
+    assert StudentPayment.objects.get().amount == Decimal("1000000")
+
+
+def test_import_web_keeps_repeated_same_day_reports(db, tmp_path):
+    import sqlite3
+
+    from django.core.management import call_command
+
+    from apps.billing.models import PaymentReport
+    from tests.test_import_web import build_old_db
+
+    path = tmp_path / "w3.sqlite3"
+    url = build_old_db(path)
+    connection = sqlite3.connect(path)
+    connection.execute(
+        "INSERT INTO home_paymentreport VALUES "
+        "(2, 1, '250000', '2024-02-01', 'ikkinchi', '2024-02-01')"
+    )
+    connection.commit()
+    connection.close()
+    call_command("import_web", database_url=url)
+    assert PaymentReport.objects.count() == 2
+
+
+# --- Important #9: Django adminda yangi maydonlar boshqarilishi -------------
+
+def _admin_fields(model_admin):
+    """`fieldsets` dagi barcha maydon nomlari."""
+    names = set()
+    for _, options in model_admin.fieldsets or ():
+        for field in options.get("fields", ()):
+            if isinstance(field, (tuple, list)):
+                names.update(field)
+            else:
+                names.add(field)
+    return names
+
+
+def test_user_admin_exposes_role_branch_hujjat_and_limit():
+    from django.contrib import admin as dj_admin
+
+    from apps.accounts.models import User
+
+    fields = _admin_fields(dj_admin.site._registry[User])
+    assert {"role", "branch", "hujjat", "max_devices"} <= fields
+
+
+def test_user_admin_can_filter_by_role_and_branch():
+    from django.contrib import admin as dj_admin
+
+    from apps.accounts.models import User
+
+    model_admin = dj_admin.site._registry[User]
+    assert "role" in model_admin.list_filter
+    assert "branch" in model_admin.list_filter
+    assert "role" in model_admin.list_display
+
+
+def test_question_admin_shows_publish_state():
+    from django.contrib import admin as dj_admin
+
+    from apps.content.models import Question
+
+    model_admin = dj_admin.site._registry[Question]
+    assert "is_published" in model_admin.list_display
+    assert "is_published" in model_admin.list_filter
+
+
+def test_question_admin_can_bulk_publish():
+    from django.contrib import admin as dj_admin
+
+    from apps.content.models import Question
+
+    model_admin = dj_admin.site._registry[Question]
+    names = {getattr(a, "__name__", a) for a in model_admin.actions or ()}
+    assert "publish" in names
+    assert "unpublish" in names

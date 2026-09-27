@@ -11,6 +11,7 @@ from rest_framework import generics, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.content.views import int_param
 from apps.progress.services import user_stats
 from common.permissions import IsTeacherOrAdmin
 
@@ -36,7 +37,7 @@ def visible_students(request):
             return qs.none()
         return qs.filter(branch_id=user.branch_id)
 
-    branch = request.query_params.get("branch")
+    branch = int_param(request, "branch")
     return qs.filter(branch_id=branch) if branch else qs
 
 

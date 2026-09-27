@@ -71,15 +71,48 @@ class PaymentReport(models.Model):
     def __str__(self) -> str:
         return f"{self.date} · {self.paid_amount}"
 
-    def save(self, *args, **kwargs):
-        """Yangi hisobot `tolagani` ni oshiradi.
+    # Tahrirlashda balansni faqat farq bo'yicha tuzatish uchun eski summa.
+    # `__init__` da olib bo'lmaydi: Django `_state.adding` ni `from_db()` dan
+    # KEYIN False qiladi, shuning uchun bazadan o'qilgan qator ham "yangi"
+    # ko'rinadi.
+    _original_paid_amount = None
 
-        `F()` bilan — ikki hisobot bir vaqtda kelsa biri ikkinchisini yo'qotmasin.
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._original_paid_amount = instance.paid_amount
+        return instance
+
+    def save(self, *args, skip_balance: bool = False, **kwargs):
+        """Balansni hisobot bilan birga yuritadi.
+
+        Yangi hisobot `tolagani` ni oshiradi, tahrirlangani farq bo'yicha
+        tuzatadi. `F()` bilan — ikki hisobot bir vaqtda kelsa biri
+        ikkinchisini yo'qotmasin.
+
+        `skip_balance=True` — import uchun: eski bazadan `tolagani` tayyor
+        holda kelgan, qayta oshirilmasligi kerak.
         """
         creating = self._state.adding
+        previous = self._original_paid_amount
         with transaction.atomic():
             super().save(*args, **kwargs)
-            if creating:
-                StudentPayment.objects.filter(pk=self.student_payment_id).update(
-                    tolagani=F("tolagani") + self.paid_amount
+            if not skip_balance:
+                delta = self.paid_amount if creating else self.paid_amount - (
+                    previous if previous is not None else Decimal("0")
                 )
+                if delta:
+                    StudentPayment.objects.filter(pk=self.student_payment_id).update(
+                        tolagani=F("tolagani") + delta
+                    )
+        self._original_paid_amount = self.paid_amount
+
+    def delete(self, *args, **kwargs):
+        """Hisobot o'chirilsa balans ham kamayadi."""
+        payment_id, amount = self.student_payment_id, self.paid_amount
+        with transaction.atomic():
+            result = super().delete(*args, **kwargs)
+            StudentPayment.objects.filter(pk=payment_id).update(
+                tolagani=F("tolagani") - amount
+            )
+        return result

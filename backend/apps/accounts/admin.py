@@ -7,18 +7,28 @@ from .models import AccessCode, Device, SocialAccount, User
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ("-date_joined",)
-    list_display = ("phone", "full_name", "language", "is_pro", "is_active", "date_joined")
-    list_filter = ("is_active", "is_staff", "is_pro", "language")
+    list_display = ("phone", "full_name", "role", "branch", "hujjat",
+                    "is_pro", "is_active", "date_joined")
+    list_filter = ("role", "branch", "is_active", "is_staff", "is_pro", "hujjat", "language")
     search_fields = ("phone", "full_name")
+    list_select_related = ("branch",)
     fieldsets = (
         (None, {"fields": ("phone", "password")}),
         ("Profil", {"fields": ("full_name", "language", "dark_theme")}),
+        # Rol biznes huquqini belgilaydi; `is_staff` faqat admin paneliga kirishni.
+        ("Rol va filial", {"fields": ("role", "branch", "hujjat")}),
         ("PRO", {"fields": ("is_pro", "pro_until")}),
-        ("Ruxsatlar", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        ("Sessiya", {"fields": ("max_devices",),
+                     "description": "Bo'sh qoldirilsa platforma bo'yicha "
+                                    "standart limit amal qiladi."}),
+        ("Ruxsatlar", {"fields": ("is_active", "is_staff", "is_superuser",
+                                  "groups", "user_permissions")}),
         ("Sanalar", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (
-        (None, {"classes": ("wide",), "fields": ("phone", "password1", "password2")}),
+        (None, {"classes": ("wide",),
+                "fields": ("phone", "password1", "password2", "full_name",
+                           "role", "branch")}),
     )
 
 

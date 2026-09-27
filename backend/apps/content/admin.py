@@ -50,11 +50,24 @@ class AnswerInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("id", "short_text", "lesson", "has_image", "answer_count")
-    list_filter = ("lesson__section", "lesson")
+    list_display = ("id", "short_text", "lesson", "is_published", "is_in_web",
+                    "has_image", "answer_count")
+    list_filter = ("is_published", "is_in_web", "lesson__section", "lesson")
     search_fields = ("text_uz", "text_ru", "text_cry")
+    list_editable = ("is_published",)
     inlines = [AnswerInline]
     list_select_related = ("lesson",)
+    actions = ("publish", "unpublish")
+
+    @admin.action(description="Nashr etish (o'quvchiga ko'rinadi)")
+    def publish(self, request, queryset):
+        count = queryset.update(is_published=True)
+        self.message_user(request, f"{count} ta savol nashr etildi.")
+
+    @admin.action(description="Nashrdan olish (o'quvchiga ko'rinmaydi)")
+    def unpublish(self, request, queryset):
+        count = queryset.update(is_published=False)
+        self.message_user(request, f"{count} ta savol nashrdan olindi.")
 
     @admin.display(description="Savol")
     def short_text(self, obj):
