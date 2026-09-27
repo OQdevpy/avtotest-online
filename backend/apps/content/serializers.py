@@ -1,6 +1,9 @@
 from django.conf import settings
 from rest_framework import serializers
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
+
 from common.compat import CompatFieldsMixin
 from common.lang import TranslatedField
 from .models import Answer, Blits, Lesson, Question, Section, Ticket, Topic
@@ -102,6 +105,7 @@ class LessonDetailSerializer(LessonSerializer):
     class Meta(LessonSerializer.Meta):
         fields = LessonSerializer.Meta.fields + ("questions",)
 
+    @extend_schema_field(QuestionSerializer(many=True))
     def get_questions(self, obj):
         # `hide_answers` bo'lsa to'g'ri javob chiqmaydi. Ilgari bu yerda
         # QuestionSerializer shartsiz ishlatilardi va javob kaliti test
@@ -187,6 +191,7 @@ class TopicDetailSerializer(TopicSerializer):
     class Meta(TopicSerializer.Meta):
         fields = TopicSerializer.Meta.fields + ("questions",)
 
+    @extend_schema_field(QuestionSerializer(many=True))
     def get_questions(self, obj):
         qs = self._visible(obj.questions).prefetch_related("answers")
         serializer_cls = (
@@ -219,6 +224,7 @@ class TicketDetailSerializer(TicketSerializer):
     class Meta(TicketSerializer.Meta):
         fields = TicketSerializer.Meta.fields + ("questions",)
 
+    @extend_schema_field(QuestionSerializer(many=True))
     def get_questions(self, obj):
         items = obj.items.select_related("question").prefetch_related("question__answers")
         allowed = self.context.get("visible_questions")
@@ -242,6 +248,7 @@ class BlitsSerializer(serializers.ModelSerializer):
         model = Blits
         fields = ("id", "name", "order", "question_count")
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_question_count(self, obj) -> int:
         allowed = self.context.get("visible_questions")
         items = obj.items
@@ -256,6 +263,7 @@ class BlitsDetailSerializer(BlitsSerializer):
     class Meta(BlitsSerializer.Meta):
         fields = BlitsSerializer.Meta.fields + ("questions",)
 
+    @extend_schema_field(QuestionSerializer(many=True))
     def get_questions(self, obj):
         items = obj.items.select_related("question").prefetch_related("question__answers")
         allowed = self.context.get("visible_questions")

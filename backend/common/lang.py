@@ -11,6 +11,8 @@ The mobile app has four language codes; two of them map onto stored columns:
     ru  -> ru
 """
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 # stored columns
@@ -53,6 +55,7 @@ def pick(obj, base: str, lang: str) -> str:
     return ""
 
 
+@extend_schema_field(OpenApiTypes.STR)
 class TranslatedField(serializers.Field):
     """Read-only field that resolves `<base>_<lang>` for the current request.
 
