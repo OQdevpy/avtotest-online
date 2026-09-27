@@ -98,6 +98,23 @@ def test_variants_become_tickets(db):
     assert [i.question_id for i in ticket.items.order_by("order")] == [55, 56]
 
 
+def test_variants_with_var_id_key_become_tickets(db, tmp_path):
+    """Yangi eksportda `id`/`number` o'rniga `var_id` ishlatiladi (0 dan boshlab)."""
+    import json
+    import shutil
+
+    for name in ("sections", "lessons", "questions", "answers", "blits"):
+        shutil.copy(FIXTURE / f"{name}.json", tmp_path / f"{name}.json")
+    (tmp_path / "variants.json").write_text(json.dumps([
+        {"var_id": 0, "question_ids": [55, 56]},
+        {"var_id": 1, "question_ids": [57]},
+    ]))
+    call_command("import_content", path=str(tmp_path))
+    assert Ticket.objects.filter(number=1).exists()
+    assert Ticket.objects.filter(number=2).exists()
+    assert [i.question_id for i in Ticket.objects.get(number=1).items.order_by("order")] == [55, 56]
+
+
 # --- Yangilash --------------------------------------------------------------
 
 def test_updates_existing_row_by_id(db, section):

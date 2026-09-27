@@ -175,10 +175,19 @@ class Command(BaseCommand):
             )
 
     def _import_variants(self, rows: list[dict]) -> None:
-        """`variants.json` → `Ticket`. Variant va bilet bir xil narsa (spec §5.2)."""
+        """`variants.json` → `Ticket`. Variant va bilet bir xil narsa (spec §5.2).
+
+        Eksport shakli bir xil emas: eski `id`, ba'zan `number`, yangisida
+        `var_id` (0 dan boshlanadi — bilet raqami undan 1 katta).
+        """
         known = set(Question.objects.values_list("pk", flat=True))
         for row in rows:
-            number = row.get("number", row["id"])
+            if "number" in row:
+                number = row["number"]
+            elif "var_id" in row:
+                number = row["var_id"] + 1
+            else:
+                number = row["id"]
             ticket, created = Ticket.objects.get_or_create(number=number)
             self._count("tickets", "yaratildi" if created else "o'zgarmadi")
             self._sync_through(

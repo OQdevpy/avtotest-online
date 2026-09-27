@@ -6,3 +6,8 @@ db.sqlite3
 test-db.sqlite3
 staticfiles/*
 !staticfiles/.gitkeep
+
+# Savol rasmi/audiosi — compose'da alohida volume orqali saqlanadi,
+# git tarixiga tegishli emas (o'lchami katta va tez o'zgaradi).
+media/*
+!media/.gitkeep
