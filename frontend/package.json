@@ -1,7 +1,7 @@
 {
   "name": "avto-quiz",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "main": "dist/main.cjs",
   "description": "A quiz application about vehicles.",
@@ -15,7 +15,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "electron:serve": "concurrently -k \"cross-env BROWSER=none npm run electron:start\"",
-    "electron:build": "electron-builder --win",
+    "electron:build": "npm run build && electron-builder --win --x64",
     "electron:packager": "npm run build && xcopy /y public\\*.cjs dist\\ && electron-packager . AvtoQuiz --platform=win32 --arch=x64 --icon=public/static-images/icon.ico --out=new_dist --overwrite",
     "electron:start": "wait-on tcp:5174 && electron ."
   },
@@ -54,7 +54,6 @@
     "productName": "Avto Quiz",
     "icon": "public/static-images/icon.ico",
     "files": [
-      "build/**/*",
       "dist/**/*"
     ],
     "directories": {
@@ -69,8 +68,25 @@
       "category": "Education"
     },
     "win": {
-      "target": "nsis",
-      "icon": "public/static-images/icon.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/static-images/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": true,
+      "include": "installer/installer.nsh",
+      "artifactName": "Avto Quiz Setup ${version}.${ext}",
+      "installerIcon": "public/static-images/icon.ico",
+      "uninstallerIcon": "public/static-images/icon.ico"
     }
   }
 }

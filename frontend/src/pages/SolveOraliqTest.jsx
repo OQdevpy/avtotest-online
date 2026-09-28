@@ -1,50 +1,24 @@
 import { Outlet, useParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
-import SolveOraliqQuizComponent from "../components/SolveOraliqQuizComponent";
 import { useCustomContext } from '../context/TestContext';
 import Navbar from "../components/Navbar";
 import SolveQuizComponent from "../components/SolveQuizComponent";
-import oraliq_db from '../db/oraliq.json';
-import oraliqdarslar_db from '../db/oraliqdarslar.json';
-import oraliqdarslarquestion_db from '../db/oraliqdarslarquestion.json';
-import oraliqdarslaranswer_db from '../db/oraliqdarslaranswer.json';
+import { fetchSectionTest } from '../api/content';
+import { toast } from 'react-toastify';
 
 function SolveOraliqTest() {
     const { count, id } = useParams();
-    const { oraliqTest,Background } = useCustomContext();
+    const { Background } = useCustomContext();
     const [OraliqTest,setOraliqTest] = useState([])
     
 
-    const fetchOraliqTest =  useCallback( async (index, count) => {
-        const oraliq = oraliq_db.find((item) => item.id == index);
-
-
-        const lessons = oraliqdarslar_db.filter((item) => item['oraliq'] == index);
-
-        const lessonIds = lessons.map(item => item.id); // Extract IDs
-
-        const filteredQuestions = oraliqdarslarquestion_db.filter((item) => {
-            return lessonIds.some(lessonId => lessonId === item.oraliq_dars);
-        });
-
-
-        const shuffledQuestions = filteredQuestions.sort(() => Math.random() - 0.5); // Shuffle array
-        const countAsNumber = Number(count); // Ensure count is a number
-        const randomQuestions = shuffledQuestions.slice(0, countAsNumber); // Select the first 'count' questions
-
-        // Assign answers to the selected random questions
-        randomQuestions.forEach(item => {
-            item.answers = oraliqdarslaranswer_db.filter((new_item) => new_item.oraliq_dars_question === item.id);
-            const lesson = oraliqdarslar_db.find((new_item) => new_item.id === item.oraliq_dars);
-            item.lesson_name = {
-                "name_ru": oraliq.tartib + '.' + lesson.name_ru,
-                "name_uz": oraliq.tartib + '.' + lesson.name_uz,
-                "name_cry": oraliq.tartib + '.' + lesson.name_cry
-            }
-        });
-
-
-        setOraliqTest(randomQuestions);
+    // Bo'lim savollaridan tasodifiy `count` tasi
+    const fetchOraliqTest = useCallback(async (index, count) => {
+        try {
+            setOraliqTest(await fetchSectionTest(index, count));
+        } catch (err) {
+            toast.error(err.message || 'Failed to fetch quiz data');
+        }
     }, []);
 
     useEffect(() => {
@@ -76,7 +50,7 @@ function SolveOraliqTest() {
                     // marginBottom: '0.5rem',
                 }}
             >
-                <SolveQuizComponent data={OraliqTest} />
+                <SolveQuizComponent key={`${id}-${count}`} data={OraliqTest} />
                 <Outlet />
             </div>
         </div>

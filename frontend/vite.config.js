@@ -25,5 +25,6 @@ export default defineConfig({
         '@api': '/src/api/proxy'
     }
 },
-publicDir: '/src/assets/',
+// public/ → dist/: static-images, Electron uchun main.cjs va preload.cjs
+publicDir: 'public',
 });

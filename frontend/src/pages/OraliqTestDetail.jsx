@@ -1,33 +1,27 @@
 import { Outlet } from "react-router-dom";
 import { useCustomContext } from '../context/TestContext';
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { fetchBlitsList } from "../api/content";
 
 function OraliqTestDetail() {
-    const [testCount, setTestCount] = useState(0);
-    const [loading, setLoading] = useState(false);
-    const { oraliqTest, fetchOraliqTest, Background } = useCustomContext();
-    const params = useParams();
+    const { Background, getTranslationValue } = useCustomContext();
     const navigate = useNavigate();
+    const [blitsList, setBlitsList] = useState([]);
+
+    useEffect(() => {
+        fetchBlitsList().then(setBlitsList).catch((e) => console.error(e));
+    }, []);
 
 
     const handleNavigateOraliq = (count) => {
         navigate(`/solve-test/${count}`);
     };
 
-    const handleBlits = () => {
-        navigate(`/blits`);
+    const handleBlits = (id) => {
+        navigate(`/blits/${id}`);
     }
-
-    const handleBlits2 = () => {
-        navigate(`/blits2`);
-    }
-
-    const handleBlits3 = () => {
-        navigate(`/blits3`);
-    }
-
 
     return (
         <div
@@ -74,36 +68,19 @@ function OraliqTestDetail() {
                     >
                         50 
                     </button>
-                    <button
-                        onClick={() => handleBlits()}  // Set test count to 50
-                        className="w-full p-4 text-lg bg-blue-800/30 rounded-lg border border-gray-300 text-white font-semibold transition-transform transform hover:scale-105"
-                        style={{
-                            margin: '0 auto',
-                            border: '1px solid #ddd',
-                        }}
-                    >
-                        Blitz 1
-                    </button>
-                    <button
-                        onClick={() => handleBlits2()}  // Set test count to 50
-                        className="w-full p-4 text-lg bg-blue-800/30 rounded-lg border border-gray-300 text-white font-semibold transition-transform transform hover:scale-105"
-                        style={{
-                            margin: '0 auto',
-                            border: '1px solid #ddd',
-                        }}
-                    >
-                        Blitz 2
-                    </button>
-                    <button
-                        onClick={() => handleBlits3()}  // Set test count to 50
-                        className="w-full p-4 text-lg bg-blue-800/30 rounded-lg border border-gray-300 text-white font-semibold transition-transform transform hover:scale-105"
-                        style={{
-                            margin: '0 auto',
-                            border: '1px solid #ddd',
-                        }}
-                    >
-                        Blitz 3
-                    </button>
+                    {blitsList.map((blits) => (
+                        <button
+                            key={blits.id}
+                            onClick={() => handleBlits(blits.id)}
+                            className="w-full p-4 text-lg bg-blue-800/30 rounded-lg border border-gray-300 text-white font-semibold transition-transform transform hover:scale-105"
+                            style={{
+                                margin: '0 auto',
+                                border: '1px solid #ddd',
+                            }}
+                        >
+                            {getTranslationValue(blits, "name")}
+                        </button>
+                    ))}
                 </div>
 
                 <Outlet />

@@ -1,13 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import {
+    fetchLessonQuestions,
+    fetchLessons as fetchLessonList,
+    fetchRandomTest,
+    fetchSections,
+    fetchSectionTest,
+    fetchTicketQuestions,
+    fetchTickets,
+} from '../api/content';
 
 const TestContext = createContext(null);
 const ContextProvider = ({ children }) => {
     const [active, setActive] = useState(true);
     const [loading, setLoading] = useState(true);
-    // const URL = import.meta.env.VITE_API_URL;
-    const URL = import.meta.env.VITE_API_URL;
 
+    // Rasmlar API'dan to'liq URL (`image_url`) bilan keladi; bu faqat nisbiy
+    // yo'llar uchun zaxira.
     const media_path = import.meta.env.VITE_MEDIA_BASE_URL;
 
     const DefaultImge = './static-images/default_image.jpg';
@@ -21,94 +30,87 @@ const ContextProvider = ({ children }) => {
         return decodedData;
     };
 
+    const reportError = (e) => {
+        console.error(e);
+        // 401 — AuthContext o'zi login sahifasiga qaytaradi
+        if (e?.status !== 401) toast.error(e?.message || 'Server bilan aloqa yo\'q');
+    };
+
     const [variants, setVariants] = useState(null);
     const fetchVariants = async () => {
+        setLoading(true);
         try {
-            const res = await fetch(`${URL}/tickets/?token=${localStorage.getItem('quizToken')}`);
-            const data = await res.json();
-            const mapped = data.map(t => ({
+            const tickets = await fetchTickets();
+            setVariants(tickets.map(t => ({
                 id: t.number,
                 name_uz: `${t.number}-variant`,
                 name_ru: `${t.number}-вариант`,
                 name_cry: `${t.number}-вариант`,
-            }));
-            setVariants(mapped);
-        } catch(e) { console.error(e); }
+            })));
+        } catch (e) { reportError(e); }
         setLoading(false);
     };
 
     const [variant, setVariant] = useState(null);
     const fetchVariant = async (index) => {
+        setLoading(true);
         try {
-            const res = await fetch(`${URL}/tickets/${parseInt(index) + 1}/?token=${localStorage.getItem('quizToken')}`);
-            const data = await res.json();
-            setVariant(data.questions);
-        } catch(e) { console.error(e); }
+            const questions = await fetchTicketQuestions(parseInt(index) + 1);
+            // VariantDetail qaysi bilet yuklanganini `var_id` orqali tekshiradi
+            setVariant(questions.map(q => ({ ...q, var_id: Number(index) })));
+        } catch (e) { reportError(e); }
         setLoading(false);
     };
 
     const [randomTests, setRandomTests] = useState(null);
     const fetchRandomTests = async () => {
+        setLoading(true);
         try {
-            const res = await fetch(`${URL}/random-test/?token=${localStorage.getItem('quizToken')}`);
-            if (res.status === 403) {
-                localStorage.removeItem('quizToken');
-                window.location.href = "/login";
-            }
-            const data = await res.json();
-            setRandomTests(data);
-        } catch(e) { console.error(e); }
+            setRandomTests(await fetchRandomTest(20));
+        } catch (e) { reportError(e); }
         setLoading(false);
     }
 
     const [oraliq, setOraliq] = useState([]);
     const fetchOraliq = async () => {
+        setLoading(true);
         try {
-            const res = await fetch(`${URL}/sections/?token=${localStorage.getItem('quizToken')}`);
-            const data = await res.json();
-            setOraliq(data);
-        } catch(e) { console.error(e); }
+            setOraliq(await fetchSections());
+        } catch (e) { reportError(e); }
         setLoading(false);
     }
 
     const [lessons, setLessons] = useState([]);
     const fetchLessons = async (index) => {
         try {
-            const res = await fetch(`${URL}/lessons/?section=${index}&token=${localStorage.getItem('quizToken')}`);
-            const data = await res.json();
-            setLessons(data);
-        } catch(e) { console.error(e); }
+            setLessons(await fetchLessonList(index));
+        } catch (e) { reportError(e); }
     }
 
     const [oraliqTest, setOraliqTest] = useState([]);
     const fetchOraliqTest = useCallback(async (index, count) => {
         setLoading(true);
         try {
-            const res = await fetch(`${URL}/random-questions/?section=${index}&count=${count}&token=${localStorage.getItem('quizToken')}`);
-            const data = await res.json();
-            setOraliqTest(data);
-        } catch(e) { console.error(e); }
+            setOraliqTest(await fetchSectionTest(index, count));
+        } catch (e) { reportError(e); }
         setLoading(false);
-    }, [URL]);
+    }, []);
 
     const [solveTest, setSolveTest] = useState([]);
     const fetchSolveTest = useCallback(async (count) => {
         setLoading(true);
         try {
-            const res = await fetch(`${URL}/random-questions/?count=${count}&token=${localStorage.getItem('quizToken')}`);
-            const data = await res.json();
-            setSolveTest(data);
-        } catch(e) { console.error(e); }
+            setSolveTest(await fetchRandomTest(count));
+        } catch (e) { reportError(e); }
         setLoading(false);
-    }, [URL]);
+    }, []);
 
     const [oraliqLessontest, setOraliqLessonTest] = useState([]);
     const fetchOraliqLessonTest = async (index) => {
+        setOraliqLessonTest([]);
         try {
-            const res = await fetch(`${URL}/questions/?lesson=${index}&token=${localStorage.getItem('quizToken')}`);
-            const data = await res.json();
-            setOraliqLessonTest(data);
-        } catch(e) { console.error(e); }
+            setOraliqLessonTest(await fetchLessonQuestions(index));
+        } catch (e) { reportError(e); }
     };
 
     const [lang, setLang] = useState(localStorage.getItem('lang') || 'uz');

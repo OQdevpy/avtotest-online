@@ -1,34 +1,48 @@
-const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, session } = require('electron');
+const fs = require('fs');
 const path = require('path');
+
+// Versiya o'zgarganda (yangi o'rnatish/yangilash) eski localStorage, IndexedDB,
+// cookie va kesh tozalanadi — eski `quizToken` va eski ma'lumot qolmaydi.
+const VERSION_FILE = path.join(app.getPath('userData'), 'app-version.txt');
+
+async function resetStorageOnNewVersion() {
+  let previous = null;
+  try {
+    previous = fs.readFileSync(VERSION_FILE, 'utf8').trim();
+  } catch {
+    // birinchi ishga tushirish
+  }
+  if (previous === app.getVersion()) return;
+
+  await session.defaultSession.clearStorageData();
+  await session.defaultSession.clearCache();
+  fs.mkdirSync(path.dirname(VERSION_FILE), { recursive: true });
+  fs.writeFileSync(VERSION_FILE, app.getVersion());
+}
 
 // Electron oynasini yaratish
 function createWindow() {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
-    frame:false,
+    frame: false,
     icon: path.join(__dirname, 'static-images/icon.ico'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'), // Agar kerak bo'lsa, preload skriptini qo'shish
-      nodeIntegration: true,
-      contextIsolation: false, // React va Electron o'rtasida uzviy aloqani ta'minlash
-      devTools:false
+      preload: path.join(__dirname, 'preload.cjs'),
+      // Renderer Node API ishlatmaydi — faqat preload orqali `window.Electron`
+      nodeIntegration: false,
+      contextIsolation: true,
+      devTools: false,
     },
   });
 
-  // 'index.html' faylini yuklash
+  // 'index.html' faylini yuklash (HashRouter — file:// da ham to'g'ri)
   win.loadFile(path.join(__dirname, 'index.html'));
-
-  // Developer Tools-ni o'chirish
-  // win.webContents.on('devtools-opened', () => {
-  //   win.webContents.closeDevTools();
-  // });
 
   win.setFullScreen(true); // Bu oynani to'liq ekran rejimida ochadi
 
-
-  // Faqat harflar, sonlar va chap-o'ng tugmalarini o‘rnatish
-  // Klaviatura cheklovlarini o‘rnatish
+  // Faqat harflar, sonlar va chap-o'ng tugmalarini o'rnatish
   win.webContents.on('before-input-event', (event, input) => {
     const validKeys = [
       'Enter', 'Backspace', 'ArrowLeft', 'ArrowRight', // Harakat uchun tugmalar
@@ -41,11 +55,20 @@ function createWindow() {
   });
 }
 
+// Navbar'dagi yopish tugmasi (kod bilan) — ilovadan chiqish
+ipcMain.on('app-close', () => {
+  app.quit();
+});
+
 // Ilova ishga tushganda oynani yaratish
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  try {
+    await resetStorageOnNewVersion();
+  } catch (error) {
+    console.error('Storage tozalanmadi:', error);
+  }
   createWindow();
 
-  // MacOS uchun Cmd+Q ishga tushirish
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();

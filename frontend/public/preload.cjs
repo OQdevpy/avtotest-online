@@ -1,7 +1,11 @@
-// preload.js (agar kerak bo'lsa)
-const { contextBridge } = require('electron');
+// Renderer'ga faqat kerakli API: ilovani yopish va desktop ekanligi belgisi.
+const { contextBridge, ipcRenderer } = require('electron');
 
-// Electron API'ni React yoki boshqa frontendga taqdim etish
-contextBridge.exposeInMainWorld('electron', {
-  // O'zgarishlar yoki custom API-lar qo'shish mumkin
+contextBridge.exposeInMainWorld('Electron', {
+  isDesktop: true,
+  ipcRenderer: {
+    send: (channel) => {
+      if (channel === 'app-close') ipcRenderer.send(channel);
+    },
+  },
 });
