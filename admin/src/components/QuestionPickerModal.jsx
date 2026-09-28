@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import JSZip from 'jszip';
+import { BACKEND_URL, mediaUrl } from '../services/api';
 
 export default function QuestionPickerModal({ blits, onClose }) {
   const {
@@ -58,8 +59,8 @@ export default function QuestionPickerModal({ blits, onClose }) {
     if (String(imagePath).startsWith('http://') || String(imagePath).startsWith('https://')) return imagePath;
 
     const normalized = String(imagePath).replace(/^\/+/, '');
-    if (normalized.startsWith('media/')) return `/${normalized}`;
-    return `/media/${normalized}`;
+    if (normalized.startsWith('media/')) return `${BACKEND_URL}/${normalized}`;
+    return mediaUrl(normalized);
   };
 
   const safeFileName = (value) => value.replace(/[\\/:*?"<>|]/g, '_');

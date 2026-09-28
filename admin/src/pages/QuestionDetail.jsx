@@ -9,6 +9,7 @@ import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useData } from '../context/DataContext';
 import ImagePreview from '../components/ImagePreview';
+import { mediaUrl } from '../services/api';
 
 // ─── Sortable savol raqami ───
 function SortableQuestionNum({ id, index, isActive, onClick }) {
@@ -54,8 +55,8 @@ function QuestionImageComponent({ currentItem, editing, onClickImage, fileInputR
   const imageSrc = currentItem.image;
   const hasImage = imageSrc && imageSrc.length > 0;
   const resolvedSrc = hasImage
-    ? (imageSrc.startsWith('data:') ? imageSrc : `/media/${imageSrc}`)
-    : '/media/default_image.jpg';
+    ? (imageSrc.startsWith('data:') ? imageSrc : mediaUrl(imageSrc))
+    : mediaUrl('default_image.jpg');
 
   return (
     <div
@@ -82,7 +83,7 @@ function QuestionImageComponent({ currentItem, editing, onClickImage, fileInputR
             alt="Savol rasmi"
             className="object-contain w-full"
             style={{ maxWidth: '100%', maxHeight: '100%' }}
-            onError={(e) => { e.target.src = '/media/default_image.jpg'; }}
+            onError={(e) => { e.target.src = mediaUrl('default_image.jpg'); }}
           />
           {editing && (
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onImageChange} />
@@ -271,7 +272,7 @@ export default function QuestionDetail() {
     if (isPendingAvailable) return pendingDescPreview;
     const value = question?.explanation_image;
     if (!value) return null;
-    return `/media/${value}`;
+    return mediaUrl(value);
   };
 
   // Savolni boshqa darsga ko'chirish
@@ -564,7 +565,7 @@ export default function QuestionDetail() {
                 </div>
               ) : (
                 currentQ.explanation_image ? (() => {
-                  const displaySrc = `/media/${currentQ.explanation_image}`;
+                  const displaySrc = mediaUrl(currentQ.explanation_image);
                   return (
                     <div>
                       <div className="flex items-center gap-1 mb-1">

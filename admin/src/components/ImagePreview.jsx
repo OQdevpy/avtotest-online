@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { BACKEND_URL, mediaUrl } from '../services/api';
 
 /**
  * Inline image resize editor — PowerPoint-style drag handles.
@@ -13,7 +14,7 @@ export default function ImagePreview({ src, onClose, onSave }) {
   const imgRef = useRef(null);
   const containerRef = useRef(null);
 
-  const imgSrc = src.startsWith('data:') ? src : (src.startsWith('/') ? src : `/media/${src}`);
+  const imgSrc = src.startsWith('data:') ? src : (src.startsWith('/') ? `${BACKEND_URL}${src}` : mediaUrl(src));
 
   // Fit image into container on first load
   const handleImageLoad = () => {
@@ -166,7 +167,7 @@ export default function ImagePreview({ src, onClose, onSave }) {
               userSelect: 'none',
             }}
             onLoad={handleImageLoad}
-            onError={(e) => { e.target.src = '/media/default_image.jpg'; }}
+            onError={(e) => { e.target.src = mediaUrl('default_image.jpg'); }}
             draggable={false}
           />
           {/* Dashed selection border */}
@@ -197,7 +198,7 @@ export default function ImagePreview({ src, onClose, onSave }) {
           alt="Loading"
           style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
           onLoad={handleImageLoad}
-          onError={(e) => { e.target.src = '/media/default_image.jpg'; }}
+          onError={(e) => { e.target.src = mediaUrl('default_image.jpg'); }}
         />
       )}
 

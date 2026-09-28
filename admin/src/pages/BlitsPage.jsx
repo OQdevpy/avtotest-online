@@ -5,6 +5,7 @@ import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useData } from '../context/DataContext';
 import QuestionPickerModal from '../components/QuestionPickerModal';
+import { mediaUrl } from '../services/api';
 
 // ─── Sortable Blits Question Number (drag to reorder) ───
 function SortableBlitsNum({ id, index, isActive, onClick }) {
@@ -240,11 +241,11 @@ export default function BlitsPage() {
                       currentQ.image.startsWith('data:') ? (
                         <img src={currentQ.image} alt="Savol" className="max-w-full max-h-[400px] object-contain" />
                       ) : (
-                        <img src={`/media/${currentQ.image}`} alt="Savol" className="max-w-full max-h-[400px] object-contain"
-                          onError={(e) => { e.target.src = '/media/default_image.jpg'; }} />
+                        <img src={mediaUrl(currentQ.image)} alt="Savol" className="max-w-full max-h-[400px] object-contain"
+                          onError={(e) => { e.target.src = mediaUrl('default_image.jpg'); }} />
                       )
                     ) : (
-                      <img src="/media/default_image.jpg" alt="Default" className="max-w-full max-h-[400px] object-contain" />
+                      <img src={mediaUrl('default_image.jpg')} alt="Default" className="max-w-full max-h-[400px] object-contain" />
                     )}
                   </div>
                 </div>

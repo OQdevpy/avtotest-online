@@ -25,3 +25,6 @@ dist-ssr
 
 node_modules/
 dist/
+
+# Muhit fayli (namunasi .env.example da)
+.env

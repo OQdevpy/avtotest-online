@@ -1,5 +1,14 @@
+// Backend manzili (.env dagi VITE_API_URL). Bo'sh bo'lsa — admin panel bilan
+// bir domen/port (nginx /api va /media ni backendga uzatadi).
+export const BACKEND_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
 // Asosiy API manzili
-const API_BASE = '/api/v1';
+const API_BASE = `${BACKEND_URL}/api/v1`;
+
+// Media fayl (rasm/audio) manzili: `images/1.png` → `<backend>/media/images/1.png`
+export function mediaUrl(path) {
+  return `${BACKEND_URL}/media/${String(path).replace(/^\/+/, '')}`;
+}
 
 // Tokenlarni boshqarish — access xotirada (o'zgaruvchida), refresh localStorage'da
 let accessToken = null;

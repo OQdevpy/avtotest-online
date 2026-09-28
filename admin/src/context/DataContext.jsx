@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import JSZip from 'jszip';
-import { fetchJSON, postJSON, patchJSON, deleteResource, uploadFile } from '../services/api';
+import { fetchJSON, postJSON, patchJSON, deleteResource, uploadFile, mediaUrl } from '../services/api';
 import { useAuth } from './AuthContext';
 
 const DataContext = createContext(null);
@@ -460,7 +460,7 @@ export function DataProvider({ children }) {
     for (const q of questionsWithImages) {
       if (q.image) {
         try {
-          const response = await fetch(`/media/${q.image}`);
+          const response = await fetch(mediaUrl(q.image));
           if (response.ok) {
             const blob = await response.blob();
             const fileName = q.image.split('/').pop();
@@ -500,7 +500,7 @@ export function DataProvider({ children }) {
 
     for (const q of questionsWithDescImages) {
       try {
-        const response = await fetch(`/media/${q.explanation_image}`);
+        const response = await fetch(mediaUrl(q.explanation_image));
         if (response.ok) {
           const blob = await response.blob();
           const fileName = q.explanation_image.split('/').pop();
