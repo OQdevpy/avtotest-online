@@ -1,0 +1,6 @@
+[
+  {"id": 210, "question_id": 55, "answer_uz": "7 ta", "answer_ru": "7", "answer_cry": "7 та", "is_true": true},
+  {"id": 211, "question_id": 55, "answer_uz": "5 ta", "answer_ru": "5", "answer_cry": "5 та", "is_true": false},
+  {"id": 212, "question_id": 56, "answer_uz": "Uchburchak", "answer_ru": "Треугольник", "answer_cry": "Учбурчак", "is_true": true},
+  {"id": 213, "question_id": 57, "answer_uz": "Ustuvorlikni ko'rsatadi", "answer_ru": "Показывает приоритет", "answer_cry": "Устуворликни кўрсатади", "is_true": true}
+]

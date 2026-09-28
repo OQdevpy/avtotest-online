@@ -1,0 +1,98 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: avtotest_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-avtotest}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD kerak}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-avtotest}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: avtotest_backend
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 config.wsgi:application"
+    # Faqat shu serverdan (tizim nginx'i uchun): proxy_pass http://127.0.0.1:${API_PORT:-8010};
+    ports:
+      - "127.0.0.1:${API_PORT:-8010}:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-avtotest}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend/media:/app/media
+      - static_files:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  # Telegram OTP kodlari shu yerda saqlanadi (send-code / verify-code).
+  redis:
+    image: redis:7-alpine
+    container_name: avtotest_redis
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Telegram bot (polling) — /start, kontakt ulash, "Kodni olish".
+  # BITTA joyda ishlashi shart: eski mobil backend boti to'xtatilgach yoqing:
+  #   docker compose --profile bot up -d
+  # backend/.env da TELEGRAM_BOT_TOKEN bo'lishi kerak.
+  bot:
+    build: ./backend
+    container_name: avtotest_bot
+    command: python manage.py runbot
+    profiles: ["bot"]
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-avtotest}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ./admin
+      args:
+        VITE_API_URL: ${ADMIN_API_URL:-}
+    container_name: avtotest_admin
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: avtotest_nginx
+    ports:
+      - "${WEB_PORT:-9005}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./backend/media:/var/www/media:ro
+      - static_files:/var/www/static:ro
+    depends_on:
+      - backend
+      - admin
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_files:
+  redis_data:

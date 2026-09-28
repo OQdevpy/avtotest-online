@@ -1,0 +1,242 @@
+[
+  {
+    "id": 16,
+    "section_id": 1,
+    "name_uz": "1.Ogohlantiruvchi belgilar",
+    "name_ru": "1.Предупреждающие знаки",
+    "name_cry": "1.Огоҳлантирувчи белгилар",
+    "tartib": 1
+  },
+  {
+    "id": 17,
+    "section_id": 1,
+    "name_uz": "2.Imtiyoz belgilari",
+    "name_ru": "2.Знаки приоритета",
+    "name_cry": "2.Имтиёз белгилари",
+    "tartib": 2
+  },
+  {
+    "id": 18,
+    "section_id": 1,
+    "name_uz": "3.Taqiqlovchi belgilar",
+    "name_ru": "3.Запрещающие знаки",
+    "name_cry": "3.Тақиқловчи белгилар",
+    "tartib": 3
+  },
+  {
+    "id": 19,
+    "section_id": 1,
+    "name_uz": "4.Buyuruvchi belgilar",
+    "name_ru": "4.Предписывающие знаки",
+    "name_cry": "4.Буюрувчи белгилар",
+    "tartib": 4
+  },
+  {
+    "id": 20,
+    "section_id": 1,
+    "name_uz": "5.Axborot-ishora belgilari",
+    "name_ru": "5.Информационно-указательные знаки",
+    "name_cry": "5.Ахборот-ишора белгилари",
+    "tartib": 5
+  },
+  {
+    "id": 22,
+    "section_id": 1,
+    "name_uz": "6.Qo'shimcha-axborot belgilari",
+    "name_ru": "6.Знаки дополнительной информации",
+    "name_cry": "6.Қўшимча-ахборот белгилари",
+    "tartib": 6
+  },
+  {
+    "id": 23,
+    "section_id": 1,
+    "name_uz": "7.Yo'l chiziqlari",
+    "name_ru": "7.Дорожные разметки",
+    "name_cry": "7.Йўл чизиқлари",
+    "tartib": 7
+  },
+  {
+    "id": 25,
+    "section_id": 2,
+    "name_uz": "1.Atamalar",
+    "name_ru": "1.Термины",
+    "name_cry": "1.Атамалар",
+    "tartib": 1
+  },
+  {
+    "id": 26,
+    "section_id": 2,
+    "name_uz": "2.Haydovchining vazifalari",
+    "name_ru": "2.Обязанности водителей",
+    "name_cry": "2.Ҳайдовчининг вазифалари",
+    "tartib": 2
+  },
+  {
+    "id": 27,
+    "section_id": 2,
+    "name_uz": "3.Piyodaning vazifalari",
+    "name_ru": "3.Обязанности пешеходов",
+    "name_cry": "3.Пиёданинг вазифалари",
+    "tartib": 3
+  },
+  {
+    "id": 28,
+    "section_id": 2,
+    "name_uz": "4.Teng ahamiyatli chorraha",
+    "name_ru": "4.Равнозначный перекресток",
+    "name_cry": "4.Тенг аҳамиятли чорраҳа",
+    "tartib": 4
+  },
+  {
+    "id": 29,
+    "section_id": 2,
+    "name_uz": "5.Teng ahamiyat ega bo'lmagan chorraha",
+    "name_ru": "5.Неравнозначный перекресток",
+    "name_cry": "5.Тенг аҳамият эга бўлмаган чорраҳa",
+    "tartib": 5
+  },
+  {
+    "id": 30,
+    "section_id": 2,
+    "name_uz": "6.Tartibga soluvchi",
+    "name_ru": "6.Регулировщик",
+    "name_cry": "6.Тартибга солувчи",
+    "tartib": 6
+  },
+  {
+    "id": 31,
+    "section_id": 2,
+    "name_uz": "7.Svetafor",
+    "name_ru": "7.Светофор",
+    "name_cry": "7.Светафор",
+    "tartib": 7
+  },
+  {
+    "id": 33,
+    "section_id": 4,
+    "name_uz": "1.Ogohlantiruvchi ishoralar",
+    "name_ru": "1.Предупредительные сигналы",
+    "name_cry": "1.Огоҳлантирувчи ишоралар",
+    "tartib": 2
+  },
+  {
+    "id": 34,
+    "section_id": 4,
+    "name_uz": "2.Harakatni boshlash. Manevrlarni bajarish",
+    "name_ru": "2.Начало движения, маневрирование",
+    "name_cry": "2.Ҳаракатни бошлаш. Маневрларни бажариш",
+    "tartib": 3
+  },
+  {
+    "id": 35,
+    "section_id": 4,
+    "name_uz": "3.Transport vositalarining qatnov qismida joylashuvi",
+    "name_ru": "3.Расположение транспортных средств на проезжей части",
+    "name_cry": "3.Транспорт воситаларининг қатнов қисмида жойлашуви",
+    "tartib": 4
+  },
+  {
+    "id": 36,
+    "section_id": 4,
+    "name_uz": "4.Harakatlanish tezligi",
+    "name_ru": "4.Скорость движения",
+    "name_cry": "4.Ҳаракатланиш тезлиги",
+    "tartib": 5
+  },
+  {
+    "id": 37,
+    "section_id": 4,
+    "name_uz": "5.Quvib o'tish",
+    "name_ru": "5.Обгон",
+    "name_cry": "5.Қувиб ўтиш",
+    "tartib": 6
+  },
+  {
+    "id": 38,
+    "section_id": 4,
+    "name_uz": "6.To'xtash va to'xtab turish",
+    "name_ru": "6.Остановка и стоянка",
+    "name_cry": "6.Тўхташ ва тўхтаб туриш",
+    "tartib": 7
+  },
+  {
+    "id": 24,
+    "section_id": 4,
+    "name_uz": "7.Taniqlilik belgilari",
+    "name_ru": "7.Опознавательные знаки",
+    "name_cry": "7.Таниқлилик белгилари",
+    "tartib": 1
+  },
+  {
+    "id": 45,
+    "section_id": 4,
+    "name_uz": "8.Transport vositalarining toifalari",
+    "name_ru": "8.Категории транспортных средств",
+    "name_cry": "8.Транспорт воситаларининг тоифалари",
+    "tartib": 8
+  },
+  {
+    "id": 21,
+    "section_id": 5,
+    "name_uz": "1.Avtomagistral",
+    "name_ru": "1.Автомагистрал",
+    "name_cry": "1.Автомагистрал",
+    "tartib": 1
+  },
+  {
+    "id": 32,
+    "section_id": 5,
+    "name_uz": "2.Temir yo'l kesishmalari",
+    "name_ru": "2.Железнодорожные переезды",
+    "name_cry": "2.Темир йўл кесишмалари",
+    "tartib": 2
+  },
+  {
+    "id": 39,
+    "section_id": 5,
+    "name_uz": "3.Tashqi yoritish asboblari",
+    "name_ru": "3.Фары",
+    "name_cry": "3.Ташқи ёритиш асбоблари",
+    "tartib": 3
+  },
+  {
+    "id": 40,
+    "section_id": 5,
+    "name_uz": "4.Shatakka olish",
+    "name_ru": "4.Буксировка",
+    "name_cry": "4.Шатакка олиш",
+    "tartib": 4
+  },
+  {
+    "id": 41,
+    "section_id": 5,
+    "name_uz": "5.Odam va yuk tashish",
+    "name_ru": "5.Перевозка людей и грузов",
+    "name_cry": "5.Одам ва юк ташиш",
+    "tartib": 5
+  },
+  {
+    "id": 42,
+    "section_id": 5,
+    "name_uz": "6.Transport vositasidan foydalanishni taqiqlovchi shartlar",
+    "name_ru": "6.Условия при которых запрещается эксплуатация транспортных средств",
+    "name_cry": "6.Транспорт воситасидан фойдаланишни тақиқловчи шартлар",
+    "tartib": 6
+  },
+  {
+    "id": 43,
+    "section_id": 5,
+    "name_uz": "7.Avtomobilni xavfsiz boshqarish",
+    "name_ru": "7.Безопасное управление автомбиля",
+    "name_cry": "7.Автомобилни хавфсиз бошқариш",
+    "tartib": 7
+  },
+  {
+    "id": 44,
+    "section_id": 5,
+    "name_uz": "8.Tibbiyot",
+    "name_ru": "8.Медицина",
+    "name_cry": "8.Тиббиёт",
+    "tartib": 8
+  }
+]
