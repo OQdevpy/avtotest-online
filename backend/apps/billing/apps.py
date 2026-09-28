@@ -6,3 +6,6 @@ class BillingConfig(AppConfig):
     name = "apps.billing"
     label = "billing"
     verbose_name = "Filial va to'lovlar"
+
+    def ready(self):
+        from . import signals  # noqa: F401

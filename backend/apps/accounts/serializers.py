@@ -83,11 +83,28 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        user = authenticate(username=attrs["phone"], password=attrs["password"])
-        if user is None:
-            raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
-        if not user.is_active:
-            raise serializers.ValidationError("Hisob bloklangan.")
+        phone, password = attrs["phone"], attrs["password"]
+
+        # Talaba (Student) bo'lsa — mobil kirish ochiq PIN bilan tekshiriladi,
+        # front-ofisda berilgan PIN har doim ishlashi kerak. Aks holda odatdagi
+        # hash orqali tekshiriladi (o'qituvchi/shef yoki ilovada ro'yxatdan
+        # o'tgan foydalanuvchi).
+        from apps.billing.models import Student
+
+        student = Student.objects.filter(phone=phone).select_related("user").first()
+        if student is not None:
+            if student.password != password:
+                raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
+            user = student.user
+            if user is None or not student.is_active or not user.is_active:
+                raise serializers.ValidationError("Hisob bloklangan.")
+        else:
+            user = authenticate(username=phone, password=password)
+            if user is None:
+                raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
+            if not user.is_active:
+                raise serializers.ValidationError("Hisob bloklangan.")
+
         attrs["user"] = user
         return attrs
 

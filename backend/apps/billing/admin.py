@@ -1,12 +1,21 @@
 from django.contrib import admin
 
-from .models import Branch, PaymentReport, StudentPayment
+from .models import Branch, PaymentReport, Student, StudentPayment
 
 
 @admin.register(Branch)
 class BranchAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "created_at")
     search_fields = ("name",)
+
+
+@admin.register(Student)
+class StudentAdmin(admin.ModelAdmin):
+    # `password` ataylab ochiq ko'rsatiladi — front-ofis xodimi o'quvchiga
+    # PIN'ni shu yerdan o'qib beradi.
+    list_display = ("id", "name", "phone", "password", "branch", "hujjat", "is_active")
+    search_fields = ("name", "phone")
+    list_filter = ("branch", "hujjat", "is_active")
 
 
 class PaymentReportInline(admin.TabularInline):
