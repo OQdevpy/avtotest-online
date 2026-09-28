@@ -1,9 +1,16 @@
+import mimetypes
+
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.decorators.cache import cache_control
 from django.views.static import serve as serve_static
 
+
+# python:slim image'da /etc/mime.types yo'q — busiz .webp/.m4a
+# `application/octet-stream` bo'lib ketadi.
+mimetypes.add_type("image/webp", ".webp")
+mimetypes.add_type("audio/mp4", ".m4a")
 
 # Media (rasm/audio) — mijozda uzoq HTTP-kesh (30 kun), qayta so'ralmaydi.
 @cache_control(public=True, max_age=60 * 60 * 24 * 30)
