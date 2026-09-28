@@ -10,7 +10,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useData } from '../context/DataContext';
 import ImagePreview from '../components/ImagePreview';
 
-// ─── Sortable savol raqami (darslik paginatsiya uslubida) ───
+// ─── Sortable savol raqami ───
 function SortableQuestionNum({ id, index, isActive, onClick }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
@@ -35,8 +35,8 @@ function SortableQuestionNum({ id, index, isActive, onClick }) {
   );
 }
 
-// ─── Rasm komponenti (darslik ImageComponent bilan bir xil) ───
-function QuestionImageComponent({ currentItem, editing, onClickImage, onClickUpload, fileInputRef, onImageChange, previewActive, children }) {
+// ─── Rasm komponenti ───
+function QuestionImageComponent({ currentItem, editing, onClickImage, fileInputRef, onImageChange, previewActive, children }) {
   const [containerHeight, setContainerHeight] = useState('560px');
 
   useEffect(() => {
@@ -53,7 +53,6 @@ function QuestionImageComponent({ currentItem, editing, onClickImage, onClickUpl
 
   const imageSrc = currentItem.image;
   const hasImage = imageSrc && imageSrc.length > 0;
-  // Backenddan kelgan nisbiy yo'l (masalan "images/q55.webp") → "/media/images/q55.webp"
   const resolvedSrc = hasImage
     ? (imageSrc.startsWith('data:') ? imageSrc : `/media/${imageSrc}`)
     : '/media/default_image.jpg';
@@ -118,8 +117,9 @@ export default function QuestionDetail() {
   const [previewImage, setPreviewImage] = useState(null);
   const [previewDescImage, setPreviewDescImage] = useState(null);
   const [showLessonPicker, setShowLessonPicker] = useState(false);
-  const [pendingImageFile, setPendingImageFile] = useState(null); // Haqiqiy File obyekti
-  const [pendingImagePreview, setPendingImagePreview] = useState(null); // Ko'rish uchun dataUrl
+
+  const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [pendingImagePreview, setPendingImagePreview] = useState(null);
   const [pendingDescFile, setPendingDescFile] = useState(null);
   const [pendingDescPreview, setPendingDescPreview] = useState(null);
   const fileInputRef = useRef(null);
@@ -164,10 +164,12 @@ export default function QuestionDetail() {
   const startEdit = () => {
     if (!currentQ) return;
     setEditQ({
-      // Backend: text_uz, text_ru, text_cry (question_uz emas!)
       text_uz: currentQ.text_uz,
       text_ru: currentQ.text_ru,
       text_cry: currentQ.text_cry,
+      explanation_uz: currentQ.explanation_uz || '',
+      explanation_ru: currentQ.explanation_ru || '',
+      explanation_cry: currentQ.explanation_cry || '',
       image: currentQ.image,
       explanation_image: currentQ.explanation_image || '',
       is_in_web: currentQ.is_in_web,
@@ -181,21 +183,23 @@ export default function QuestionDetail() {
     setEditing(true);
   };
 
-  // Tahrirlashni saqlash — rasmlar multipart bilan yuklanadi
+  // Tahrirlashni saqlash
   const saveEdit = async () => {
     if (!currentQ) return;
 
-    // Avval savol maydonlarini yangilash (PATCH)
     const questionUpdate = {
       text_uz: editQ.text_uz,
       text_ru: editQ.text_ru,
       text_cry: editQ.text_cry,
+      explanation_uz: editQ.explanation_uz,
+      explanation_ru: editQ.explanation_ru,
+      explanation_cry: editQ.explanation_cry,
       is_in_web: editQ.is_in_web,
       is_published: editQ.is_published,
     };
     await updateQuestion(currentQ.id, questionUpdate);
 
-    // Asosiy rasm yuklash (agar yangi fayl tanlangan bo'lsa)
+    // Asosiy rasm yuklash
     if (pendingImageFile && uploadQuestionImage) {
       await uploadQuestionImage(currentQ.id, pendingImageFile);
     }
@@ -208,9 +212,8 @@ export default function QuestionDetail() {
     // Javoblarni yangilash
     for (const a of editAnswers) {
       if (a._new) {
-        // Yangi javob allaqachon addAnswer orqali yaratilgan
+        // Yangi javob
       } else {
-        // Backend: text_uz, text_ru, text_cry (answer_uz emas!)
         await updateAnswer(a.id, {
           text_uz: a.text_uz, text_ru: a.text_ru, text_cry: a.text_cry, is_true: a.is_true,
         });
@@ -245,12 +248,11 @@ export default function QuestionDetail() {
     else if (oldIdx > activeIndex && newIdx <= activeIndex) setActiveIndex(activeIndex + 1);
   };
 
-  // Asosiy rasm tanlash — haqiqiy File saqlash
+  // Asosiy rasm tanlash
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setPendingImageFile(file);
-    // Ko'rish uchun URL yaratish
     const url = URL.createObjectURL(file);
     setPendingImagePreview(url);
   };
@@ -275,7 +277,6 @@ export default function QuestionDetail() {
   // Savolni boshqa darsga ko'chirish
   const handleMoveToLesson = async (newLessonId) => {
     if (!currentQ || newLessonId === lid) return;
-    // Backend: lesson maydoni FK
     await updateQuestion(currentQ.id, { lesson: newLessonId });
     setShowLessonPicker(false);
     const newLesson = lessons.find(l => l.id === newLessonId);
@@ -299,15 +300,16 @@ export default function QuestionDetail() {
 
   if (!currentQ) return null;
 
-  // Ko'rsatish uchun: agar tahrirda yangi rasm tanlangan bo'lsa preview, aks holda saqlangan yo'l
-  const imageSrc = editing
-    ? (pendingImagePreview || editQ.image)
-    : currentQ.image;
+  // O'ng paneldagi katta rasm — doim savol rasmi. Izoh rasmi faqat chap
+  // pastdagi kichik blokda ko'rsatiladi/kattalashtiriladi (dublikat olib
+  // tashlandi).
+  const displayedImageSrc = editing ? (pendingImagePreview || editQ.image) : currentQ.image;
+
   const displayAnswers = editing ? editAnswers : currentAnswers;
-  const imageItem = { image: imageSrc || '' };
+  const imageItem = { image: displayedImageSrc || '' };
 
   return (
-    <div className="container max-w-full flex flex-col gap-5">
+    <div className="container max-w-full flex flex-col gap-5 pb-32">
       {/* ─── Sarlavha qatori ─── */}
       <div className="flex flex-col gap-0.5">
         <div className="flex justify-between gap-2 items-center">
@@ -430,7 +432,6 @@ export default function QuestionDetail() {
                     >
                       {answer.is_true ? '✓' : 'F' + (index + 1)}
                     </span>
-                    {/* Backend: text_uz, text_ru, text_cry (answer_uz emas!) */}
                     <input type="text" value={answer[`text_${lang}`] || ''}
                       onChange={e => {
                         const val = e.target.value;
@@ -466,7 +467,6 @@ export default function QuestionDetail() {
                       className="p-1 rounded-sm border-blue-900 text-white bg-blue-950/40 min-h-full"
                       style={{ border: '1px solid #000', fontSize: '17px', width: '100%' }}
                     >
-                      {/* Backend: text_uz, text_ru, text_cry */}
                       {getVal(answer, 'text')}
                     </h2>
                   </>
@@ -484,8 +484,33 @@ export default function QuestionDetail() {
               </button>
             )}
 
+            {/* Izoh matni (O'qish yoki tahrirlash) */}
+            {editing ? (
+              <div className="mt-3 p-3 rounded-lg bg-blue-950/30 border border-blue-800/40">
+                <div className="text-xs font-semibold text-amber-300 mb-1">💡 Izoh matni ({lang.toUpperCase()}):</div>
+                <textarea
+                  value={editQ[`explanation_${lang}`] || ''}
+                  onChange={e => setEditQ(prev => ({ ...prev, [`explanation_${lang}`]: e.target.value }))}
+                  rows={3}
+                  placeholder="Savol bo'yicha tushuntirish / izoh matni..."
+                  className="w-full bg-slate-900 border border-blue-500/50 rounded p-2 text-white text-xs outline-none"
+                />
+              </div>
+            ) : (
+              getVal(currentQ, 'explanation') && (
+                <div className="mt-3 p-3 rounded-lg bg-amber-950/20 border border-amber-500/30">
+                  <div className="text-xs font-semibold text-amber-400 mb-1 flex items-center gap-1">
+                    💡 Izoh matni:
+                  </div>
+                  <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap">
+                    {getVal(currentQ, 'explanation')}
+                  </p>
+                </div>
+              )
+            )}
+
             {/* Izoh rasmi bo'limi */}
-            <div className="mt-4 p-3 rounded-lg" style={{ background: 'rgba(100,140,220,0.1)', border: '1px solid rgba(100,140,220,0.3)' }}>
+            <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(100,140,220,0.1)', border: '1px solid rgba(100,140,220,0.3)' }}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-blue-300 font-semibold">📝 Izoh rasmi</span>
                 {editing && (
@@ -494,7 +519,7 @@ export default function QuestionDetail() {
                       onClick={() => descImageInputRef.current?.click()}
                       className="text-xs px-2 py-1 bg-blue-600 text-white rounded cursor-pointer hover:bg-blue-700"
                     >
-                      📁 Fayldan
+                      📁 Fayldan yuklash
                     </button>
                   </div>
                 )}
@@ -509,31 +534,32 @@ export default function QuestionDetail() {
                     className="hidden"
                     onChange={handleDescImageChange}
                   />
-                  {(pendingDescPreview || currentQ.explanation_image) ? (() => {
-                    const displaySrc = getDescImageSrc(currentQ, !!pendingDescPreview);
+                  {(pendingDescPreview || editQ.explanation_image) ? (() => {
+                    const displaySrc = getDescImageSrc(editQ, !!pendingDescPreview);
                     return (
                       <div className="relative">
                         <img
                           src={displaySrc}
                           alt="Izoh rasmi"
-                          className="max-h-32 rounded cursor-pointer"
+                          className="max-h-36 rounded cursor-pointer object-contain"
                           onClick={() => setPreviewDescImage(displaySrc)}
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
                         {pendingDescPreview && (
-                          <p className="text-xs text-yellow-400 mt-1">⏳ Saqlanmagan (yangi fayl)</p>
+                          <p className="text-xs text-yellow-400 mt-1">⏳ Yangi fayl tanlandi (saqlashni bosing)</p>
                         )}
                         <button
                           onClick={() => {
                             setPendingDescFile(null);
                             setPendingDescPreview(null);
+                            setEditQ(prev => ({ ...prev, explanation_image: '' }));
                           }}
                           className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs cursor-pointer"
                         >×</button>
                       </div>
                     );
                   })() : (
-                    <p className="text-slate-500 text-xs">Izoh rasmi yo'q</p>
+                    <p className="text-slate-500 text-xs">Izoh rasmi kiritilmagan</p>
                   )}
                 </div>
               ) : (
@@ -542,13 +568,14 @@ export default function QuestionDetail() {
                   return (
                     <div>
                       <div className="flex items-center gap-1 mb-1">
-                        <span className="text-xs text-green-400 flex-1">📁 {currentQ.explanation_image}</span>
+                        <span className="text-xs text-green-400 flex-1 truncate">📁 {currentQ.explanation_image}</span>
                       </div>
                       <img
                         src={displaySrc}
                         alt="Izoh rasmi"
-                        className="max-h-32 rounded cursor-pointer"
+                        className="max-h-36 rounded cursor-pointer object-contain border border-white/10 hover:border-blue-400 transition-all"
                         onClick={() => setPreviewDescImage(displaySrc)}
+                        title="Kattalashtirib ko'rish"
                       />
                     </div>
                   );
@@ -559,32 +586,40 @@ export default function QuestionDetail() {
             </div>
           </div>
 
-          {/* Rasm komponenti */}
-          <QuestionImageComponent
-            currentItem={imageItem}
-            editing={editing}
-            onClickImage={(src) => setPreviewImage(src)}
-            fileInputRef={fileInputRef}
-            onImageChange={handleImageChange}
-            previewActive={!!previewImage}
-          >
-            {previewImage && (
-              <ImagePreview
-                src={previewImage}
-                onClose={() => setPreviewImage(null)}
-                onSave={async (dataUrl) => {
-                  if (currentQ && uploadQuestionImage) {
-                    // dataUrl'dan File yaratish
-                    const res = await fetch(dataUrl);
-                    const blob = await res.blob();
-                    const file = new File([blob], `q_${currentQ.id}_crop.jpg`, { type: 'image/jpeg' });
-                    await uploadQuestionImage(currentQ.id, file);
-                  }
-                  setPreviewImage(null);
-                }}
-              />
-            )}
-          </QuestionImageComponent>
+          {/* O'ng tomon: Savol rasmi */}
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="flex items-center bg-slate-900/60 p-2 rounded border border-white/5">
+              <span className="px-3 py-1.5 text-xs font-semibold text-slate-300">
+                🖼️ Savol rasmi {currentQ.image ? '✓' : '(yo\'q)'}
+              </span>
+            </div>
+
+            {/* Rasm komponenti */}
+            <QuestionImageComponent
+              currentItem={imageItem}
+              editing={editing}
+              onClickImage={(src) => setPreviewImage(src)}
+              fileInputRef={fileInputRef}
+              onImageChange={handleImageChange}
+              previewActive={!!previewImage}
+            >
+              {previewImage && (
+                <ImagePreview
+                  src={previewImage}
+                  onClose={() => setPreviewImage(null)}
+                  onSave={async (dataUrl) => {
+                    if (currentQ && uploadQuestionImage) {
+                      const res = await fetch(dataUrl);
+                      const blob = await res.blob();
+                      const file = new File([blob], `q_${currentQ.id}_crop.jpg`, { type: 'image/jpeg' });
+                      await uploadQuestionImage(currentQ.id, file);
+                    }
+                    setPreviewImage(null);
+                  }}
+                />
+              )}
+            </QuestionImageComponent>
+          </div>
         </div>
       </div>
 
@@ -598,6 +633,9 @@ export default function QuestionDetail() {
           right: '0',
           zIndex: 1000,
           padding: '10px',
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(8px)',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
         }}
       >
         <button
@@ -609,7 +647,7 @@ export default function QuestionDetail() {
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={questionsList.map(q => q.id)}>
-            <div className="flex flex-wrap gap-1 items-center justify-center">
+            <div className="flex flex-wrap gap-1 items-center justify-center max-w-[80vw] overflow-x-auto">
               {questionsList.map((q, idx) => (
                 <SortableQuestionNum key={q.id} id={q.id} index={idx}
                   isActive={idx === activeIndex}
