@@ -92,3 +92,54 @@ o'sha provayder orqali kirish **ochilmaydi**. Tekshiruvsiz ishlash imkoni yo'q.
 hisob faqat tasdiqlangan provayder `uid` si bo'yicha topiladi. Telefonsiz
 ijtimoiy hisobga o'rinbosar raqam beriladi; foydalanuvchi haqiqiy raqamini
 keyin qo'shadi.
+
+## 7. Mobil qurilma limiti
+
+Mobilda limit 2 qurilma (`MAX_DEVICES_PER_PLATFORM`), lekin limit to'lganda
+403 **qaytmaydi** — eng uzoq ishlatilmagan sessiya yopiladi
+(`settings.DEVICE_EVICT_OLDEST = {"mobile"}`). Sabab: do'kondagi ilova chiqishda
+`/auth/logout/` ni chaqirmaydi, slot hech qachon bo'shamaydi va foydalanuvchi
+2 marta chiqib-kirgandan keyin butunlay bloklanib qolardi. Yopilgan telefon
+keyingi token yangilashda 401 oladi va login ekraniga chiqadi. Web/desktopda
+limit qat'iy (403) — u yerda kirish sotiladi.
+
+## 8. Serverga deploy (Docker + tizim nginx'i)
+
+Konteynerlar: `db` (Postgres), `redis` (OTP kodlari), `backend` (gunicorn),
+`admin` (admin panel statikasi), `nginx` (admin panel + API, `WEB_PORT`),
+`bot` (Telegram, `bot` profili — standart holatda ishga tushmaydi).
+
+| Port | Nima | Kimga |
+|---|---|---|
+| `${WEB_PORT:-9005}` | admin panel + `/api/` + `/media/` | admin domeni |
+| `127.0.0.1:${API_PORT:-8010}` | faqat backend (Django) | tizim nginx'i → `mobile.avtotest-tayyorlov.uz` |
+
+Rasm/audio fayllar konteyner ichida emas — serverdagi `backend/media/`
+papkasida (bind mount). Zaxira uchun shu papkani ko'chirish kifoya.
+
+```
+1. cp .env.example .env                  # DB_PASSWORD, WEB_PORT, API_PORT
+   cp backend/.env.example backend/.env  # SECRET_KEY, ALLOWED_HOSTS, TELEGRAM_BOT_TOKEN
+2. docker compose up -d --build
+3. Ma'lumot ko'chirish — 3-bo'lim (docker compose exec backend python manage.py ...)
+4. Rasmlar: eski mobil backenddagi media/ → backend/media/
+5. Tizim nginx'i: mobile.avtotest-tayyorlov.uz → proxy_pass http://127.0.0.1:8010;
+   (Host, X-Forwarded-For, X-Forwarded-Proto sarlavhalari shart — busiz rasm
+   URL'lari http:// bo'lib qoladi va iOS ularni ochmaydi)
+6. Eski mobil backend botini to'xtating, keyin:
+   docker compose --profile bot up -d
+```
+
+Diqqat:
+
+- **`SECRET_KEY`** — prod serverdagi eski mobil backend kaliti bilan bir xil
+  bo'lsin (2-bo'lim), aks holda hamma tizimdan chiqadi. Kalitda `$` bo'lsa
+  compose uni o'zgaruvchi deb o'qiydi — `$$` qilib yozing.
+- **Bot bitta joyda** ishlashi shart — ikki jarayon bitta tokenda polling
+  qilsa Telegram `Conflict` xatosini beradi.
+- **443-port**: `web/` compose'idagi nginx ham 443 ni band qiladi va
+  `mobile.` domenini o'zi uzatadi (`web/nginx/nginx.conf`). Tizim nginx'iga
+  o'tishdan oldin u yerdagi `mobile.` blokini olib tashlang va portlarni
+  kelishtiring.
+- Login tezlik cheklovi (compose nginx'ida): IP uchun daqiqasiga 10 ta,
+  `burst=5`. nginx `r/h` ni qabul qilmaydi.
