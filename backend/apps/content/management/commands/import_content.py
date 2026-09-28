@@ -2,17 +2,29 @@
 
 Moslashtirish **id bo'yicha**: `import_seoul` legacy PK'larni saqlagan, shuning
 uchun admin-panel id'lari baza id'lari bilan bir xil (savol 55 → dars 16).
-Bazada bor-u JSON'da yo'q yozuv **o'chirilmaydi** — faqat hisobotda ko'rsatiladi.
+Bazada bor-u JSON'da yo'q yozuv **o'chirilmaydi** — faqat hisobotda ko'rsatiladi
+(`--prune` berilmasa).
 
     python manage.py import_content --path ../../admin-panel/src/db [--dry-run]
+
+Qo'shimcha:
+  --media DIR   JSON'dagi .png/.jpg rasm havolalarini DIR'dan o'qib WebP'ga
+                o'giradi (faqat .webp saqlanadi). Fayl nomi manba tarkibining
+                hashidan olinadi, shuning uchun qayta ishga tushirish yangi
+                nusxa yaratmaydi, rasm o'zgarsa nomi ham o'zgaradi (kesh).
+  --prune       JSON'da yo'q savollarni (javoblari bilan) va import qilingan
+                savollarning JSON'da yo'q javoblarini bazadan o'chiradi.
+                JSON — yagona manba bo'lganda ishlatiladi.
 """
 
+import hashlib
 import json
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from apps.content.media import IMAGE_DIR, UnreadableImage, media_path, to_webp
 from apps.content.models import (
     Answer,
     Blits,
@@ -44,6 +56,13 @@ class Command(BaseCommand):
             "--dry-run", action="store_true",
             help="Nima o'zgarishini ko'rsatadi, hech narsa yozmaydi",
         )
+        parser.add_argument(
+            "--media", help="public/media papkasi: rasmlar WebP'ga o'giriladi",
+        )
+        parser.add_argument(
+            "--prune", action="store_true",
+            help="JSON'da yo'q savol va javoblarni bazadan o'chiradi",
+        )
 
     def handle(self, *args, **options):
         base = Path(options["path"]).expanduser().resolve()
@@ -54,13 +73,28 @@ class Command(BaseCommand):
         if missing:
             raise CommandError(f"Majburiy fayllar topilmadi: {', '.join(missing)}")
 
+        self.dry_run = options["dry_run"]
+        self.media_dir = (
+            Path(options["media"]).expanduser().resolve() if options.get("media") else None
+        )
+        if self.media_dir is not None and not self.media_dir.is_dir():
+            raise CommandError(f"Media papkasi topilmadi: {self.media_dir}")
+
+        questions = load(base / "questions.json")
+        if options.get("prune") and not questions:
+            raise CommandError("--prune: questions.json bo'sh, hamma savol o'chib ketardi")
+
         self.report: dict[str, dict[str, int]] = {}
+        self.seen_questions: set[int] = set()
+        self.seen_answers: set[int] = set()
         try:
             with transaction.atomic():
                 self._import_sections(load(base / "sections.json"))
                 self._import_lessons(load(base / "lessons.json"))
-                self._import_questions(load(base / "questions.json"))
+                self._import_questions(questions)
                 self._import_answers(load(base / "answers.json"))
+                if options.get("prune"):
+                    self._prune()
                 self._import_blits(load(base / "blits.json"))
                 self._import_variants(load(base / "variants.json"))
                 self._report_orphans()
@@ -94,6 +128,44 @@ class Command(BaseCommand):
             setattr(existing, field, fields[field])
         existing.save(update_fields=changed)
         self._count(name, "yangilandi")
+
+    def _webp_ref(self, ref: str) -> str:
+        """Raster havolani WebP'ga o'giradi (`--media` berilgan bo'lsa).
+
+        Nom manba tarkibining hashidan olinadi: bir xil rasm qayta o'girilmaydi,
+        o'zgargani yangi nom oladi.
+        """
+        if not ref or self.media_dir is None or Path(ref).suffix.lower() == ".webp":
+            return ref
+        source = self.media_dir / ref
+        if not source.is_file():
+            self.stderr.write(f"rasm topilmadi: {ref}")
+            return ref
+        digest = hashlib.sha1(source.read_bytes()).hexdigest()[:6]
+        stem = f"{Path(ref).stem}_{digest}"
+        relative = f"{IMAGE_DIR}/{stem}.webp"
+        if media_path(relative).exists():
+            return relative
+        if not self.dry_run:
+            try:
+                to_webp(source, stem)
+            except UnreadableImage:
+                self.stderr.write(f"rasm o'qilmadi: {ref}")
+                return ref
+        self._count("rasmlar", "yaratildi")
+        return relative
+
+    def _prune(self) -> None:
+        """JSON'da yo'q savollarni va import qilingan savollarning ortiqcha javoblarini o'chiradi."""
+        stale_questions = Question.objects.exclude(pk__in=self.seen_questions)
+        removed_questions = stale_questions.count()
+        stale_questions.delete()
+        stale_answers = Answer.objects.filter(question_id__in=self.seen_questions).exclude(
+            pk__in=self.seen_answers
+        )
+        removed_answers = stale_answers.count()
+        stale_answers.delete()
+        self.report["o'chirildi"] = {"savollar": removed_questions, "javoblar": removed_answers}
 
     # --- importlar ----------------------------------------------------------
 
@@ -131,13 +203,14 @@ class Command(BaseCommand):
                     f"savol {row['id']}: dars {lesson_id} topilmadi, o'tkazildi"
                 )
                 continue
+            self.seen_questions.add(row["id"])
             self._upsert(Question, "questions", row["id"], {
                 "lesson_id": lesson_id,
                 "text_uz": row.get("question_uz", ""),
                 "text_ru": row.get("question_ru", ""),
                 "text_cry": row.get("question_cry", ""),
-                "image": row.get("image", "") or "",
-                "explanation_image": row.get("description_image", "") or "",
+                "image": self._webp_ref(row.get("image", "") or ""),
+                "explanation_image": self._webp_ref(row.get("description_image", "") or ""),
                 "order": row.get("tartib", 0),
                 "is_in_web": bool(row.get("is_in_web", False)),
                 # Import — jonli kontent, shuning uchun nashr etilgan.
@@ -152,6 +225,7 @@ class Command(BaseCommand):
                     f"javob {row['id']}: savol {row.get('question_id')} topilmadi, o'tkazildi"
                 )
                 continue
+            self.seen_answers.add(row["id"])
             self._upsert(Answer, "answers", row["id"], {
                 "question_id": row["question_id"],
                 "text_uz": row.get("answer_uz", ""),
