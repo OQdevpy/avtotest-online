@@ -12,9 +12,12 @@ Qo'shimcha:
                 o'giradi (faqat .webp saqlanadi). Fayl nomi manba tarkibining
                 hashidan olinadi, shuning uchun qayta ishga tushirish yangi
                 nusxa yaratmaydi, rasm o'zgarsa nomi ham o'zgaradi (kesh).
-  --prune       JSON'da yo'q savollarni (javoblari bilan) va import qilingan
-                savollarning JSON'da yo'q javoblarini bazadan o'chiradi.
-                JSON — yagona manba bo'lganda ishlatiladi.
+  --prune       JSON'da yo'q bo'lim, dars, savol, blits va biletlarni (hamda
+                import qilingan savollarning JSON'da yo'q javoblarini) bazadan
+                o'chiradi; keyin `media/images/` ichida hech bir savol
+                ishlatmaydigan fayllarni o'chiradi. JSON — yagona manba
+                bo'lganda ishlatiladi. blits.json / variants.json berilmagan
+                bo'lsa, blits va biletlarga tegilmaydi.
 """
 
 import hashlib
@@ -84,24 +87,41 @@ class Command(BaseCommand):
         if options.get("prune") and not questions:
             raise CommandError("--prune: questions.json bo'sh, hamma savol o'chib ketardi")
 
+        sections, lessons = load(base / "sections.json"), load(base / "lessons.json")
+        self.wanted_sections = {row["id"] for row in sections}
+        self.wanted_lessons = {row["id"] for row in lessons}
+        self.wanted_blits = (
+            {row["id"] for row in load(base / "blits.json")}
+            if (base / "blits.json").exists() else None
+        )
+        self.wanted_tickets: set[int] | None = (
+            set() if (base / "variants.json").exists() else None
+        )
         self.report: dict[str, dict[str, int]] = {}
         self.seen_questions: set[int] = set()
         self.seen_answers: set[int] = set()
+        succeeded = False
         try:
             with transaction.atomic():
-                self._import_sections(load(base / "sections.json"))
-                self._import_lessons(load(base / "lessons.json"))
+                self._import_sections(sections)
+                self._import_lessons(lessons)
                 self._import_questions(questions)
                 self._import_answers(load(base / "answers.json"))
-                if options.get("prune"):
-                    self._prune()
                 self._import_blits(load(base / "blits.json"))
                 self._import_variants(load(base / "variants.json"))
+                # Prune eng oxirida: bilet raqamlari variantlar import qilingach
+                # ma'lum bo'ladi.
+                if options.get("prune"):
+                    self._prune()
                 self._report_orphans()
                 if options["dry_run"]:
                     transaction.set_rollback(True)
+            succeeded = True
         finally:
             self._print_report(dry_run=options["dry_run"])
+        # Fayllar tranzaksiya bilan qaytmaydi — faqat baza commit bo'lgach.
+        if options.get("prune") and succeeded and not options["dry_run"]:
+            self._prune_media()
 
     # --- yordamchilar -------------------------------------------------------
 
@@ -165,7 +185,46 @@ class Command(BaseCommand):
         )
         removed_answers = stale_answers.count()
         stale_answers.delete()
-        self.report["o'chirildi"] = {"savollar": removed_questions, "javoblar": removed_answers}
+        removed = {"savollar": removed_questions, "javoblar": removed_answers}
+
+        if self.wanted_blits is not None:
+            stale = Blits.objects.exclude(pk__in=self.wanted_blits)
+            removed["blitslar"] = stale.count()
+            stale.delete()
+        if self.wanted_tickets is not None:
+            stale = Ticket.objects.exclude(number__in=self.wanted_tickets)
+            removed["biletlar"] = stale.count()
+            stale.delete()
+
+        stale = Lesson.objects.exclude(pk__in=self.wanted_lessons)
+        removed["darslar"] = stale.count()
+        stale.delete()
+        stale = Section.objects.exclude(pk__in=self.wanted_sections)
+        removed["bo'limlar"] = stale.count()
+        stale.delete()
+        self.report["o'chirildi"] = removed
+
+    def _prune_media(self) -> None:
+        """`media/images/` ichida hech bir savol ishlatmaydigan fayllarni o'chiradi."""
+        used = set()
+        for image, explanation in Question.objects.values_list("image", "explanation_image"):
+            used.update(str(path) for path in (image, explanation) if path)
+        if not used:
+            # Bazada birorta ham savol rasmi yo'q bo'lsa, hamma fayl "yetim"
+            # ko'rinadi — bu bo'sh/noto'g'ri baza, o'chirish xavfli.
+            self.stderr.write("media: bazada savol rasmi yo'q, hech narsa o'chirilmadi")
+            return
+        images_dir = media_path(IMAGE_DIR)
+        removed = freed = 0
+        if images_dir.is_dir():
+            for path in images_dir.iterdir():
+                if path.is_file() and f"{IMAGE_DIR}/{path.name}" not in used:
+                    freed += path.stat().st_size
+                    path.unlink()
+                    removed += 1
+        self.stdout.write(
+            f"media: ishlatilmagan {removed} ta fayl o'chirildi ({freed / 1e6:.0f} MB)"
+        )
 
     # --- importlar ----------------------------------------------------------
 
@@ -262,6 +321,8 @@ class Command(BaseCommand):
                 number = row["var_id"] + 1
             else:
                 number = row["id"]
+            if self.wanted_tickets is not None:
+                self.wanted_tickets.add(number)
             ticket, created = Ticket.objects.get_or_create(number=number)
             self._count("tickets", "yaratildi" if created else "o'zgarmadi")
             self._sync_through(
