@@ -56,3 +56,12 @@ class AccessCodeAdmin(admin.ModelAdmin):
     search_fields = ("code", "user__phone", "user__full_name")
     readonly_fields = ("code", "activated_at", "expires_at", "created_at")
     autocomplete_fields = ("user", "created_by")
+
+    def save_model(self, request, obj, form, change):
+        # `code` faqat o'qish uchun — yangi yozuvga kodni shu yerda beramiz,
+        # aks holda bo'sh kod saqlanib, ikkinchisi unique xatosiga tushardi.
+        if not obj.code:
+            obj.code = AccessCode.new_code()
+        if obj.created_by_id is None:
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)

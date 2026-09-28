@@ -122,3 +122,21 @@ def test_admin_revokes_code(api, student, admin_user, auth):
     assert api.post(f"/api/v1/manage/access-codes/{code.id}/revoke/").status_code == 200
     code.refresh_from_db()
     assert not code.is_active
+
+
+def test_django_admin_generates_code_for_new_access_code(client, student, django_user_model):
+    """Django admin'da `code` faqat o'qish uchun — kod avtomatik beriladi."""
+    boss = django_user_model.objects.create_superuser(phone="+998900000777", password="x")
+    client.force_login(boss)
+    for _ in range(2):  # ikkinchisi ham (bo'sh kod unique xatosiga tushmasin)
+        response = client.post(
+            "/admin/accounts/accesscode/add/",
+            {"user": student.pk, "valid_days": 12, "is_active": "on"},
+        )
+        assert response.status_code == 302, response.content[:500]
+
+    codes = AccessCode.objects.filter(user=student)
+    assert codes.count() == 2
+    for code in codes:
+        assert len(code.code) == AccessCode.LENGTH
+        assert code.created_by == boss
