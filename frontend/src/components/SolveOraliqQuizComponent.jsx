@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MdKeyboardDoubleArrowLeft, MdKeyboardDoubleArrowRight } from "react-icons/md";
+import { FaInfoCircle } from "react-icons/fa";
 import DefaultImge from '../assets/default_image.jpg';
 import { useNavigate } from 'react-router-dom';
 import { useCustomContext } from '../context/TestContext';
@@ -23,7 +24,8 @@ const SolveOraliqQuizComponent = ({ data }) => {
     const [answered, setAnswered] = useState({});
     const [timeEnded, setTimeEnded] = useState(false);
     const [trueCount, setTrueCount] = useState(0);
-    const { getTranslation, getTranslationValue } = useCustomContext();
+    const [showDescImage, setShowDescImage] = useState(false);
+    const { getTranslation, getTranslationValue, media_path, returnResult } = useCustomContext();
 
     const handlePrev = () => {
         setActiveIndex((prevIndex) => (prevIndex === 0 ? variant.length - 1 : prevIndex - 1));
@@ -56,6 +58,11 @@ const SolveOraliqQuizComponent = ({ data }) => {
         };
     }, [activeIndex]);
 
+    // Close description modal when changing questions
+    useEffect(() => {
+        setShowDescImage(false);
+    }, [activeIndex]);
+
     const checkAnswers = (item, index, activeIndex) => {
         setAnswered((prevAnswered) => ({ ...prevAnswered, [activeIndex]: index }));
         if (item.is_true) {
@@ -82,12 +89,11 @@ const SolveOraliqQuizComponent = ({ data }) => {
         setActiveIndex(0);
         setTimeEnded(false);
         setTrueCount(0);
+        setShowDescImage(false);
         if (timeRef.current) {
             timeRef.current.resetTime();  // Call the resetTime method
         };
         setVariant(data.data.sort(() => Math.random() - 0.5));
-
-
     };
 
     const color = (index, activeIndex) => {
@@ -126,12 +132,25 @@ const SolveOraliqQuizComponent = ({ data }) => {
                     <h2 className="text-xl font-bold">
                         {getTranslationValue(variant[activeIndex], "question")}
                     </h2>
-                    <button
-                        className="btn bg-white rounded-sm border-blue-900 text-blue-900"
-                        onClick={() => reset()}
-                    >
-                        {getTranslation('startZero')}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {/* Izoh button - only show when answered and has description_image */}
+                        {isAnswered(activeIndex) && variant[activeIndex].description_image && (
+                            <button
+                                className="btn bg-yellow-600/80 text-white flex items-center justify-center border border-yellow-500 cursor-pointer hover:bg-yellow-600"
+                                onClick={() => setShowDescImage(true)}
+                                title="Izoh"
+                                style={{ minWidth: '40px', height: '40px' }}
+                            >
+                                <FaInfoCircle size={20} />
+                            </button>
+                        )}
+                        <button
+                            className="btn bg-white rounded-sm border-blue-900 text-blue-900"
+                            onClick={() => reset()}
+                        >
+                            {getTranslation('startZero')}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="min-h-20">
@@ -160,37 +179,120 @@ const SolveOraliqQuizComponent = ({ data }) => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 justify-between py-2 ">
-                    <button className="btn  rounded-sm border-gray-700 text-white bg-gray-500" onClick={handlePrev}>
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        padding: "8px 0"
+                    }}
+                >
+                    <button className="btn rounded-sm border-gray-700 text-white bg-gray-500" onClick={handlePrev}>
                         <MdKeyboardDoubleArrowLeft size={20} />
                     </button>
-                    <div className="flex flex-wrap gap-1 items-center justify-center">
-                        {variant.map((_, index) => (
-                            <div
-                                key={index}
-                                style={{
-                                    background: checkButton(index),
-                                    cursor: 'pointer',
-                                    width: '2.25rem',
-                                    padding: '0.5rem 0',
-                                    borderRadius: '0.125rem',
-                                    // border: '1px solid #1e3a8a',
-                                    color: 'white',
-                                    textAlign: 'center',
-                                    height: '2.5rem',
-                                    transition: 'all 0.3s',
-                                }}
-                                onClick={() => handlePaginationClick(index)}
-                            >
-                                {index + 1}
+{variant.length === 50 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", alignItems: "center" }}>
+                            <div style={{ display: "flex", gap: "0.25rem" }}>
+                                {variant.slice(0, 25).map((_, index) => (
+                                    <div
+                                        key={index}
+                                        style={{
+                                            background: checkButton(index),
+                                            cursor: 'pointer',
+                                            width: '2.25rem',
+                                            padding: '0.5rem 0',
+                                            borderRadius: '0.125rem',
+                                            color: 'white',
+                                            textAlign: 'center',
+                                            height: '2.5rem',
+                                            transition: 'all 0.3s',
+                                        }}
+                                        onClick={() => handlePaginationClick(index)}
+                                    >
+                                        {index + 1}
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                    <button className="btn  rounded-sm border-gray-700 text-white bg-gray-500" onClick={handleNext}>
+                            <div style={{ display: "flex", gap: "0.25rem" }}>
+                                {variant.slice(25, 50).map((_, index) => (
+                                    <div
+                                        key={index + 25}
+                                        style={{
+                                            background: checkButton(index + 25),
+                                            cursor: 'pointer',
+                                            width: '2.25rem',
+                                            padding: '0.5rem 0',
+                                            borderRadius: '0.125rem',
+                                            color: 'white',
+                                            textAlign: 'center',
+                                            height: '2.5rem',
+                                            transition: 'all 0.3s',
+                                        }}
+                                        onClick={() => handlePaginationClick(index + 25)}
+                                    >
+                                        {index + 26}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", justifyContent: "center" }}>
+                            {variant.map((_, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        background: checkButton(index),
+                                        cursor: 'pointer',
+                                        width: '2.25rem',
+                                        padding: '0.5rem 0',
+                                        borderRadius: '0.125rem',
+                                        color: 'white',
+                                        textAlign: 'center',
+                                        height: '2.5rem',
+                                        transition: 'all 0.3s',
+                                    }}
+                                    onClick={() => handlePaginationClick(index)}
+                                >
+                                    {index + 1}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <button className="btn rounded-sm border-gray-700 text-white bg-gray-500" onClick={handleNext}>
                         <MdKeyboardDoubleArrowRight size={20} />
                     </button>
                 </div>
             </div>
+
+            {/* Description Image Modal */}
+            {showDescImage && variant[activeIndex].description_image && (
+                <div
+                    className="fixed inset-0 z-[2000] flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.85)' }}
+                    onClick={() => setShowDescImage(false)}
+                >
+                    <div
+                        className="relative max-w-4xl max-h-[90vh] p-2"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setShowDescImage(false)}
+                            className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg cursor-pointer hover:bg-red-700 z-10"
+                        >
+                            ×
+                        </button>
+                        <img
+                            src={variant[activeIndex].description_image.startsWith('data:')
+                                ? variant[activeIndex].description_image
+                                : `${media_path}/${variant[activeIndex].description_image}`}
+                            alt="Izoh rasmi"
+                            className="max-w-full max-h-[85vh] rounded-lg shadow-2xl"
+                            style={{ objectFit: 'contain' }}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

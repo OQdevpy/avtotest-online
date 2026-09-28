@@ -1,9 +1,9 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useCustomContext } from '../context/TestContext';
 
-const Time = forwardRef(({ onTimeEnd }, ref) => {
+const Time = forwardRef(({ onTimeEnd, initialMinutes = 25 }, ref) => {
     const { getTranslation } = useCustomContext();
-    const [time, setTime] = useState({ minutes: 25, seconds: 0 });
+    const [time, setTime] = useState({ minutes: initialMinutes, seconds: 0 });
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -30,7 +30,7 @@ const Time = forwardRef(({ onTimeEnd }, ref) => {
 
     // Expose resetTime function to parent component
     useImperativeHandle(ref, () => ({
-        resetTime: () => setTime({ minutes: 25, seconds: 0 }),
+        resetTime: () => setTime({ minutes: initialMinutes, seconds: 0 }),
     }));
 
     const { minutes, seconds } = time;

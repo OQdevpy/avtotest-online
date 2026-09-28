@@ -20,7 +20,7 @@ function Navbar() {
     };
 
     return (
-        <nav className="py-2 h-16 shadow-md sticky top-0 z-0 bg-blue-800/10">
+        <nav className="py-2 h-16 shadow-md sticky top-0 z-50 bg-blue-800/30 backdrop-blur-sm">
             <div className="container flex items-center justify-between h-full">
                 <div className='w-28 h-full flex items-center'>
                     <Logo />

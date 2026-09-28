@@ -19,8 +19,9 @@ import BlitsTest from "../pages/BlitsTest";
 
 import Variantss from "../pages/Variants";
 
-// Hash router: Electron `loadFile` (file://) va webda bir xil ishlaydi,
-// nisbiy `./static-images/...` yo'llari ham har doim index.html ga nisbatan.
+// Hash router: Electron `loadFile` (file://) da ham to'g'ri ishlaydi,
+// nisbiy `./static-images/...` yo'llari doim index.html ga nisbatan.
+// (Seoul'dagi `/C:/...` nusxalari shu sababli kerak emas.)
 export const router = createHashRouter([
     {
         path: '/',
@@ -88,7 +89,7 @@ export const router = createHashRouter([
         element: <PrivateRoute><SolveTest/></PrivateRoute>
     },
     {
-        path:'/blits/:id',
+        path:'/blits/:blitsId/',
         element: <PrivateRoute><BlitsTest/></PrivateRoute>
     },
     {

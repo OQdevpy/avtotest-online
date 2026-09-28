@@ -1,7 +1,7 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "react-toastify";
 import { apiFetch, isElectron, onSessionExpired, tokens } from "../api/client";
-import { resetContentCache } from "../api/content";
+import { resetData } from "../utils/dataLoader";
 
 const AuthContext = createContext(null);
 
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
                 },
             });
             tokens.set(data.tokens);
-            resetContentCache();
+            resetData();
             setIsLoggedin(true);
             setFormData({ password: '' });
             fn('/');

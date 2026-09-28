@@ -2,50 +2,70 @@ import { Outlet, useParams } from "react-router-dom";
 import { useCallback, useEffect, useState } from "react";
 import { useCustomContext } from '../context/TestContext';
 import Navbar from "../components/Navbar";
-import SolveQuizComponent from "../components/SolveQuizComponent";
 import SolveQuizComponentWithoutTime from "../components/SolveQuizComponentWithoutTime";
-import { fetchBlitsQuestions } from '../api/content';
+import {
+  oraliq_db, oraliqdarslar_db, oraliqdarslaranswer_db,
+  blits_questions_db,
+} from '../utils/dataLoader';
 
 
 function BlitsTest() {
-    const { id } = useParams();
-    const {  Background } = useCustomContext();
+    const { blitsId } = useParams();
+    const { Background } = useCustomContext();
     const [solveTest, setSolveTest] = useState([]);
-    const [loading, setLoading] = useState(false);   // Loading state
-    const [error, setError] = useState(null);        // Error state
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-        const fetchSolveTest = useCallback(async (blitsId) => {
-            try {
-                setLoading(true);  // Start loading
-                setError(null);    // Reset error state
-                setSolveTest(await fetchBlitsQuestions(blitsId));
-            } catch (err) {
-                setError(err.message || 'Failed to fetch quiz data');
-            } finally {
-                setLoading(false);  // Stop loading
+    const fetchSolveTest = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const blitsQuestions = blits_questions_db[blitsId];
+            if (!blitsQuestions || blitsQuestions.length === 0) {
+                setError('No questions found for this blits');
+                return;
             }
-        }, []);
-    
-        // Use effect to fetch data when the component mounts
-        useEffect(() => {
-            fetchSolveTest(id);
-        }, [id, fetchSolveTest]);  // Dependency array includes fetchSolveTest
-        
-        // Conditional rendering based on loading or error states
-        
-        if (loading) return <p>Loading...</p>;
-        if (error) return <p>{error}</p>;
-        if (!solveTest || solveTest.length === 0) return <p>No data available</p>;
-    
 
+            function shuffleArray(array) {
+                const arr = [...array];
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
 
+            const randomQuestions = shuffleArray(blitsQuestions).map(q => ({ ...q }));
 
+            randomQuestions.forEach(item => {
+                item.answers = oraliqdarslaranswer_db
+                    .filter((a) => a.oraliq_dars_question === item.id)
+                    .sort(() => Math.random() - 0.5);
+                const lesson = oraliqdarslar_db.find((l) => l.id === item.oraliq_dars);
+                const oraliq = oraliq_db.find((o) => o.id === lesson.oraliq);
+                item.lesson_name = {
+                    name_ru: `${oraliq.tartib}.${lesson.name_ru}`,
+                    name_uz: `${oraliq.tartib}.${lesson.name_uz}`,
+                    name_cry: `${oraliq.tartib}.${lesson.name_cry}`,
+                };
+            });
 
+            setSolveTest([...randomQuestions]);
+        } catch (err) {
+            setError('Failed to fetch quiz data');
+        } finally {
+            setLoading(false);
+        }
+    }, [blitsId]);
 
+    useEffect(() => {
+        fetchSolveTest();
+    }, [fetchSolveTest]);
 
-
-    if (!solveTest || solveTest == undefined) return null;
-
+    if (loading) return <p>Loading...</p>;
+    if (error) return <p>{error}</p>;
+    if (!solveTest || solveTest.length === 0) return <p>No data available</p>;
 
     return (
         <div
@@ -62,18 +82,12 @@ function BlitsTest() {
             <Navbar />
             <div
                 className="bg-gray-950/90 max-w-full min-h-full"
-                style={{
-                    // margin: '1rem', // Removed unnecessary margin
-                    // marginBottom: '0.5rem',
-                }}
             >
-                {
-                    <SolveQuizComponent key={id} data={solveTest} /> 
-                }
+                <SolveQuizComponentWithoutTime data={solveTest} />
                 <Outlet />
             </div>
         </div>
-    )
+    );
 }
 
 export default BlitsTest;

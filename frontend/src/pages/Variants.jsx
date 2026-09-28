@@ -9,12 +9,15 @@ function Variantss() {
     <div
       style={{
         backgroundImage: `url(${Background})`,
-        backgroundSize: "cover", // Ensures the image covers the entire container
+        backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundRepeat: "no-repeat", // Prevents the image from repeating
-        backgroundAttachment: "fixed", // Keeps the background image fixed when scrolling
-        margin: 0, // Remove default margin
-        padding: 0, // Remove default padding
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+        minHeight: "100vh",
+        height: "100%",
+        margin: 0,
+        padding: 0,
+        overflow: "auto",
       }}
       >
       <Navbar />
@@ -23,8 +26,10 @@ function Variantss() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
-
+          justifyContent: "flex-start",
+          paddingTop: "20px",
+          paddingBottom: "40px",
+          minHeight: "calc(100vh - 64px)",
         }}
       >
         <Variants />

@@ -3,6 +3,7 @@ import {
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
+import { FaInfoCircle } from "react-icons/fa";
 import "../assets/styles/style.css";
 
 import { useNavigate } from "react-router-dom";
@@ -12,7 +13,8 @@ import ImageComponent from "./ImageComponent";
 const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
   const data = oraliqLessontest.oraliqLessontest;
   const navigate = useNavigate();
-  const { getTranslation, getTranslationValue } = useCustomContext();
+  const { getTranslation, getTranslationValue, media_path } = useCustomContext();
+  const [showDescImage, setShowDescImage] = useState(false);
 
   const handleTestClick = () => {
     const shuffledData = data
@@ -72,13 +74,21 @@ const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
             {getTranslationValue(currentItem.lesson_name, "name")}
           </h2>
 
-          <div className="text-blue-500 flex-shrink-0 justify-center items-center min-w-[220px]">
-            {" "}
-            {/* Adjusted for consistent width */}
+          <div className="text-blue-500 flex-shrink-0 flex justify-center items-center gap-2 min-w-[220px]">
+            {/* Izoh icon - only show if description_image exists */}
+            {currentItem.description_image && (
+              <button
+                className="btn bg-yellow-600/80 text-white flex items-center justify-center border border-yellow-500 cursor-pointer hover:bg-yellow-600"
+                onClick={() => setShowDescImage(true)}
+                title="Izoh"
+                style={{ minWidth: '40px', height: '32px' }}
+              >
+                <FaInfoCircle size={20} />
+              </button>
+            )}
             <button
-              className="btn bg-blue-950/60 text-white flex items-center border border-blue-900 p-2 cursor-pointer  w-full hover:bg-blue-950/60"
+              className="btn bg-blue-950/60 text-white flex items-center border border-blue-900 p-2 cursor-pointer hover:bg-blue-950/60 flex-1"
               onClick={() => handleTestClick()}
-              style={{ width: "100%" }} // Ensure button fills the available space
             >
               {getTranslation("solveTest")}
             </button>
@@ -173,6 +183,35 @@ const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
           <MdKeyboardDoubleArrowRight size={20} />
         </button>
       </div>
+
+      {/* Description Image Modal */}
+      {showDescImage && currentItem.description_image && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.85)' }}
+          onClick={() => setShowDescImage(false)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowDescImage(false)}
+              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg cursor-pointer hover:bg-red-700 z-10"
+            >
+              ×
+            </button>
+            <img
+              src={currentItem.description_image.startsWith('data:')
+                ? currentItem.description_image
+                : `${media_path}/${currentItem.description_image}`}
+              alt="Izoh rasmi"
+              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl"
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

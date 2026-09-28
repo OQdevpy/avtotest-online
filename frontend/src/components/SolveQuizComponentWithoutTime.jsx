@@ -3,6 +3,7 @@ import {
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
 } from "react-icons/md";
+import { FaInfoCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useCustomContext } from "../context/TestContext";
 import ImageComponent from "./ImageComponent";
@@ -27,8 +28,9 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [answered, setAnswered] = useState({});
   const [trueCount, setTrueCount] = useState(0);
+  const [showDescImage, setShowDescImage] = useState(false);
 
-  const { getTranslation, getTranslationValue, returnResult } = useCustomContext();
+  const { getTranslation, getTranslationValue, returnResult, media_path } = useCustomContext();
 
 
 
@@ -79,6 +81,10 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
     };
   }, [activeIndex]);
 
+  // Close description modal when changing questions
+  useEffect(() => {
+    setShowDescImage(false);
+  }, [activeIndex]);
 
   const isAnswered = (index) => {
     return answered[index] !== undefined;
@@ -115,7 +121,7 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
     setActiveIndex(0);
     setVariant(data.sort(() => Math.random() - 0.5));
     setTrueCount(0);
-    
+    setShowDescImage(false);
   };
 
 
@@ -135,11 +141,21 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
             ) : null}
           </div>
 
-          <div className="text-blue-500 flex-shrink-0" style={{ minWidth: "160px" }}>
+          <div className="text-blue-500 flex-shrink-0 flex items-center gap-2" style={{ minWidth: "200px" }}>
+            {/* Izoh button - only show when answered and has description_image */}
+            {isAnswered(activeIndex) && variant[activeIndex].description_image && (
+              <button
+                className="btn bg-yellow-600/80 text-white flex items-center justify-center border border-yellow-500 cursor-pointer hover:bg-yellow-600"
+                onClick={() => setShowDescImage(true)}
+                title="Izoh"
+                style={{ minWidth: '40px', height: '40px' }}
+              >
+                <FaInfoCircle size={20} />
+              </button>
+            )}
             <button
-              className="btn bg-blue-950/60 text-white flex items-center border border-blue-900 p-2 cursor-pointer h-10 w-full hover:bg-blue-950/60"
+              className="btn bg-blue-950/60 text-white flex items-center border border-blue-900 p-2 cursor-pointer h-10 flex-1 hover:bg-blue-950/60"
               onClick={() => reset()}
-              style={{ width: "100%" }}
             >
               {getTranslation("startZero")}
             </button>
@@ -197,50 +213,129 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
       </div>
 
       <div
-        className="flex items-center gap-2 justify-between"
         style={{
-          position: "fixed", // Fixed positioning to make it static
-          bottom: "0", // Stick to the bottom of the page
-          left: "0", // Align with the left edge
-          right: "0", // Stretch to the right edge
-          zIndex: "1000", // Make sure it's on top of other elements
-          padding: "10px", // Add some padding for visual comfort
+          position: "fixed",
+          bottom: "0",
+          left: "0",
+          right: "0",
+          zIndex: "1000",
+          padding: "10px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px"
         }}
       >
         <button
-          className="btn  rounded-sm border-gray-700 text-white bg-gray-500 "
+          className="btn rounded-sm border-gray-700 text-white bg-gray-500"
           onClick={handlePrev}
         >
           <MdKeyboardDoubleArrowLeft size={16} />
         </button>
-        <div className="flex flex-wrap gap-1 items-center justify-center">
-          {variant.map((_, index) => (
-            <div
-              key={index}
-              style={{
-                background: checkButton(index),
-                width: "2.25rem",
-                padding: "0.5rem 0",
-                borderRadius: "0.125rem",
-                // border: '1px solid #1e3a8a',
-                color: "white",
-                textAlign: "center",
-                height: "2.5rem",
-                transition: "all 0.3s",
-              }}
-              onClick={() => handlePaginationClick(index)}
-            >
-              {index + 1}
+        {variant.length === 50 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "0.25rem" }}>
+              {variant.slice(0, 25).map((_, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: checkButton(index),
+                    width: "2.25rem",
+                    padding: "0.5rem 0",
+                    borderRadius: "0.125rem",
+                    color: "white",
+                    textAlign: "center",
+                    height: "2.5rem",
+                    transition: "all 0.3s",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => handlePaginationClick(index)}
+                >
+                  {index + 1}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+            <div style={{ display: "flex", gap: "0.25rem" }}>
+              {variant.slice(25, 50).map((_, index) => (
+                <div
+                  key={index + 25}
+                  style={{
+                    background: checkButton(index + 25),
+                    width: "2.25rem",
+                    padding: "0.5rem 0",
+                    borderRadius: "0.125rem",
+                    color: "white",
+                    textAlign: "center",
+                    height: "2.5rem",
+                    transition: "all 0.3s",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => handlePaginationClick(index + 25)}
+                >
+                  {index + 26}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", justifyContent: "center" }}>
+            {variant.map((_, index) => (
+              <div
+                key={index}
+                style={{
+                  background: checkButton(index),
+                  width: "2.25rem",
+                  padding: "0.5rem 0",
+                  borderRadius: "0.125rem",
+                  color: "white",
+                  textAlign: "center",
+                  height: "2.5rem",
+                  transition: "all 0.3s",
+                  cursor: "pointer"
+                }}
+                onClick={() => handlePaginationClick(index)}
+              >
+                {index + 1}
+              </div>
+            ))}
+          </div>
+        )}
         <button
-          className="btn  rounded-sm border-gray-700 text-white bg-gray-500"
+          className="btn rounded-sm border-gray-700 text-white bg-gray-500"
           onClick={handleNext}
         >
           <MdKeyboardDoubleArrowRight size={16} />
         </button>
       </div>
+
+      {/* Description Image Modal */}
+      {showDescImage && variant[activeIndex].description_image && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.85)' }}
+          onClick={() => setShowDescImage(false)}
+        >
+          <div
+            className="relative max-w-4xl max-h-[90vh] p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowDescImage(false)}
+              className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg cursor-pointer hover:bg-red-700 z-10"
+            >
+              ×
+            </button>
+            <img
+              src={variant[activeIndex].description_image.startsWith('data:')
+                ? variant[activeIndex].description_image
+                : `${media_path}/${variant[activeIndex].description_image}`}
+              alt="Izoh rasmi"
+              className="max-w-full max-h-[85vh] rounded-lg shadow-2xl"
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

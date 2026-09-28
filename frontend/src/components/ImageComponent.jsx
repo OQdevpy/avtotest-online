@@ -6,11 +6,6 @@ const ImageComponent = ({ currentItem }) => {
   const [isImageLarge, setIsImageLarge] = useState(false);
   const [containerHeight, setContainerHeight] = useState("560px"); // Default height
   const { DefaultImge, media_path } = useCustomContext();
-  // API to'liq URL beradi; nisbiy yo'l bo'lsa media manziliga ulanadi
-  const imageSrc = (image) => {
-    if (!image) return DefaultImge;
-    return /^(https?:|data:)/.test(image) ? image : `${media_path}/${image.replace(/^\/+/, '')}`;
-  };
 
   useEffect(() => {
     // Function to set container height based on viewport height
@@ -37,9 +32,9 @@ const ImageComponent = ({ currentItem }) => {
 
   useEffect(() => {
     const img = new Image();
-    const imgSrc = imageSrc(currentItem.image);
+    const imgSrc = currentItem.image ? media_path + currentItem.image : DefaultImge;
     
-    img.src = imageSrc(currentItem.image);
+    img.src = currentItem.image ? media_path + currentItem.image : DefaultImge;
     
     
     img.onload = () => {
@@ -70,7 +65,7 @@ const ImageComponent = ({ currentItem }) => {
       }}
     >
       <img
-        src={imageSrc(currentItem.image)}
+        src={currentItem.image ? media_path + currentItem.image : DefaultImge}
         alt={currentItem.image}
         className={`${isImageLarge ? "object-fill" : "object-none"} w-full ${currentItem.image.height > 500 ? "h-full" : ""}`}
         style={{
