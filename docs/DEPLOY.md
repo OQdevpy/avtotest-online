@@ -106,13 +106,48 @@ limit qat'iy (403) — u yerda kirish sotiladi.
 ## 8. Serverga deploy (Docker + tizim nginx'i)
 
 Konteynerlar: `db` (Postgres), `redis` (OTP kodlari), `backend` (gunicorn),
-`admin` (admin panel statikasi), `nginx` (admin panel + API, `WEB_PORT`),
-`bot` (Telegram, `bot` profili — standart holatda ishga tushmaydi).
+`nginx` (`/api/`, `/admin/`, `/media/` — `WEB_PORT`), `bot` (Telegram, `bot`
+profili — standart holatda ishga tushmaydi). Admin panel compose'da **yo'q** —
+u `npm run build` qilinib, tizim nginx'i orqali uzatiladi (pastda).
 
 | Port | Nima | Kimga |
 |---|---|---|
-| `${WEB_PORT:-9005}` | admin panel + `/api/` + `/media/` | admin domeni |
-| `127.0.0.1:${API_PORT:-8010}` | faqat backend (Django) | tizim nginx'i → `mobile.avtotest-tayyorlov.uz` |
+| `${WEB_PORT:-9005}` | `/api/` + `/admin/` + `/media/` (login tezlik cheklovi bilan) | ixtiyoriy; lokal `npm run dev` shu yerga proxy qiladi |
+| `127.0.0.1:${API_PORT:-8010}` | faqat backend (Django) | tizim nginx'i → admin, `mobile.`, `api.` domenlari |
+
+### Admin panel (`npm run build` + tizim nginx'i)
+
+```
+cd admin
+cp .env.example .env      # VITE_API_URL bo'sh — admin va API bitta domenda
+npm ci && npm run build   # → admin/dist/  (har yangilanishda qayta build)
+```
+
+```nginx
+server {
+    server_name admin.avtotest-tayyorlov.uz;   # + listen 443 ssl / certbot
+    client_max_body_size 50M;                  # rasm/audio yuklash
+
+    root /yo'l/avtotest-online/admin/dist;
+    location / { try_files $uri /index.html; }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8010;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location /media/ {
+        alias /yo'l/avtotest-online/backend/media/;
+        expires 30d;
+    }
+}
+```
+
+`VITE_API_URL` build paytida kodga yoziladi. Admin boshqa domendan API'ga
+murojaat qilsa (`VITE_API_URL=https://api...`), o'sha domenni backend
+`.env` dagi `CORS_ALLOWED_ORIGINS` ga qo'shing.
 
 Rasm/audio fayllar konteyner ichida emas — serverdagi `backend/media/`
 papkasida (bind mount). Zaxira uchun shu papkani ko'chirish kifoya.
