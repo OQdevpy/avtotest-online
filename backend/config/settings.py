@@ -148,6 +148,19 @@ DATABASES = {"default": database_from_url(env("DATABASE_URL"))}
 
 AUTH_USER_MODEL = "accounts.User"
 
+# Ko'chirilgan bazadagi parollar MD5 bilan hash qilingan (test sozlamalarida
+# import qilingan). MD5 faqat TEKSHIRISH uchun oxirida turadi: foydalanuvchi
+# kirganda Django parolni avtomatik birinchi hasher (PBKDF2) ga o'tkazadi.
+# Barcha hisoblar yangilangach bu qatorni olib tashlash mumkin.
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+    "django.contrib.auth.hashers.MD5PasswordHasher",
+]
+
 # Parol uchun yagona shart — kamida 6 belgi. Boshqa cheklovlar yo'q
 # (raqamli, "oddiy parol", ismga o'xshash — hammasi ruxsat). Foydalanuvchiga
 # lokalizatsiyalangan "kamida 6 belgi" xabari ilovada (err_pass_short) ko'rsatiladi.
