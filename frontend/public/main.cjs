@@ -55,6 +55,20 @@ function createWindow() {
   });
 }
 
+// Faqat bitta nusxa: ikkinchi marta ochilsa — mavjud oyna oldinga chiqadi.
+// Aks holda ikki nusxa bir xil profil papkasini band qiladi.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const [win] = BrowserWindow.getAllWindows();
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+}
+
 // Navbar'dagi yopish tugmasi (kod bilan) — ilovadan chiqish
 ipcMain.on('app-close', () => {
   app.quit();
