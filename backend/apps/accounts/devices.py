@@ -43,7 +43,8 @@ def active_devices(user, platform: str):
 
 @transaction.atomic
 def register_device(user, platform: str, label: str, refresh, not_after=None) -> Device:
-    """Yangi sessiya yozadi. Limit to'lgan bo'lsa `DeviceLimitReached`.
+    """Yangi sessiya yozadi. Limit to'lgan bo'lsa `DeviceLimitReached`, faqat
+    `settings.DEVICE_EVICT_OLDEST` dagi platformalarda eng eski sessiya yopiladi.
 
     Foydalanuvchi qatori qulflanadi: aks holda bir vaqtda kelgan ikki kirish
     ikkisi ham bo'sh joy ko'rib, bitta qurilmalik tarifni chetlab o'tardi.
@@ -51,8 +52,15 @@ def register_device(user, platform: str, label: str, refresh, not_after=None) ->
     """
     platform = platform or Device.Platform.MOBILE
     type(user).objects.select_for_update().filter(pk=user.pk).first()
-    if active_devices(user, platform).count() >= _limit(user, platform):
-        raise DeviceLimitReached
+    active = active_devices(user, platform)
+    overflow = active.count() - _limit(user, platform) + 1
+    if overflow > 0:
+        if platform not in settings.DEVICE_EVICT_OLDEST:
+            raise DeviceLimitReached
+        # Mobil ilova chiqishda serverga xabar bermaydi — slot bo'shamaydi.
+        # 403 o'rniga eng uzoq ishlatilmagan sessiyalar yopiladi.
+        oldest = active.order_by("last_seen", "pk").values_list("pk", flat=True)[:overflow]
+        Device.objects.filter(pk__in=list(oldest)).update(is_active=False)
 
     expires_at = _expiry(platform)
     if not_after is not None:

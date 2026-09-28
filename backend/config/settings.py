@@ -228,6 +228,11 @@ LESSON_GREEN_RATIO = 0.9
 # Bir foydalanuvchi bir platformada nechta qurilmadan kira oladi.
 # User.max_devices to'ldirilgan bo'lsa u barcha platformalar uchun ustun turadi.
 MAX_DEVICES_PER_PLATFORM = {"mobile": 2, "web": 1, "desktop": 1}
+# Limit to'lganda 403 o'rniga eng eski sessiya yopiladigan platformalar.
+# Mobil ilova chiqishda /auth/logout/ ni chaqirmaydi, shuning uchun busiz
+# foydalanuvchi qayta kirganda bloklanib qolardi. Web/desktopda kirish
+# sotiladi — u yerda limit qat'iy qoladi.
+DEVICE_EVICT_OLDEST = {"mobile"}
 # Qurilma sessiyasining umri, kunda. None — muddat yo'q (refresh tokenning
 # o'z umri amal qiladi). Web va desktopda kirish sotilgani uchun 12 kun.
 SESSION_DAYS = {"mobile": None, "web": 12, "desktop": 12}

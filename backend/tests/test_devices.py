@@ -48,10 +48,33 @@ def test_mobile_allows_two_devices(api, student):
     assert Device.objects.filter(user=student, platform="mobile").count() == 2
 
 
-def test_third_mobile_login_is_rejected(api, student):
-    login(api, student, platform="mobile")
-    login(api, student, platform="mobile")
-    assert login(api, student, platform="mobile").status_code == 403
+def test_third_mobile_login_evicts_oldest_session(api, student):
+    first = login(api, student, platform="mobile").json()["tokens"]["refresh"]
+    second = login(api, student, platform="mobile").json()["tokens"]["refresh"]
+    assert login(api, student, platform="mobile").status_code == 200
+
+    active = Device.objects.filter(user=student, platform="mobile", is_active=True)
+    assert active.count() == 2
+
+    # Eng eski sessiya yopilgan — uning refresh tokeni endi ishlamaydi.
+    refresh = lambda token: api.post("/api/v1/auth/token/refresh/",
+                                     {"refresh": token}, format="json")
+    assert refresh(first).status_code == 401
+    assert refresh(second).status_code == 200
+
+
+def test_repeated_mobile_relogin_never_blocks(api, student):
+    # Chiqib-kirish (ilova serverga logout yubormaydi) — hech qachon 403 emas.
+    for _ in range(5):
+        assert login(api, student, platform="mobile").status_code == 200
+    assert Device.objects.filter(
+        user=student, platform="mobile", is_active=True
+    ).count() == 2
+
+
+def test_desktop_limit_stays_strict(api, student):
+    assert login(api, student, platform="desktop").status_code == 200
+    assert login(api, student, platform="desktop").status_code == 403
 
 
 def test_platforms_have_independent_limits(api, student):
