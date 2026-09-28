@@ -239,7 +239,7 @@ class DeviceAwareTokenRefreshView(TokenRefreshView):
 
 @extend_schema(tags=["auth"])
 class AccessCodeLoginView(generics.GenericAPIView):
-    """Shef bergan kod bilan kirish. Muddat birinchi kirishda boshlanadi."""
+    """Shef bergan kod bilan kirish. Kod muddatsiz va ko'p martalik."""
 
     serializer_class = AccessCodeLoginSerializer
     permission_classes = [permissions.AllowAny]
@@ -253,26 +253,18 @@ class AccessCodeLoginView(generics.GenericAPIView):
         code = serializer.context["access_code"]
         data = serializer.validated_data
 
-        # Platforma mijozdan OLINMAYDI: `platform="mobile"` deb yuborish
-        # sotilgan 12 kunlik muddatni ham, qurilma limitini ham chetlab
-        # o'tardi. Kod bilan kirish har doim desktop tarifida.
+        # Kod bilan kirish faqat desktop/web sessiyasi — `mobile` deb yozilmaydi.
         requested = (data.get("platform") or "").strip().lower()
         platform = requested if requested in ("desktop", "web") else "desktop"
 
-        try:
-            tokens = issue_tokens(
-                code.user,
-                platform=platform,
-                label=data.get("device_label", ""),
-                # Sessiya kodning o'zidan uzoq yashamasligi kerak.
-                not_after=code.expires_at or code.would_expire_at(),
-            )
-        except DeviceLimitReached:
-            # Kod hisoblagichi rad etilgan kirishda boshlanmaydi.
-            return Response({"detail": DEVICE_LIMIT_MESSAGE},
-                            status=status.HTTP_403_FORBIDDEN)
-
-        code.activate()
+        # Kod muddatsiz va ko'p martalik: bir kod bilan istalgancha qurilmadan
+        # kirish mumkin, sessiya ham muddatsiz (shef kodni o'chirmaguncha).
+        tokens = issue_tokens(
+            code.user,
+            platform=platform,
+            label=data.get("device_label", ""),
+            unlimited=True,
+        )
         return Response({"user": UserSerializer(code.user).data, "tokens": tokens})
 
 

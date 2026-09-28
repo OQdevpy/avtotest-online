@@ -179,17 +179,6 @@ def test_login_code_cannot_claim_mobile_platform(api, student, admin_user):
              {"code": code.code, "platform": "mobile"}, format="json")
     device = Device.objects.get(user=student)
     assert device.platform == "desktop"
-    assert device.expires_at is not None
-
-
-def test_login_code_session_cannot_outlive_the_code(api, student, admin_user):
-    from apps.accounts.models import AccessCode
-
-    code = AccessCode.generate(user=student, created_by=admin_user, valid_days=3)
-    api.post("/api/v1/auth/login-code/", {"code": code.code}, format="json")
-    device = Device.objects.get(user=student)
-    code.refresh_from_db()
-    assert device.expires_at <= code.expires_at
 
 
 # --- Important #8: question_count nashr holatini hisobga olishi -------------
@@ -248,22 +237,6 @@ def test_invalid_branch_filter_returns_400(api, admin_user, auth):
 
 
 # --- Minor: kod muddati 403 dan keyin boshlanmasligi ------------------------
-
-def test_access_code_clock_does_not_start_on_rejected_login(api, student, admin_user):
-    from apps.accounts.models import AccessCode
-
-    code = AccessCode.generate(user=student, created_by=admin_user)
-    api.post("/api/v1/auth/login-code/", {"code": code.code}, format="json")
-    Device.objects.filter(user=student).delete()
-    student.max_devices = 0
-    student.save(update_fields=["max_devices"])
-
-    second = AccessCode.generate(user=student, created_by=admin_user)
-    response = api.post("/api/v1/auth/login-code/", {"code": second.code}, format="json")
-    assert response.status_code == 403
-    second.refresh_from_db()
-    assert second.activated_at is None
-
 
 # --- Important #5: hisobot tahrirlansa/o'chirilsa balans to'g'ri qolishi -----
 

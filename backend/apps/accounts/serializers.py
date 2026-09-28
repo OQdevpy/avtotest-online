@@ -24,16 +24,18 @@ def tokens_for(user: User) -> dict:
 
 
 def issue_tokens(user: User, platform: str = "", label: str = "",
-                 not_after=None) -> dict:
+                 not_after=None, unlimited: bool = False) -> dict:
     """JWT chiqaradi va sessiyani `Device` ga yozadi.
 
-    `not_after` berilsa sessiya muddati undan oshmaydi (kirish kodi uchun).
-    Limit to'lgan bo'lsa `devices.DeviceLimitReached` ko'tariladi.
+    `not_after` berilsa sessiya muddati undan oshmaydi.
+    Limit to'lgan bo'lsa `devices.DeviceLimitReached` ko'tariladi;
+    `unlimited=True` — qurilma limiti ham, sessiya muddati ham yo'q (kirish kodi).
     """
     from .devices import register_device
 
     refresh = RefreshToken.for_user(user)
-    register_device(user, platform, label, refresh, not_after=not_after)
+    register_device(user, platform, label, refresh, not_after=not_after,
+                    unlimited=unlimited)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
@@ -147,7 +149,9 @@ class AccessCodeLoginSerializer(serializers.Serializer):
             .filter(code=value.strip().upper())
             .first()
         )
-        if code is None or not code.is_usable:
+        # Kod muddatsiz va ko'p martalik: topilsa bo'ldi. Faqat shef o'chirgan
+        # (is_active=False) kod yoki bloklangan foydalanuvchi rad etiladi.
+        if code is None or not code.is_active or not code.user.is_active:
             raise serializers.ValidationError("Kod yaroqsiz yoki muddati tugagan.")
         self.context["access_code"] = code
         return value

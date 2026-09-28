@@ -42,15 +42,22 @@ def active_devices(user, platform: str):
 
 
 @transaction.atomic
-def register_device(user, platform: str, label: str, refresh, not_after=None) -> Device:
+def register_device(user, platform: str, label: str, refresh, not_after=None,
+                    unlimited: bool = False) -> Device:
     """Yangi sessiya yozadi. Limit to'lgan bo'lsa `DeviceLimitReached`, faqat
     `settings.DEVICE_EVICT_OLDEST` dagi platformalarda eng eski sessiya yopiladi.
 
     Foydalanuvchi qatori qulflanadi: aks holda bir vaqtda kelgan ikki kirish
     ikkisi ham bo'sh joy ko'rib, bitta qurilmalik tarifni chetlab o'tardi.
-    `not_after` — sessiya muddatining yuqori chegarasi (kirish kodi uchun).
+    `not_after` — sessiya muddatining yuqori chegarasi.
+    `unlimited` — limit tekshirilmaydi va sessiya muddatsiz (kirish kodi).
     """
     platform = platform or Device.Platform.MOBILE
+    if unlimited:
+        return Device.objects.create(
+            user=user, platform=platform, refresh_jti=refresh["jti"],
+            label=label or "", expires_at=None,
+        )
     type(user).objects.select_for_update().filter(pk=user.pk).first()
     active = active_devices(user, platform)
     overflow = active.count() - _limit(user, platform) + 1
