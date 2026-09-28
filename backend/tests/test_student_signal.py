@@ -88,11 +88,13 @@ def test_invalid_student_phone_rejected():
         Student.objects.create(name="Ali", phone="123", password="111100")
 
 
-def test_django_admin_shows_plaintext_password():
+def test_django_admin_list_hides_plaintext_password():
+    """Parol Django admin ro'yxatida ko'rinmaydi (shef qarori)."""
     from django.contrib import admin
 
     model_admin = admin.site._registry[Student]
-    assert "password" in model_admin.list_display
+    assert "password" not in model_admin.list_display
+    assert "password" not in model_admin.search_fields
 
 
 def test_admin_creates_student_via_manage_endpoint(api, admin_user, auth, branch_a):

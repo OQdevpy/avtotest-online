@@ -11,9 +11,9 @@ class BranchAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    # `password` ataylab ochiq ko'rsatiladi — front-ofis xodimi o'quvchiga
-    # PIN'ni shu yerdan o'qib beradi.
-    list_display = ("id", "name", "phone", "password", "branch", "hujjat", "is_active")
+    # Parol ro'yxatda ko'rsatilmaydi (shef qarori). Talaba yaratish/tahrirlash
+    # formasida saqlanadi — u majburiy maydon.
+    list_display = ("id", "name", "phone", "branch", "hujjat", "is_active")
     search_fields = ("name", "phone")
     list_filter = ("branch", "hujjat", "is_active")
 
