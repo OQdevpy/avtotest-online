@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import {
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
@@ -37,8 +38,13 @@ function SortableQuestionNum({ id, index, isActive, onClick }) {
 }
 
 // ─── Rasm komponenti ───
+// Desktop ilovadagi (frontend/src/components/ImageComponent.jsx) bilan bir xil
+// ko'rinish: oq blok, balandligi ekranga qarab 430/500/560px; katta rasm
+// blokni to'ldiradi, kichigi (jumladan default logotip) o'z o'lchamida
+// markazda turadi.
 function QuestionImageComponent({ currentItem, editing, onClickImage, fileInputRef, onImageChange, previewActive, children }) {
   const [containerHeight, setContainerHeight] = useState('560px');
+  const [isImageLarge, setIsImageLarge] = useState(false);
 
   useEffect(() => {
     const updateContainerHeight = () => {
@@ -58,12 +64,21 @@ function QuestionImageComponent({ currentItem, editing, onClickImage, fileInputR
     ? (imageSrc.startsWith('data:') ? imageSrc : mediaUrl(imageSrc))
     : mediaUrl('default_image.jpg');
 
+  const handleLoad = (e) => {
+    const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+    // Kichik ekranda blok desktopdagidan pastroq bo'lishi mumkin — haqiqiy balandlik
+    const limit = Math.min(parseInt(containerHeight), e.currentTarget.parentElement.clientHeight);
+    setIsImageLarge(w > 500 || h > 500 || h > limit || w > limit);
+  };
+
   return (
     <div
-      className="md:w-[60%] w-full flex items-center justify-center cursor-pointer"
+      className="group relative w-full flex items-center justify-center bg-white cursor-pointer"
       style={{
-        maxHeight: containerHeight,
-        minHeight: containerHeight,
+        // Desktop balandligi, lekin sahifadagi bo'sh joydan oshmaydi —
+        // uzun savol yoki kichik ekranda rasm pastki panel ostiga kirmaydi
+        height: `min(${containerHeight}, 100%)`,
+        minHeight: '240px',
         boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
         background: previewActive ? '#1a1a2e' : '#ffffff',
       }}
@@ -71,20 +86,27 @@ function QuestionImageComponent({ currentItem, editing, onClickImage, fileInputR
         if (previewActive) return;
         if (editing) {
           fileInputRef?.current?.click();
-        } else {
+        } else if (hasImage) {
           onClickImage(resolvedSrc);
         }
       }}
+      title={editing ? 'Rasmni almashtirish' : hasImage ? 'Kattalashtirib ko\'rish' : undefined}
     >
       {previewActive ? children : (
         <>
           <img
             src={resolvedSrc}
             alt="Savol rasmi"
-            className="object-contain w-full"
+            className={`${isImageLarge ? 'object-contain' : 'object-none'} w-full`}
             style={{ maxWidth: '100%', maxHeight: '100%' }}
+            onLoad={handleLoad}
             onError={(e) => { e.target.src = mediaUrl('default_image.jpg'); }}
           />
+          {editing && (
+            <span className="absolute bottom-3 right-3 px-3 py-1.5 rounded-md text-xs font-semibold text-white bg-slate-900/80 opacity-0 group-hover:opacity-100 transition-opacity">
+              🖼️ {hasImage ? 'Rasmni almashtirish' : 'Rasm yuklash'}
+            </span>
+          )}
           {editing && (
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onImageChange} />
           )}
@@ -118,6 +140,8 @@ export default function QuestionDetail() {
   const [previewImage, setPreviewImage] = useState(null);
   const [previewDescImage, setPreviewDescImage] = useState(null);
   const [showLessonPicker, setShowLessonPicker] = useState(false);
+  // Navbar'dagi joy — "Boshqa mavzu" va "Tahrirlash" tugmalari shu yerga chiqadi
+  const { navbarSlot, navbarTitleSlot } = useOutletContext() || {};
 
   const [pendingImageFile, setPendingImageFile] = useState(null);
   const [pendingImagePreview, setPendingImagePreview] = useState(null);
@@ -310,105 +334,73 @@ export default function QuestionDetail() {
   const imageItem = { image: displayedImageSrc || '' };
 
   return (
-    <div className="container max-w-full flex flex-col gap-5 pb-32">
+    <div className="md:h-full flex flex-col">
+    <div className="flex-1 md:min-h-0 flex flex-col gap-5 px-6 md:px-10 pt-4 pb-4">
       {/* ─── Sarlavha qatori ─── */}
       <div className="flex flex-col gap-0.5">
-        <div className="flex justify-between gap-2 items-center">
-          <h2 className="text-xl md:text-lg font-bold text-red-100">
-            {lesson && getVal(lesson, 'name')}
-          </h2>
+        {navbarTitleSlot && lesson && createPortal(
+          <h2 className="text-lg font-bold text-red-100 truncate" title={getVal(lesson, 'name')}>
+            {getVal(lesson, 'name')}
+          </h2>,
+          navbarTitleSlot,
+        )}
 
-          <div className="flex-shrink-0 flex items-center gap-2 min-w-[280px] justify-end">
-            {!editing && (
-              <>
-                <button
-                  onClick={() => setShowLessonPicker(true)}
-                  className="px-2.5 py-0.5 rounded text-xs font-semibold text-orange-300 border border-orange-500/30 cursor-pointer hover:bg-orange-500/20"
-                  style={{ background: 'rgba(249,115,22,0.15)' }}
-                >
-                  📁 Boshqa mavzu
-                </button>
-                {/* Nashr holati belgisi */}
-                <span className={`px-2.5 py-0.5 rounded text-xs font-semibold ${
-                  currentQ.is_published
-                    ? 'text-emerald-300 border border-emerald-500/30'
-                    : 'text-amber-300 border border-amber-500/30'
-                }`} style={{ background: currentQ.is_published ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.15)' }}>
-                  {currentQ.is_published ? '✓ Nashr' : '⏳ Qoralama'}
-                </span>
-                <span className={`px-2.5 py-0.5 rounded text-xs font-semibold ${
-                  currentQ.is_in_web
-                    ? 'text-green-300 border border-green-500/30'
-                    : 'text-red-300 border border-red-500/20'
-                }`} style={{ background: currentQ.is_in_web ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.15)' }}>
-                  {currentQ.is_in_web ? '✓ Web' : '✕ Web'}
-                </span>
-              </>
-            )}
-            {editing ? (
-              <>
-                {/* Nashr etish toggle */}
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  {editQ.is_published ? 'Nashr' : 'Qoralama'}
-                  <div className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${editQ.is_published ? 'bg-emerald-500' : 'bg-slate-600'}`}
-                    onClick={() => setEditQ(prev => ({ ...prev, is_published: !prev.is_published }))}>
-                    <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${editQ.is_published ? 'left-4.5' : 'left-0.5'}`} />
-                  </div>
-                </div>
-                {/* is_in_web toggle */}
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  {t('isInWeb')}
-                  <div className={`w-9 h-5 rounded-full relative cursor-pointer transition-colors ${editQ.is_in_web ? 'bg-green-500' : 'bg-slate-600'}`}
-                    onClick={() => setEditQ(prev => ({ ...prev, is_in_web: !prev.is_in_web }))}>
-                    <div className={`w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all ${editQ.is_in_web ? 'left-4.5' : 'left-0.5'}`} />
-                  </div>
-                </div>
-                <button onClick={() => { if(confirm("O'chirish?")) { deleteQuestion(currentQ.id); setEditing(false); } }}
-                  className="btn bg-red-950/60 text-white flex items-center border border-red-900 p-2 cursor-pointer hover:bg-red-950/80"
-                  style={{ fontSize: '13px' }}>
-                  🗑️ {t('delete')}
-                </button>
-                <button onClick={saveEdit}
-                  className="btn bg-green-950/60 text-white flex items-center border border-green-900 p-2 cursor-pointer hover:bg-green-950/80"
-                  style={{ fontSize: '13px' }}>
-                  💾 {t('save')}
-                </button>
-              </>
-            ) : (
+        {navbarSlot && createPortal(
+          editing ? (
+            <>
+              <button onClick={() => { if(confirm("O'chirish?")) { deleteQuestion(currentQ.id); setEditing(false); } }}
+                className="px-4 py-1.5 text-sm font-semibold text-white flex items-center gap-1.5 border border-red-900 bg-red-950/60 cursor-pointer hover:bg-red-950/80">
+                🗑️ {t('delete')}
+              </button>
+              <button onClick={saveEdit}
+                className="px-4 py-1.5 text-sm font-semibold text-white flex items-center gap-1.5 border border-green-900 bg-green-950/60 cursor-pointer hover:bg-green-950/80">
+                💾 {t('save')}
+              </button>
+            </>
+          ) : (
+            <>
               <button
-                className="btn bg-blue-950/60 text-white flex items-center border border-blue-900 p-2 cursor-pointer w-full hover:bg-blue-950/60"
+                onClick={() => setShowLessonPicker(true)}
+                className="px-4 py-1.5 text-sm font-semibold text-orange-300 border border-orange-500/30 cursor-pointer hover:bg-orange-500/20"
+                style={{ background: 'rgba(249,115,22,0.15)' }}
+              >
+                📁 Boshqa mavzu
+              </button>
+              <button
                 onClick={startEdit}
-                style={{ width: '100%' }}
+                className="px-4 py-1.5 text-sm font-semibold text-white flex items-center gap-1.5 border border-blue-900 bg-blue-950/60 cursor-pointer hover:bg-blue-900/60"
               >
                 ✏️ {t('edit')}
               </button>
-            )}
-          </div>
-        </div>
+            </>
+          ),
+          navbarSlot,
+        )}
 
         {/* ─── Savol matni ─── */}
         {editing ? (
-          <div className="font-bold text-white bg-blue-900/30 flex justify-center items-center"
+          <div className="font-bold text-white bg-blue-900/30 rounded-lg p-2 flex justify-center items-center"
             style={{ fontSize: '19px' }}>
             <textarea value={editQ[`text_${lang}`] || ''}
               onChange={e => setEditQ(prev => ({ ...prev, [`text_${lang}`]: e.target.value }))}
               rows={2}
-              className="w-full bg-transparent border border-blue-500 text-white text-center font-bold resize-none outline-none p-1"
-              style={{ fontSize: '19px' }} />
+              className="w-full bg-transparent border border-blue-500 rounded-md text-white text-center font-bold resize-none outline-none px-3 py-2"
+              // Uzun savol to'liq ko'rinsin — maydon matnga qarab o'sadi
+              style={{ fontSize: '19px', fieldSizing: 'content', maxHeight: '30vh' }} />
           </div>
         ) : (
-          <h2 className="font-bold text-white bg-blue-900/30 flex justify-center items-center"
+          <h2 className="font-bold text-white bg-blue-900/30 rounded-lg px-4 py-3 text-center leading-snug"
             style={{ fontSize: '19px' }}>
             {getVal(currentQ, 'text')}
           </h2>
         )}
       </div>
 
-      {/* ─── Asosiy qism: javoblar + rasm ─── */}
-      <div className="min-h-20">
-        <div className="flex flex-col md:flex-row justify-between gap-4">
+      {/* ─── Asosiy qism: javoblar + rasm (qolgan balandlikni egallaydi) ─── */}
+      <div className="md:flex-1 md:min-h-0">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:grid-rows-[minmax(0,1fr)] md:h-full gap-6 md:gap-10 items-start">
           {/* Javoblar ustuni */}
-          <div className="flex flex-col gap-2 md:w-1/3 sm:w-1/2 w-full">
+          <div className="flex flex-col gap-2 min-w-0 md:max-h-full md:overflow-y-auto md:pr-1">
             {displayAnswers.map((answer, index) => (
               <div
                 key={answer.id}
@@ -542,7 +534,7 @@ export default function QuestionDetail() {
                         <img
                           src={displaySrc}
                           alt="Izoh rasmi"
-                          className="max-h-36 rounded cursor-pointer object-contain"
+                          className="block mx-auto max-w-full max-h-56 rounded bg-white cursor-zoom-in object-contain"
                           onClick={() => setPreviewDescImage(displaySrc)}
                           onError={(e) => { e.target.style.display = 'none'; }}
                         />
@@ -568,13 +560,10 @@ export default function QuestionDetail() {
                   const displaySrc = mediaUrl(currentQ.explanation_image);
                   return (
                     <div>
-                      <div className="flex items-center gap-1 mb-1">
-                        <span className="text-xs text-green-400 flex-1 truncate">📁 {currentQ.explanation_image}</span>
-                      </div>
                       <img
                         src={displaySrc}
                         alt="Izoh rasmi"
-                        className="max-h-36 rounded cursor-pointer object-contain border border-white/10 hover:border-blue-400 transition-all"
+                        className="block mx-auto max-w-full max-h-56 rounded bg-white cursor-zoom-in object-contain border border-white/10 hover:border-blue-400 transition-all"
                         onClick={() => setPreviewDescImage(displaySrc)}
                         title="Kattalashtirib ko'rish"
                       />
@@ -588,13 +577,7 @@ export default function QuestionDetail() {
           </div>
 
           {/* O'ng tomon: Savol rasmi */}
-          <div className="flex-1 flex flex-col gap-2">
-            <div className="flex items-center bg-slate-900/60 p-2 rounded border border-white/5">
-              <span className="px-3 py-1.5 text-xs font-semibold text-slate-300">
-                🖼️ Savol rasmi {currentQ.image ? '✓' : '(yo\'q)'}
-              </span>
-            </div>
-
+          <div className="min-w-0 md:h-full">
             {/* Rasm komponenti */}
             <QuestionImageComponent
               currentItem={imageItem}
@@ -623,15 +606,12 @@ export default function QuestionDetail() {
           </div>
         </div>
       </div>
+    </div>
 
-      {/* ─── Paginatsiya (pastda qotib turadi) ─── */}
+      {/* ─── Paginatsiya (pastda turadi, kontent ustiga chiqmaydi) ─── */}
       <div
-        className="flex items-center gap-2 justify-between"
+        className="shrink-0 sticky bottom-0 flex items-center gap-2 justify-between"
         style={{
-          position: 'fixed',
-          bottom: '0',
-          left: '0',
-          right: '0',
           zIndex: 1000,
           padding: '10px',
           background: 'rgba(15, 23, 42, 0.95)',
