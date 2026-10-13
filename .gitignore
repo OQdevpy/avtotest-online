@@ -1,16 +1,28 @@
-node_modules/  
-new_dist/  
-dist/  
-build/  
-__pycache__/  
-*.pyc  
-.env  
-.DS_Store  
-venv/  
-env/  
-*.sqlite3 
-*.zip 
-
+# Muhit fayllari (namunalari .env.example da)
 .env
-admin/node_modules/
-admin/dist/
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
+new_dist/
+*.log
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Arxivlar
+*.zip

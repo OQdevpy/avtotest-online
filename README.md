@@ -13,12 +13,25 @@ to'rt joyda ayri yashardi (sayt, mobil ilova, admin-panel JSON fayllari, desktop
 
 ---
 
+## Loyiha tuzilmasi
+
+```
+backend/    Django + DRF API (apps/, config/, common/, tests/, seed_data/)
+frontend/   O'quvchi sayti va desktop ilova (React + Vite)
+admin/      Admin-panel (React + Vite)
+nginx/      Reverse-proxy sozlamalari
+docs/       Dizayn, reja va DEPLOY.md
+docker-compose.yml   db + backend + redis + nginx (+ bot, profile bilan)
+```
+
+---
+
 ## Ishga tushirish
 
 ```bash
-cd backend
-cp .env.example .env          # SECRET_KEY va DB_PASSWORD ni to'ldiring
-docker compose up -d --build  # http://localhost:9005
+cp .env.example .env                  # DB_PASSWORD ni to'ldiring
+cp backend/.env.example backend/.env  # SECRET_KEY va boshqalarni to'ldiring
+docker compose up -d --build          # http://localhost:9005
 ```
 
 Compose ko'tarilganda `migrate` va `collectstatic` avtomatik bajariladi.
