@@ -137,6 +137,11 @@ export default function QuestionDetail() {
   const [editing, setEditing] = useState(false);
   const [editQ, setEditQ] = useState({});
   const [editAnswers, setEditAnswers] = useState([]);
+  // Tahrirda o'chirilgan mavjud javoblar — serverdan faqat "Saqlash"da o'chiriladi
+  const [removedAnswerIds, setRemovedAnswerIds] = useState([]);
+  const [saving, setSaving] = useState(false);
+  // Hali saqlanmagan javob uchun vaqtinchalik kalit (server id'si bilan to'qnashmaydi)
+  const newAnswerSeq = useRef(0);
   const [previewImage, setPreviewImage] = useState(null);
   const [previewDescImage, setPreviewDescImage] = useState(null);
   const [showLessonPicker, setShowLessonPicker] = useState(false);
@@ -201,6 +206,7 @@ export default function QuestionDetail() {
       is_published: currentQ.is_published,
     });
     setEditAnswers(currentAnswers.map(a => ({ ...a })));
+    setRemovedAnswerIds([]);
     setPendingImageFile(null);
     setPendingImagePreview(null);
     setPendingDescFile(null);
@@ -210,7 +216,33 @@ export default function QuestionDetail() {
 
   // Tahrirlashni saqlash
   const saveEdit = async () => {
-    if (!currentQ) return;
+    if (!currentQ || saving) return;
+    setSaving(true);
+    try {
+      await persistEdit();
+    } catch (err) {
+      console.error('Savolni saqlashda xatolik:', err);
+      alert("Saqlashda xatolik yuz berdi. Qayta urinib ko'ring.");
+      return;
+    } finally {
+      setSaving(false);
+    }
+    setPendingImageFile(null);
+    setPendingImagePreview(null);
+    setPendingDescFile(null);
+    setPendingDescPreview(null);
+    setEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setPendingImageFile(null);
+    setPendingImagePreview(null);
+    setPendingDescFile(null);
+    setPendingDescPreview(null);
+    setEditing(false);
+  };
+
+  const persistEdit = async () => {
 
     const questionUpdate = {
       text_uz: editQ.text_uz,
@@ -234,19 +266,31 @@ export default function QuestionDetail() {
       await uploadExplanationImage(currentQ.id, pendingDescFile);
     }
 
-    // Javoblarni yangilash
-    for (const a of editAnswers) {
-      // Yangi javob ham serverda bo'sh holda yaratilgan — matnini yozib qo'yamiz
-      await updateAnswer(a.id, {
-        text_uz: a.text_uz, text_ru: a.text_ru, text_cry: a.text_cry, is_true: a.is_true,
-      });
+    // Javoblar: avval o'chirilganlar, so'ng ekrandagi tartibda yangilash/yaratish
+    for (const id of removedAnswerIds) {
+      await deleteAnswer(id);
     }
+    setRemovedAnswerIds([]);
 
-    setPendingImageFile(null);
-    setPendingImagePreview(null);
-    setPendingDescFile(null);
-    setPendingDescPreview(null);
-    setEditing(false);
+    const original = new Map(currentAnswers.map(a => [a.id, a]));
+    const isBlank = (a) => !(a.text_uz || '').trim() && !(a.text_ru || '').trim() && !(a.text_cry || '').trim();
+    const kept = editAnswers.filter(a => !(a._new && isBlank(a)));  // bo'sh qoldirilgan yangi qatorlar tashlanadi
+
+    for (const [index, a] of kept.entries()) {
+      const data = {
+        text_uz: a.text_uz || '', text_ru: a.text_ru || '', text_cry: a.text_cry || '',
+        is_true: !!a.is_true, order: index + 1,
+      };
+      if (a._new) {
+        const created = await addAnswer(currentQ.id, data);
+        // Keyingi qadam xato bersa, qayta "Saqlash" shu javobni ikkinchi marta yaratmasin
+        setEditAnswers(prev => prev.map(x => x.id === a.id ? { ...created } : x));
+      } else {
+        const old = original.get(a.id) || {};
+        const changed = Object.keys(data).some(k => (old[k] ?? '') !== data[k]);
+        if (changed) await updateAnswer(a.id, data);
+      }
+    }
   };
 
   // Yangi savol qo'shish
@@ -349,9 +393,13 @@ export default function QuestionDetail() {
                 className="px-4 py-1.5 text-sm font-semibold text-white flex items-center gap-1.5 border border-red-900 bg-red-950/60 cursor-pointer hover:bg-red-950/80">
                 🗑️ {t('delete')}
               </button>
-              <button onClick={saveEdit}
-                className="px-4 py-1.5 text-sm font-semibold text-white flex items-center gap-1.5 border border-green-900 bg-green-950/60 cursor-pointer hover:bg-green-950/80">
-                💾 {t('save')}
+              <button onClick={cancelEdit} disabled={saving}
+                className="px-4 py-1.5 text-sm font-semibold text-slate-200 flex items-center gap-1.5 border border-slate-600 bg-slate-800/60 cursor-pointer hover:bg-slate-700/60 disabled:opacity-50">
+                ✖ {t('cancel')}
+              </button>
+              <button onClick={saveEdit} disabled={saving}
+                className="px-4 py-1.5 text-sm font-semibold text-white flex items-center gap-1.5 border border-green-900 bg-green-950/60 cursor-pointer hover:bg-green-950/80 disabled:opacity-50">
+                💾 {saving ? '...' : t('save')}
               </button>
             </>
           ) : (
@@ -432,7 +480,7 @@ export default function QuestionDetail() {
                     />
                     <span className="text-red-400 cursor-pointer px-2 text-sm flex-shrink-0"
                       onClick={() => {
-                        deleteAnswer(answer.id);
+                        if (!answer._new) setRemovedAnswerIds(prev => [...prev, answer.id]);
                         setEditAnswers(prev => prev.filter(a => a.id !== answer.id));
                       }}>🗑️</span>
                   </>
@@ -464,9 +512,12 @@ export default function QuestionDetail() {
               </div>
             ))}
             {editing && (
-              <button onClick={async () => {
-                const newA = await addAnswer(currentQ.id);
-                if (newA) setEditAnswers(prev => [...prev, { ...newA, _new: true }]);
+              <button onClick={() => {
+                newAnswerSeq.current += 1;
+                setEditAnswers(prev => [...prev, {
+                  id: `new-${newAnswerSeq.current}`, _new: true,
+                  text_uz: '', text_ru: '', text_cry: '', is_true: false,
+                }]);
               }}
                 className="flex items-center justify-center gap-1 rounded-md px-4 py-2 mt-1 cursor-pointer text-blue-400 text-xs"
                 style={{ border: '2px dashed rgba(100,140,220,0.3)', background: 'transparent' }}>

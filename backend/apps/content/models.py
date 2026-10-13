@@ -113,7 +113,8 @@ class Answer(TimeStampedModel):
     """Legacy `home.oraliqdarslaranswer` (~3754 rows)."""
 
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name="answers")
-    text_uz = models.TextField()
+    # Shef bitta tilda yozishi mumkin — bo'sh matn o'qishda uz → ru → cry zaxirasiga tushadi.
+    text_uz = models.TextField(blank=True)
     text_ru = models.TextField(blank=True)
     text_cry = models.TextField(blank=True)
     is_true = models.BooleanField(default=False)

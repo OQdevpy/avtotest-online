@@ -211,3 +211,14 @@ def test_student_cannot_add_question_to_blits(api, student, auth, blits, questio
                         {"blits": blits.id, "question": question.id, "order": 0},
                         format="json")
     assert response.status_code == 403
+
+
+def test_admin_creates_answer_with_only_one_language(api, admin_user, auth, question):
+    """Admin-panel joriy tildagi matnni yuboradi, qolgan ustunlar bo'sh bo'lishi mumkin."""
+    auth(api, admin_user)
+    response = api.post("/api/v1/manage/answers/",
+                        {"question": question.id, "text_uz": "", "text_ru": "",
+                         "text_cry": "Янги жавоб", "is_true": False, "order": 3},
+                        format="json")
+    assert response.status_code == 201, response.json()
+    assert response.json()["text_cry"] == "Янги жавоб"

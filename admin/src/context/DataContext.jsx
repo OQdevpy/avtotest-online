@@ -299,40 +299,30 @@ export function DataProvider({ children }) {
   }, []);
 
   // ── Answer CRUD ──
-  const getAnswersByQuestion = useCallback((questionId) => {
-    const q = questions.find(item => item.id === questionId);
-    if (q && q.answers && q.answers.length > 0) return q.answers;
-    return answers.filter(a => a.question === questionId).sort((a, b) => a.id - b.id);
-  }, [questions, answers]);
-    
+  // Yagona manba — `answers` holati. `question.answers` faqat yuklash paytidagi
+  // nusxa; undan o'qilsa qo'shilgan/tahrirlangan javob ekranda ko'rinmay qoladi.
+  const getAnswersByQuestion = useCallback((questionId) => (
+    answers
+      .filter(a => a.question === questionId)
+      .sort((a, b) => (a.order || 0) - (b.order || 0) || a.id - b.id)
+  ), [answers]);
+
+  // Javob CRUD xatoni yutmaydi — savolni saqlash uni ko'rsatib, tahrirni ochiq qoldiradi.
   const updateAnswer = useCallback(async (id, updates) => {
-    try {
-      const updated = await patchJSON(`/manage/answers/${id}/`, updates);
-      setAnswers(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a));
-    } catch (err) {
-      console.error('Answer update error:', err);
-    }
+    const updated = await patchJSON(`/manage/answers/${id}/`, updates);
+    setAnswers(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a));
+    return updated;
   }, []);
-  
-  const addAnswer = useCallback(async (questionId) => {
-    try {
-      const newA = await postJSON('/manage/answers/', {
-        question: questionId, text_uz: "", text_ru: "", text_cry: "", is_true: false
-      });
-      setAnswers(prev => [...prev, newA]);
-      return newA;
-    } catch (err) {
-      console.error('Answer create error:', err);
-    }
+
+  const addAnswer = useCallback(async (questionId, data) => {
+    const newA = await postJSON('/manage/answers/', { ...data, question: questionId });
+    setAnswers(prev => [...prev, newA]);
+    return newA;
   }, []);
-  
+
   const deleteAnswer = useCallback(async (id) => {
-    try {
-      await deleteResource(`/manage/answers/${id}/`);
-      setAnswers(prev => prev.filter(a => a.id !== id));
-    } catch (err) {
-      console.error('Answer delete error:', err);
-    }
+    await deleteResource(`/manage/answers/${id}/`);
+    setAnswers(prev => prev.filter(a => a.id !== id));
   }, []);
 
   // ── Blits CRUD ──
