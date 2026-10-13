@@ -236,13 +236,10 @@ export default function QuestionDetail() {
 
     // Javoblarni yangilash
     for (const a of editAnswers) {
-      if (a._new) {
-        // Yangi javob
-      } else {
-        await updateAnswer(a.id, {
-          text_uz: a.text_uz, text_ru: a.text_ru, text_cry: a.text_cry, is_true: a.is_true,
-        });
-      }
+      // Yangi javob ham serverda bo'sh holda yaratilgan — matnini yozib qo'yamiz
+      await updateAnswer(a.id, {
+        text_uz: a.text_uz, text_ru: a.text_ru, text_cry: a.text_cry, is_true: a.is_true,
+      });
     }
 
     setPendingImageFile(null);
@@ -467,8 +464,8 @@ export default function QuestionDetail() {
               </div>
             ))}
             {editing && (
-              <button onClick={() => {
-                const newA = addAnswer(currentQ.id);
+              <button onClick={async () => {
+                const newA = await addAnswer(currentQ.id);
                 if (newA) setEditAnswers(prev => [...prev, { ...newA, _new: true }]);
               }}
                 className="flex items-center justify-center gap-1 rounded-md px-4 py-2 mt-1 cursor-pointer text-blue-400 text-xs"
