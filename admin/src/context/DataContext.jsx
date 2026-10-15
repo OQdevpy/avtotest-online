@@ -187,6 +187,16 @@ export function DataProvider({ children }) {
     }
   }, [lessons]);
   
+  // Mavzuni boshqa bo'limga ko'chirish — yangi bo'lim ro'yxatining oxiriga tushadi.
+  // Savollar mavzuga bog'langan, ular o'zi birga ko'chadi.
+  const moveLesson = useCallback(async (id, sectionId) => {
+    const target = lessons.filter(l => l.section === sectionId && l.id !== id);
+    const order = target.length > 0 ? Math.max(...target.map(l => l.order || 0)) + 1 : 1;
+    const updated = await patchJSON(`/manage/lessons/${id}/`, { section: sectionId, order });
+    setLessons(prev => prev.map(l => l.id === id ? { ...l, ...updated } : l));
+    return updated;
+  }, [lessons]);
+
   const deleteLesson = useCallback(async (id) => {
     try {
       await deleteResource(`/manage/lessons/${id}/`);
@@ -522,7 +532,7 @@ export function DataProvider({ children }) {
     lang, setLang, t, getVal,
     loadData,
     updateSection, addSection, deleteSection,
-    getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons,
+    getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons, moveLesson,
     getQuestionsByLesson, getQuestionById, updateQuestion, addQuestion, deleteQuestion, reorderQuestions,
     getAnswersByQuestion, updateAnswer, addAnswer, deleteAnswer,
     updateBlits, addBlits, deleteBlits, addQuestionToBlits, removeQuestionFromBlits,

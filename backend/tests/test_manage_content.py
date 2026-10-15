@@ -222,3 +222,22 @@ def test_admin_creates_answer_with_only_one_language(api, admin_user, auth, ques
                         format="json")
     assert response.status_code == 201, response.json()
     assert response.json()["text_cry"] == "Янги жавоб"
+
+
+def test_admin_moves_lesson_to_another_section(api, admin_user, auth, lesson, question):
+    """Mavzu boshqa bo'limga ko'chadi, savollari u bilan birga ketadi."""
+    from apps.content.models import Section
+
+    other = Section.objects.create(name_uz="Boshqa bo'lim", order=2)
+    auth(api, admin_user)
+    response = api.patch(f"/api/v1/manage/lessons/{lesson.id}/",
+                         {"section": other.id, "order": 1}, format="json")
+    assert response.status_code == 200, response.json()
+    lesson.refresh_from_db()
+    assert lesson.section_id == other.id
+    question.refresh_from_db()
+    assert question.lesson_id == lesson.id
+    assert Section.objects.get(pk=other.id).lessons.filter(questions=question).exists()
+    listing = api.get(f"/api/v1/manage/lessons/?section={other.id}").json()
+    ids = [row["id"] for row in (listing["results"] if isinstance(listing, dict) else listing)]
+    assert lesson.id in ids

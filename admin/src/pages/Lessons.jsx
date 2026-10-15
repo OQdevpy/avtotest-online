@@ -6,7 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useData } from '../context/DataContext';
 
 // Sudrab tartiblash uchun dars elementi
-function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang, getVal, onStartEdit, onSaveEdit, onDelete, onNavigate }) {
+function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang, getVal, onStartEdit, onSaveEdit, onDelete, onNavigate, onMove }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lesson.id });
 
   const style = {
@@ -72,6 +72,16 @@ function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang
             {getVal(lesson, 'name')}
           </span>
           <span
+            className="text-orange-300 cursor-pointer text-base"
+            title="Boshqa bo'limga ko'chirish"
+            onClick={(e) => {
+              e.stopPropagation();
+              onMove();
+            }}
+          >
+            📁
+          </span>
+          <span
             className="edit-trigger text-blue-400 cursor-pointer text-base"
             onClick={(e) => {
               e.stopPropagation();
@@ -89,10 +99,13 @@ function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang
 export default function Lessons() {
   const { sectionId } = useParams();
   const sid = Number(sectionId);
-  const { sections, getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons, getVal, t, lang } = useData();
+  const { sections, getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons, moveLesson, getVal, t, lang } = useData();
   const navigate = useNavigate();
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
+  // Boshqa bo'limga ko'chirilayotgan mavzu (oyna ochiq bo'lsa)
+  const [movingLesson, setMovingLesson] = useState(null);
+  const [moving, setMoving] = useState(false);
 
   const section = sections.find((s) => s.id === sid);
   const lessons = getLessonsBySection(sid);
@@ -112,6 +125,20 @@ export default function Lessons() {
   const handleAdd = async () => {
     const newL = await addLesson(sid);
     if (newL) startEdit(newL);
+  };
+
+  const handleMove = async (targetSectionId) => {
+    if (!movingLesson || moving || targetSectionId === sid) return;
+    setMoving(true);
+    try {
+      await moveLesson(movingLesson.id, targetSectionId);
+      setMovingLesson(null);
+    } catch (err) {
+      console.error('Lesson move error:', err);
+      alert("Ko'chirishda xatolik yuz berdi. Qayta urinib ko'ring.");
+    } finally {
+      setMoving(false);
+    }
   };
 
   // Drag-and-drop
@@ -151,6 +178,7 @@ export default function Lessons() {
                 onSaveEdit={saveEdit}
                 onDelete={() => deleteLesson(lesson.id)}
                 onNavigate={() => navigate(`/sections/${sid}/lessons/${lesson.id}/questions`)}
+                onMove={() => setMovingLesson(lesson)}
               />
             ))}
           </SortableContext>
@@ -164,6 +192,47 @@ export default function Lessons() {
           ＋ {t('addLesson')}
         </button>
       </div>
+
+      {movingLesson && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => !moving && setMovingLesson(null)}
+        >
+          <div
+            className="bg-slate-900 rounded-lg p-4 max-w-md w-full max-h-[70vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="text-lg font-bold text-white">📁 Boshqa bo'limga ko'chirish</h3>
+              <button
+                onClick={() => setMovingLesson(null)}
+                disabled={moving}
+                className="text-slate-400 hover:text-white text-xl cursor-pointer"
+              >×</button>
+            </div>
+            <p className="text-sm text-slate-400 mb-3">
+              {getVal(movingLesson, 'name')} — savollari bilan birga ko'chadi
+            </p>
+            <div className="overflow-y-auto flex-1 flex flex-col gap-1">
+              {[...sections].sort((a, b) => (a.order || 0) - (b.order || 0)).map((sec) => (
+                <button
+                  key={sec.id}
+                  onClick={() => handleMove(sec.id)}
+                  disabled={sec.id === sid || moving}
+                  className={`text-left px-3 py-2 rounded text-sm transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                    sec.id === sid
+                      ? 'bg-green-900/40 text-green-300'
+                      : 'bg-slate-800 text-slate-200 hover:bg-blue-900/50 hover:text-white disabled:opacity-50'
+                  }`}
+                >
+                  {sec.id === sid && '✓ '}{getVal(sec, 'name')}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
