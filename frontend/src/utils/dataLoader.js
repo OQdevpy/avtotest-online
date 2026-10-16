@@ -11,7 +11,7 @@
  * Rasm yo'llari nisbiy (`images/x.webp`), `media_path` ga ulanadi.
  */
 
-import { API_LANG, apiFetch, fetchAllPages } from '../api/client';
+import { API_LANG, ApiError, apiFetch, fetchAllPages } from '../api/client';
 
 // ── Eksportlar (seoul bilan bir xil) ─────────────────────────────────────────
 export const oraliq_db = [];
@@ -118,13 +118,21 @@ async function loadAll() {
 
   // Variantlar = biletlar (1-bilet → var_id 0, seoul'dagi indekslash bilan bir xil)
   const sortedTickets = [...tickets].sort((a, b) => a.number - b.number);
+  // PRO bilet obunasiz o'quvchiga 403 qaytaradi — u qulflangan bo'lib qoladi,
+  // butun yuklash yiqilmaydi (aks holda ilovaga umuman kirib bo'lmasdi).
   const ticketQuestionIds = await mapLimited(sortedTickets, 6, async (ticket) => {
-    const detail = await apiFetch(`/tickets/${ticket.number}/`, { query: { mode: 'study' } });
-    return (detail.questions || []).map((q) => q.id);
+    try {
+      const detail = await apiFetch(`/tickets/${ticket.number}/`, { query: { mode: 'study' } });
+      return (detail.questions || []).map((q) => q.id);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 403) return null;
+      throw error;
+    }
   });
   replaceAll(question_db, sortedTickets.map((ticket, index) => ({
     var_id: index,
-    data: ticketQuestionIds[index]
+    locked: ticketQuestionIds[index] === null,
+    data: (ticketQuestionIds[index] || [])
       .map((id) => byId.get(id))
       .filter(Boolean)
       .map((q) => ({ ...q, var_id: index })),

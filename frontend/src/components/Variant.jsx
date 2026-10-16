@@ -9,9 +9,16 @@ function Variant({ variants }) {
                     variants.map((variant, index) => {
                         return (
                             <li key={index} className="shadow-md p-2 rounded-md bg-blue-950/80 duration-500">
-                                <Link to={`/variants/${index}`}>
-                                    <h3 className="text-white">{getTranslationValue(variant, "name")}</h3>
-                                </Link>
+                                {variant.locked ? (
+                                    // PRO bilet — obunasiz o'quvchiga ochilmaydi
+                                    <h3 className="text-slate-400 cursor-not-allowed" title="Faqat PRO uchun">
+                                        🔒 {getTranslationValue(variant, "name")} · PRO
+                                    </h3>
+                                ) : (
+                                    <Link to={`/variants/${index}`}>
+                                        <h3 className="text-white">{getTranslationValue(variant, "name")}</h3>
+                                    </Link>
+                                )}
                             </li>
                         )
                     })

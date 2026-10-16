@@ -22,11 +22,10 @@ import Variantss from "../pages/Variants";
 // Hash router: Electron `loadFile` (file://) da ham to'g'ri ishlaydi,
 // nisbiy `./static-images/...` yo'llari doim index.html ga nisbatan.
 // (Seoul'dagi `/C:/...` nusxalari shu sababli kerak emas.)
-export const router = createHashRouter([
+const routes = [
     {
         path: '/',
         element: <PrivateRoute><App /></PrivateRoute>,
-        errorElement: <NotFound />
     },
 
     {
@@ -96,4 +95,12 @@ export const router = createHashRouter([
         path:'/variants',
         element: <PrivateRoute><Variantss/></PrivateRoute>
     },
+]
+
+// Xato sahifasi har bir marshrutda: ilgari faqat bosh sahifada edi, boshqa
+// sahifadagi xato React Router'ning ingliz tilidagi oq sahifasini ko'rsatardi.
+// Topilmagan manzil uchun ham shu sahifa (`*`).
+export const router = createHashRouter([
+    ...routes.map((route) => ({ ...route, errorElement: <NotFound /> })),
+    { path: '*', element: <NotFound /> },
 ])

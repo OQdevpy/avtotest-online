@@ -48,6 +48,7 @@ const ContextProvider = ({ children }) => {
                 name_uz: `${i + 1}-variant`, // Translation for Uzbek
                 name_ru: `${i + 1}-вариант`, // Translation for Russian
                 name_cry: `${i + 1}-вариант`, // Translation for Cyrillic
+                locked: Boolean(question_db[i]?.locked), // PRO bilet, obuna yo'q
                 // Add any other properties you need, or keep it as it is
             };
 
@@ -63,7 +64,7 @@ const ContextProvider = ({ children }) => {
 
     const fetchVariant = async (index) => {
         // Find the item in question_db with the specified var_id
-        const data = question_db.find(item => item.var_id == index).data;
+        const data = question_db.find(item => item.var_id == index)?.data;
 
         if (data) {
             data.forEach(item =>
