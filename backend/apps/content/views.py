@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from apps.progress.models import LessonResult, TicketResult
 from common.lang import LangSerializerContextMixin, resolve_lang
 from .models import Blits, Lesson, Question, Section, Ticket
+from .version import content_updated_at, content_version
 
 
 def visible_questions(request):
@@ -423,3 +424,17 @@ class QuestionListView(LangSerializerContextMixin, generics.ListAPIView):
                 | Q(text_cry__icontains=search)
             )
         return qs
+
+
+@extend_schema(
+    tags=["content"],
+    description="Kontent versiyasi va oxirgi yangilanish vaqti. Desktop versiya o'zgarganini "
+    "ko'rsa ma'lumotni qayta yuklaydi; `updated_at` bosh sahifada sana bo'lib chiqadi.",
+)
+class ContentVersionView(APIView):
+    def get(self, request):
+        updated = content_updated_at()
+        return Response({
+            "version": content_version(),
+            "updated_at": updated.isoformat() if updated else None,
+        })

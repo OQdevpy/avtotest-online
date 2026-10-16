@@ -1,6 +1,6 @@
 import { createContext, useState, useContext, useEffect } from "react";
 import { toast } from "react-toastify";
-import { apiFetch, isElectron, onSessionExpired, tokens } from "../api/client";
+import { apiFetch, getDeviceId, isElectron, onSessionExpired, tokens } from "../api/client";
 import { resetData } from "../utils/dataLoader";
 
 const AuthContext = createContext(null);
@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }) => {
                     code: password.trim(),
                     platform: electron ? 'desktop' : 'web',
                     device_label: `${electron ? 'AvtoQuiz' : 'Brauzer'} / ${navigator.platform || ''}`.trim(),
+                    device_id: await getDeviceId(),
                 },
             });
             tokens.set(data.tokens);

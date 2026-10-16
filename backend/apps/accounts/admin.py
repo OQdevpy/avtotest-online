@@ -50,12 +50,23 @@ class DeviceAdmin(admin.ModelAdmin):
 
 @admin.register(AccessCode)
 class AccessCodeAdmin(admin.ModelAdmin):
-    list_display = ("code", "user", "valid_days", "activated_at",
-                    "expires_at", "is_active", "created_by")
+    list_display = ("code", "user", "is_bound", "bound_at", "is_active", "created_by")
     list_filter = ("is_active",)
     search_fields = ("code", "user__phone", "user__full_name")
-    readonly_fields = ("code", "activated_at", "expires_at", "created_at")
+    readonly_fields = ("code", "activated_at", "expires_at", "created_at", "bound_at")
+    exclude = ("device_id",)
     autocomplete_fields = ("user", "created_by")
+    actions = ("unbind",)
+
+    @admin.display(boolean=True, description="Kompyuterga biriktirilgan")
+    def is_bound(self, obj):
+        return obj.is_bound
+
+    @admin.action(description="Kompyuter bog'lanishini bekor qilish (yangi kompyuter uchun)")
+    def unbind(self, request, queryset):
+        for code in queryset:
+            code.unbind()
+        self.message_user(request, f"{queryset.count()} ta kod bo'shatildi.")
 
     def save_model(self, request, obj, form, change):
         # `code` faqat o'qish uchun — yangi yozuvga kodni shu yerda beramiz,

@@ -43,7 +43,7 @@ def active_devices(user, platform: str):
 
 @transaction.atomic
 def register_device(user, platform: str, label: str, refresh, not_after=None,
-                    unlimited: bool = False) -> Device:
+                    unlimited: bool = False, machine_id: str = "") -> Device:
     """Yangi sessiya yozadi. Limit to'lgan bo'lsa `DeviceLimitReached`, faqat
     `settings.DEVICE_EVICT_OLDEST` dagi platformalarda eng eski sessiya yopiladi.
 
@@ -56,7 +56,7 @@ def register_device(user, platform: str, label: str, refresh, not_after=None,
     if unlimited:
         return Device.objects.create(
             user=user, platform=platform, refresh_jti=refresh["jti"],
-            label=label or "", expires_at=None,
+            label=label or "", expires_at=None, machine_id=machine_id,
         )
     type(user).objects.select_for_update().filter(pk=user.pk).first()
     active = active_devices(user, platform)

@@ -185,6 +185,8 @@ class Device(models.Model):
     )
     refresh_jti = models.CharField(max_length=64, unique=True)
     label = models.CharField(max_length=120, blank=True)
+    # Kirish kodi bilan ochilgan sessiyaning kompyuteri (`AccessCode.device_id`).
+    machine_id = models.CharField(max_length=64, blank=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
     expires_at = models.DateTimeField(null=True, blank=True)
@@ -230,6 +232,11 @@ class AccessCode(models.Model):
     activated_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True, verbose_name="Faol")
+    # Bir kod — bir kompyuter: birinchi kirgan kompyuterning ID'si (desktop
+    # MachineGuid'ining sha256 xeshi). Bo'sh — hali biriktirilmagan.
+    device_id = models.CharField(max_length=64, blank=True, db_index=True,
+                                 verbose_name="Kompyuter ID")
+    bound_at = models.DateTimeField(null=True, blank=True, verbose_name="Biriktirilgan")
 
     class Meta:
         ordering = ("-created_at",)
@@ -262,6 +269,25 @@ class AccessCode(models.Model):
         if self.activated_at is None:
             return True
         return self.expires_at is None or self.expires_at > timezone.now()
+
+    @property
+    def is_bound(self) -> bool:
+        return bool(self.device_id)
+
+    def unbind(self) -> int:
+        """Kompyuter bog'lanishini bekor qiladi va o'sha kompyuter sessiyalarini yopadi.
+
+        O'quvchi kompyuterini almashtirsa shef chaqiradi. Yopilgan sessiyalar soni qaytadi.
+        """
+        closed = 0
+        if self.device_id:
+            closed = Device.objects.filter(
+                user=self.user, machine_id=self.device_id, is_active=True
+            ).update(is_active=False)
+        self.device_id = ""
+        self.bound_at = None
+        self.save(update_fields=["device_id", "bound_at"])
+        return closed
 
     def would_expire_at(self):
         """Hozir faollashtirilsa qachon tugashi — sessiya muddatini bog'lash uchun."""

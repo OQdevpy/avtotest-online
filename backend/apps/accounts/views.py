@@ -38,6 +38,10 @@ from .models import Device
 
 
 DEVICE_LIMIT_MESSAGE = "Ushbu hisob allaqachon boshqa qurilmada ochiq."
+OTHER_COMPUTER_MESSAGE = ("Bu kod boshqa kompyuterga biriktirilgan. "
+                          "Yangi kompyuter uchun shefga murojaat qiling.")
+OUTDATED_CLIENT_MESSAGE = "Ilovaning yangi versiyasini o'rnating."
+MIN_DEVICE_ID = 16
 
 
 def auth_response(user: User, request=None, created: bool = False) -> Response:
@@ -239,7 +243,11 @@ class DeviceAwareTokenRefreshView(TokenRefreshView):
 
 @extend_schema(tags=["auth"])
 class AccessCodeLoginView(generics.GenericAPIView):
-    """Shef bergan kod bilan kirish. Kod muddatsiz va ko'p martalik."""
+    """Shef bergan kod bilan kirish. Kod muddatsiz, lekin bitta kompyuterga.
+
+    Birinchi kirish kodni shu kompyuterga biriktiradi; shu kompyuterdan qayta
+    kirish mumkin, boshqasi rad etiladi. Shef `unbind` bilan bo'shatadi.
+    """
 
     serializer_class = AccessCodeLoginSerializer
     permission_classes = [permissions.AllowAny]
@@ -257,14 +265,37 @@ class AccessCodeLoginView(generics.GenericAPIView):
         requested = (data.get("platform") or "").strip().lower()
         platform = requested if requested in ("desktop", "web") else "desktop"
 
-        # Kod muddatsiz va ko'p martalik: bir kod bilan istalgancha qurilmadan
-        # kirish mumkin, sessiya ham muddatsiz (shef kodni o'chirmaguncha).
-        tokens = issue_tokens(
-            code.user,
-            platform=platform,
-            label=data.get("device_label", ""),
-            unlimited=True,
-        )
+        machine = (data.get("device_id") or "").strip().lower()
+        if len(machine) < MIN_DEVICE_ID:
+            # Eski desktop ID yubormaydi — uni qo'yib yuborish qoidani chetlab o'tardi.
+            return Response({"detail": OUTDATED_CLIENT_MESSAGE},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            # Qulf: bir vaqtda ikki kompyuterdan kirilsa faqat bittasi biriktiriladi.
+            code = AccessCode.objects.select_for_update().get(pk=code.pk)
+            if code.device_id and code.device_id != machine:
+                return Response({"detail": OTHER_COMPUTER_MESSAGE},
+                                status=status.HTTP_403_FORBIDDEN)
+            if not code.device_id:
+                code.device_id = machine
+                code.bound_at = timezone.now()
+                code.save(update_fields=["device_id", "bound_at"])
+                # Ko'p martalik davrida noma'lum kompyuterlarda ochilgan sessiyalar
+                # (machine_id'siz) yopiladi; mobil ilova sessiyasiga tegilmaydi.
+                Device.objects.filter(
+                    user=code.user, machine_id="", is_active=True,
+                    platform__in=(Device.Platform.DESKTOP, Device.Platform.WEB),
+                ).update(is_active=False)
+
+            # Sessiya muddatsiz (shef kodni o'chirmaguncha yoki bo'shatmaguncha).
+            tokens = issue_tokens(
+                code.user,
+                platform=platform,
+                label=data.get("device_label", ""),
+                unlimited=True,
+                machine_id=machine,
+            )
         return Response({"user": UserSerializer(code.user).data, "tokens": tokens})
 
 
@@ -282,6 +313,13 @@ class ManageAccessCodeViewSet(viewsets.ModelViewSet):
             created_by=self.request.user,
             valid_days=serializer.validated_data.get("valid_days"),
         )
+
+    @action(detail=True, methods=["post"])
+    def unbind(self, request, pk=None):
+        """Kompyuter bog'lanishini bekor qiladi — o'quvchi yangi kompyuterdan kira oladi."""
+        code = self.get_object()
+        code.unbind()
+        return Response(self.get_serializer(code).data)
 
     @action(detail=True, methods=["post"])
     def revoke(self, request, pk=None):

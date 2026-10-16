@@ -42,6 +42,22 @@ export function isElectron() {
     return Boolean(window.Electron?.isDesktop) || navigator.userAgent.includes('Electron');
 }
 
+// Kompyuter ID'si — kirish kodi shu kompyuterga biriktiriladi. Desktop:
+// Windows MachineGuid'ining xeshi (qayta o'rnatishda ham o'zgarmaydi).
+// Brauzer: shu brauzer uchun bir marta yaratilgan tasodifiy qiymat.
+const DEVICE_KEY = 'quizDeviceId';
+export async function getDeviceId() {
+    if (window.Electron?.getMachineId) {
+        return window.Electron.getMachineId();
+    }
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+        id = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '');
+        localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+}
+
 function buildUrl(path, query = {}) {
     const url = new URL(path.startsWith('http') ? path : `${API_URL}${path}`);
     url.searchParams.set('compat', '1');

@@ -24,7 +24,7 @@ def tokens_for(user: User) -> dict:
 
 
 def issue_tokens(user: User, platform: str = "", label: str = "",
-                 not_after=None, unlimited: bool = False) -> dict:
+                 not_after=None, unlimited: bool = False, machine_id: str = "") -> dict:
     """JWT chiqaradi va sessiyani `Device` ga yozadi.
 
     `not_after` berilsa sessiya muddati undan oshmaydi.
@@ -35,7 +35,7 @@ def issue_tokens(user: User, platform: str = "", label: str = "",
 
     refresh = RefreshToken.for_user(user)
     register_device(user, platform, label, refresh, not_after=not_after,
-                    unlimited=unlimited)
+                    unlimited=unlimited, machine_id=machine_id)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
@@ -142,6 +142,9 @@ class AccessCodeLoginSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=16)
     platform = serializers.CharField(max_length=10, required=False, allow_blank=True)
     device_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    # Kompyuter ID'si (desktop: MachineGuid xeshi, web: brauzer uchun tasodifiy).
+    # Majburiy emas — yo'qligini view aniq xabar bilan rad etadi.
+    device_id = serializers.CharField(max_length=64, required=False, allow_blank=True)
 
     def validate_code(self, value: str) -> str:
         code = (
@@ -158,13 +161,18 @@ class AccessCodeLoginSerializer(serializers.Serializer):
 
 
 class AccessCodeSerializer(serializers.ModelSerializer):
+    is_bound = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = AccessCode
         fields = (
             "id", "code", "user", "created_by", "valid_days",
             "created_at", "activated_at", "expires_at", "is_active",
+            "is_bound", "bound_at",
         )
+        # `device_id` ataylab chiqarilmaydi — shefga faqat biriktirilganmi yo'qmi kerak.
         read_only_fields = (
             "id", "code", "created_by", "created_at", "activated_at", "expires_at",
+            "is_bound", "bound_at",
         )
         extra_kwargs = {"valid_days": {"required": False}}

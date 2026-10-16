@@ -176,7 +176,7 @@ def test_login_code_cannot_claim_mobile_platform(api, student, admin_user):
 
     code = AccessCode.generate(user=student, created_by=admin_user)
     api.post("/api/v1/auth/login-code/",
-             {"code": code.code, "platform": "mobile"}, format="json")
+             {"code": code.code, "platform": "mobile", "device_id": "c" * 64}, format="json")
     device = Device.objects.get(user=student)
     assert device.platform == "desktop"
 

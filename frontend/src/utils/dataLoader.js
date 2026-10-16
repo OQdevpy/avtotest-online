@@ -66,6 +66,44 @@ async function mapLimited(items, limit, fn) {
   return results;
 }
 
+// ── Kontent versiyasi ───────────────────────────────────────────────────────
+// Server `content/version/` o'quvchiga ko'rinadigan har qanday o'zgarishda
+// (yangi savol, javob, mavzu ko'chishi, bilet...) boshqa versiya qaytaradi.
+// Sahifaga kirilganda versiya solishtiriladi; farq bo'lsa ma'lumot qayta
+// yuklanadi. `updated_at` — bosh sahifadagi "oxirgi yangilanish" sanasi.
+let contentInfo = { version: null, updated_at: null };
+let loadedVersion = null;
+const infoListeners = new Set();
+
+export function getContentInfo() {
+  return contentInfo;
+}
+
+export function onContentInfo(fn) {
+  infoListeners.add(fn);
+  return () => infoListeners.delete(fn);
+}
+
+async function fetchContentInfo() {
+  try {
+    const info = await apiFetch('/content/version/');
+    contentInfo = { version: info.version || null, updated_at: info.updated_at || null };
+    infoListeners.forEach((fn) => fn(contentInfo));
+  } catch {
+    // Eski backendda yo'l yo'q yoki tarmoq uzilgan — tekshiruv o'tkazib yuboriladi
+  }
+  return contentInfo;
+}
+
+// Ma'lumot eskirganmi? Eskirgan bo'lsa keyingi `loadAllData` qayta yuklaydi.
+export async function checkForUpdates() {
+  if (!loaded) return false;
+  const { version } = await fetchContentInfo();
+  if (!version || !loadedVersion || version === loadedVersion) return false;
+  resetData();
+  return true;
+}
+
 // ── Yuklash ─────────────────────────────────────────────────────────────────
 let loadPromise = null;
 let loaded = false;
@@ -80,6 +118,10 @@ export function resetData() {
 }
 
 async function loadAll() {
+  // Versiya ma'lumotdan OLDIN olinadi: yuklash paytida o'zgarish bo'lsa,
+  // keyingi tekshiruv uni sezadi (aksincha bo'lsa o'tkazib yuborilardi).
+  const { version } = await fetchContentInfo();
+
   const [sections, lessons, questions, tickets, blits] = await Promise.all([
     fetchNamedList('/sections/'),
     fetchNamedList('/lessons/'),
@@ -152,6 +194,7 @@ async function loadAll() {
     blits_questions_db[b.id] = b.question_ids.map((id) => byId.get(id)).filter(Boolean);
   });
 
+  loadedVersion = version;
   loaded = true;
 }
 

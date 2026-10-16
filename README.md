@@ -123,6 +123,17 @@ Yadro — JWT (access 1 kun, refresh 90 kun, rotatsiya yoqilgan). Kirish yo'llar
 | `auth/login-code/` — shef bergan kod | Desktop darslik va imtihon |
 | `auth/social/` — Apple / Google / Telegram | Mobil |
 
+**Kirish kodi — bitta kompyuterga.** Desktop `device_id` (Windows MachineGuid'ining
+sha256 xeshi) yuboradi; birinchi kirish kodni shu kompyuterga biriktiradi, shu
+kompyuterdan qayta kirish mumkin, boshqasi `403`. `device_id` yubormagan eski
+desktop `400` ("yangi versiyani o'rnating") oladi. O'quvchi kompyuterini
+almashtirsa: `POST manage/access-codes/{id}/unbind/` yoki Django admin'dagi
+"Kompyuter bog'lanishini bekor qilish" amali.
+
+**Kontent versiyasi** — `GET content/version/` → `{version, updated_at}`. Desktop har
+sahifaga kirganda solishtiradi va o'zgargan bo'lsa ma'lumotni qayta yuklaydi;
+`updated_at` (oxirgi savol/javob o'zgarishi) bosh sahifada sana bo'lib chiqadi.
+
 Har bir kirish `Device` yozuvini yaratadi. Limit platforma bo'yicha (mobil 2,
 web va desktop 1), `User.max_devices` bilan qayta yozish mumkin. Muddat ham
 platforma bo'yicha: mobilda yo'q, web va desktopda 12 kun — muddati o'tgan

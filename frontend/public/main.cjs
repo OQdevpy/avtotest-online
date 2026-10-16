@@ -1,6 +1,66 @@
 const { app, BrowserWindow, ipcMain, session } = require('electron');
+const { execFileSync } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+
+// Kompyuter ID'si — kirish kodi faqat shu kompyuterda ishlashi uchun.
+// Windows'ning MachineGuid'i qayta o'rnatishda ham, yangi versiyada ham
+// o'zgarmaydi. Serverga xom qiymat emas, uning sha256 xeshi yuboriladi.
+let machineIdCache = null;
+
+function rawMachineId() {
+  if (process.platform === 'win32') {
+    try {
+      const reg = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'reg.exe');
+      const out = execFileSync(
+        reg, ['query', 'HKLM\\SOFTWARE\\Microsoft\\Cryptography', '/v', 'MachineGuid'],
+        { encoding: 'utf8', windowsHide: true, timeout: 5000 },
+      );
+      const match = out.match(/MachineGuid\s+REG_SZ\s+([0-9a-fA-F-]{16,})/);
+      if (match) return match[1];
+    } catch {
+      // pastdagi zaxira fayl
+    }
+  } else {
+    for (const file of ['/etc/machine-id', '/var/lib/dbus/machine-id']) {
+      try {
+        const value = fs.readFileSync(file, 'utf8').trim();
+        if (value) return value;
+      } catch {
+        // keyingisi
+      }
+    }
+  }
+  // Zaxira: foydalanuvchi papkasidagi fayl. Ilova ma'lumotlari papkasida emas —
+  // installer va versiya almashinuvi uni o'chirmasin.
+  const file = path.join(os.homedir(), '.avtoquiz-id');
+  try {
+    const value = fs.readFileSync(file, 'utf8').trim();
+    if (value) return value;
+  } catch {
+    // birinchi marta
+  }
+  const value = crypto.randomUUID();
+  try {
+    fs.writeFileSync(file, value);
+  } catch {
+    // yozib bo'lmasa ham shu ishga tushirish davomida ishlaydi
+  }
+  return value;
+}
+
+function machineId() {
+  if (!machineIdCache) {
+    machineIdCache = crypto.createHash('sha256')
+      .update(`avtoquiz:${rawMachineId().toLowerCase()}`)
+      .digest('hex');
+  }
+  return machineIdCache;
+}
+
+ipcMain.handle('machine-id', () => machineId());
 
 // Versiya o'zgarganda (yangi o'rnatish/yangilash) eski localStorage, IndexedDB,
 // cookie va kesh tozalanadi — eski `quizToken` va eski ma'lumot qolmaydi.

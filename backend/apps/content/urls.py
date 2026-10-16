@@ -21,5 +21,7 @@ urlpatterns = [
     path("blits/", views.BlitsListView.as_view(), name="blits-list"),
     path("blits/<int:pk>/", views.BlitsDetailView.as_view(), name="blits-detail"),
 
+    path("content/version/", views.ContentVersionView.as_view(), name="content-version"),
+
     path("exam/generate/", views.ExamGenerateView.as_view(), name="exam-generate"),
 ]
