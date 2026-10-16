@@ -144,6 +144,16 @@ Barcha `GET` so'rovlar `?lang=` ni qo'llaydi (`uz` / `kr` / `qq` / `ru`), so'ng
 `sections/` · `lessons/` · `questions/?lesson=&section=&search=` · `topics/` ·
 `tickets/` · `tickets/stats/` · `tickets/{number}/` · `blits/` · `blits/{id}/`
 
+**Biletlar (variantlar)** 20 tadan. Shef yangi savol yaratsa (`manage/questions/` yoki
+Django admin), u to'lmagan eng kichik raqamli biletga tushadi; hammasi to'la bo'lsa
+yangi bilet ochiladi. Mavjud bilet tarkibi o'zgarmaydi. Biletsiz qolgan eski
+savollar uchun (bo'lim → dars → tartib bo'yicha):
+
+```bash
+python manage.py assign_tickets --dry-run
+python manage.py assign_tickets
+```
+
 To'g'ri javob (`is_true`) test rejimida qaytmaydi; `?mode=study` bilan ochiladi;
 `teacher` va `admin` uchun har doim ochiq. `is_published=False` savol o'quvchiga
 hech bir yo'l orqali ko'rinmaydi.

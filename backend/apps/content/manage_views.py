@@ -33,6 +33,7 @@ from .manage_serializers import (
     ReorderSerializer,
 )
 from .models import Answer, Blits, BlitsQuestion, Lesson, Question, Section, Ticket
+from .tickets import assign_to_ticket
 
 
 class ReorderMixin:
@@ -152,6 +153,10 @@ class ManageQuestionViewSet(_MediaUploadMixin, ReorderMixin, viewsets.ModelViewS
         qs = super().get_queryset()
         lesson = self.request.query_params.get("lesson")
         return qs.filter(lesson_id=lesson) if lesson else qs
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        assign_to_ticket(serializer.save())
 
 
 @extend_schema(tags=["manage"])

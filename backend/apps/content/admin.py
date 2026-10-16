@@ -10,6 +10,7 @@ from .models import (
     Ticket,
     TicketQuestion,
 )
+from .tickets import assign_to_ticket
 
 
 class LessonInline(admin.TabularInline):
@@ -57,6 +58,11 @@ class QuestionAdmin(admin.ModelAdmin):
     inlines = [AnswerInline]
     list_select_related = ("lesson",)
     actions = ("publish", "unpublish")
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not change:
+            assign_to_ticket(obj)
 
     @admin.action(description="Nashr etish (o'quvchiga ko'rinadi)")
     def publish(self, request, queryset):
