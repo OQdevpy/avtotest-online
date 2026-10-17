@@ -23,6 +23,9 @@ def tokens_for(user: User) -> dict:
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 
+SESSION_CLAIM = "did"
+
+
 def issue_tokens(user: User, platform: str = "", label: str = "",
                  not_after=None, unlimited: bool = False, machine_id: str = "") -> dict:
     """JWT chiqaradi va sessiyani `Device` ga yozadi.
@@ -34,8 +37,12 @@ def issue_tokens(user: User, platform: str = "", label: str = "",
     from .devices import register_device
 
     refresh = RefreshToken.for_user(user)
-    register_device(user, platform, label, refresh, not_after=not_after,
-                    unlimited=unlimited, machine_id=machine_id)
+    device = register_device(user, platform, label, refresh, not_after=not_after,
+                             unlimited=unlimited, machine_id=machine_id)
+    if machine_id:
+        # Kod sessiyasi: har so'rovda `Device` tirikligi tekshiriladi
+        # (`common.authentication`). Claim refresh rotatsiyasida ham saqlanadi.
+        refresh[SESSION_CLAIM] = device.pk
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
 

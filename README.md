@@ -129,6 +129,9 @@ kompyuterdan qayta kirish mumkin, boshqasi `403`. `device_id` yubormagan eski
 desktop `400` ("yangi versiyani o'rnating") oladi. O'quvchi kompyuterini
 almashtirsa: `POST manage/access-codes/{id}/unbind/` yoki Django admin'dagi
 "Kompyuter bog'lanishini bekor qilish" amali.
+Kod nofaol qilinsa (`revoke/`, `is_active=false` yoki admin'dagi "Nofaol qilish")
+yoki bo'shatilsa, o'sha kompyuter keyingi so'rovdayoq `401` oladi: kod tokenlarida
+`did` (sessiya) bor va `common.authentication` har so'rovda uni tekshiradi.
 
 **Kontent versiyasi** — `GET content/version/` → `{version, updated_at}`. Desktop har
 sahifaga kirganda solishtiradi va o'zgargan bo'lsa ma'lumotni qayta yuklaydi;

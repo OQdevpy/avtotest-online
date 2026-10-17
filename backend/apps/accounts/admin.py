@@ -56,11 +56,17 @@ class AccessCodeAdmin(admin.ModelAdmin):
     readonly_fields = ("code", "activated_at", "expires_at", "created_at", "bound_at")
     exclude = ("device_id",)
     autocomplete_fields = ("user", "created_by")
-    actions = ("unbind",)
+    actions = ("unbind", "deactivate")
 
     @admin.display(boolean=True, description="Kompyuterga biriktirilgan")
     def is_bound(self, obj):
         return obj.is_bound
+
+    @admin.action(description="Nofaol qilish (kompyuter darhol ishlamay qoladi)")
+    def deactivate(self, request, queryset):
+        for code in queryset:
+            code.revoke()
+        self.message_user(request, f"{queryset.count()} ta kod nofaol qilindi.")
 
     @admin.action(description="Kompyuter bog'lanishini bekor qilish (yangi kompyuter uchun)")
     def unbind(self, request, queryset):
@@ -76,3 +82,5 @@ class AccessCodeAdmin(admin.ModelAdmin):
         if obj.created_by_id is None:
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
+        if change and not obj.is_active:
+            obj.close_sessions()  # "Faol" belgisi olib tashlansa kompyuter darhol to'xtaydi

@@ -324,6 +324,11 @@ class ManageAccessCodeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def revoke(self, request, pk=None):
         code = self.get_object()
-        code.is_active = False
-        code.save(update_fields=["is_active"])
+        code.revoke()
         return Response(self.get_serializer(code).data)
+
+    def perform_update(self, serializer):
+        # `is_active=False` PATCH bilan berilsa ham ochiq kompyuter to'xtasin
+        code = serializer.save()
+        if not code.is_active:
+            code.close_sessions()

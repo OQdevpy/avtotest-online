@@ -218,3 +218,71 @@ def test_django_admin_unbind_action(client, student, admin_user, django_user_mod
     assert response.status_code == 302
     code.refresh_from_db()
     assert code.device_id == "" and code.bound_at is None
+
+
+# --- Kod nofaol qilinsa — kompyuter darhol ishlamay qoladi ---------------------
+
+def _logged_in(api, code):
+    tokens = login(api, code).json()["tokens"]
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+    assert api.get("/api/v1/sections/").status_code == 200
+    return tokens
+
+
+def test_revoked_code_stops_logged_in_computer_immediately(api, student, admin_user, auth):
+    code = make_code(student, admin_user)
+    tokens = _logged_in(api, code)
+
+    from rest_framework.test import APIClient
+    boss = APIClient()
+    auth(boss, admin_user)
+    assert boss.post(f"/api/v1/manage/access-codes/{code.id}/revoke/").status_code == 200
+
+    assert api.get("/api/v1/sections/").status_code == 401          # access token ham
+    api.credentials()
+    assert api.post("/api/v1/auth/token/refresh/",
+                    {"refresh": tokens["refresh"]}, format="json").status_code == 401
+    assert login(api, code).status_code == 401                      # qayta kirib ham bo'lmaydi
+
+
+def test_django_admin_deactivation_stops_computer(api, student, admin_user, client,
+                                                   django_user_model):
+    code = make_code(student, admin_user)
+    _logged_in(api, code)
+    boss = django_user_model.objects.create_superuser(phone="+998900000779", password="x")
+    client.force_login(boss)
+    response = client.post(f"/admin/accounts/accesscode/{code.pk}/change/", {
+        "user": student.pk, "valid_days": code.valid_days, "created_by": admin_user.pk,
+        # is_active belgisi olib tashlandi
+    })
+    assert response.status_code == 302, response.content[:800]
+    assert api.get("/api/v1/sections/").status_code == 401
+
+
+def test_unbind_stops_old_computer_immediately(api, student, admin_user, auth):
+    code = make_code(student, admin_user)
+    _logged_in(api, code)
+    code.refresh_from_db()
+    code.unbind()
+    assert api.get("/api/v1/sections/").status_code == 401
+
+
+def test_session_survives_token_refresh_and_still_checked(api, student, admin_user):
+    """Rotatsiyadan keyingi yangi tokenlar ham shu sessiyaga bog'liq qoladi."""
+    code = make_code(student, admin_user)
+    tokens = login(api, code).json()["tokens"]
+    fresh = api.post("/api/v1/auth/token/refresh/", {"refresh": tokens["refresh"]},
+                     format="json").json()
+    code.refresh_from_db()
+    code.revoke()
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {fresh['access']}")
+    assert api.get("/api/v1/sections/").status_code == 401
+
+
+def test_phone_login_tokens_unaffected(api, student):
+    """Mobil (telefon+parol) tokenlarida kod sessiyasi belgisi yo'q — tekshiruv tegmaydi."""
+    from tests.conftest import PASSWORD
+    tokens = api.post("/api/v1/auth/login/", {"phone": student.phone, "password": PASSWORD},
+                      format="json").json()["tokens"]
+    api.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+    assert api.get("/api/v1/sections/").status_code == 200

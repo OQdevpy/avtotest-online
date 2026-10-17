@@ -274,16 +274,30 @@ class AccessCode(models.Model):
     def is_bound(self) -> bool:
         return bool(self.device_id)
 
+    def close_sessions(self) -> int:
+        """Shu kod biriktirilgan kompyuterdagi sessiyalarni yopadi (yopilganlar soni).
+
+        Kod bilan chiqarilgan tokenlar sessiyaga bog'langan (`did`), shuning uchun
+        kompyuter keyingi so'rovdayoq 401 oladi — 1 kunlik access token kutilmaydi.
+        """
+        if not self.device_id:
+            return 0
+        return Device.objects.filter(
+            user=self.user, machine_id=self.device_id, is_active=True
+        ).update(is_active=False)
+
+    def revoke(self) -> int:
+        """Kodni nofaol qiladi: qayta kirib bo'lmaydi, ochiq kompyuter ham to'xtaydi."""
+        self.is_active = False
+        self.save(update_fields=["is_active"])
+        return self.close_sessions()
+
     def unbind(self) -> int:
         """Kompyuter bog'lanishini bekor qiladi va o'sha kompyuter sessiyalarini yopadi.
 
         O'quvchi kompyuterini almashtirsa shef chaqiradi. Yopilgan sessiyalar soni qaytadi.
         """
-        closed = 0
-        if self.device_id:
-            closed = Device.objects.filter(
-                user=self.user, machine_id=self.device_id, is_active=True
-            ).update(is_active=False)
+        closed = self.close_sessions()
         self.device_id = ""
         self.bound_at = None
         self.save(update_fields=["device_id", "bound_at"])
