@@ -16,6 +16,8 @@ node_modules/
 dist/
 build/
 new_dist/
+release/
+.vite/
 *.log
 
 # OS / editor

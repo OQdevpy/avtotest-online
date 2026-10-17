@@ -18,6 +18,7 @@ to'rt joyda ayri yashardi (sayt, mobil ilova, admin-panel JSON fayllari, desktop
 ```
 backend/    Django + DRF API (apps/, config/, common/, tests/, seed_data/)
 frontend/   O'quvchi sayti va desktop ilova (React + Vite)
+teacher/    O'qituvchi desktop ilovasi — Avto Teacher (frontend asosida)
 admin/      Admin-panel (React + Vite)
 nginx/      Reverse-proxy sozlamalari
 docs/       Dizayn, reja va DEPLOY.md
