@@ -39,3 +39,20 @@ def test_sequence_never_moves_backwards(db):
         cursor.execute("SELECT setval(pg_get_serial_sequence('content_section', 'id'), 500)")
     call_command("reset_sequences", stdout=StringIO())
     assert Section.objects.create(name_uz="Yangi", order=1).id == 501
+
+
+@postgres_only
+def test_foreign_table_does_not_break_command(db):
+    """Backup'dagi begona jadval (matn ustuni sequence'ga bog'langan) buyruqni yiqitmasin."""
+    with connection.cursor() as cursor:
+        cursor.execute("CREATE SEQUENCE legacy_seq")
+        cursor.execute("CREATE TABLE legacy_codes (code text DEFAULT nextval('legacy_seq'))")
+        cursor.execute("ALTER SEQUENCE legacy_seq OWNED BY legacy_codes.code")
+        cursor.execute("INSERT INTO legacy_codes (code) VALUES ('abc')")
+    Section.objects.create(id=70, name_uz="Import", order=1)
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT setval(pg_get_serial_sequence('content_section', 'id'), 1)")
+
+    call_command("reset_sequences", stdout=StringIO())  # xato ko'tarmaydi
+
+    assert Section.objects.create(name_uz="Yangi", order=2).id == 71

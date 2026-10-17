@@ -25,15 +25,22 @@ BEGIN
         JOIN information_schema.tables t
           ON t.table_schema = c.table_schema AND t.table_name = c.table_name
         WHERE c.table_schema = current_schema() AND t.table_type = 'BASE TABLE'
+          -- Faqat son turidagi id: backup'dagi begona jadvallar (matn ustuni va h.k.) o'tkazib yuboriladi
+          AND c.data_type IN ('smallint', 'integer', 'bigint')
     LOOP
         CONTINUE WHEN r.seq IS NULL;
-        EXECUTE format('SELECT MAX(%I) FROM %I', r.column_name, r.table_name) INTO max_id;
-        CONTINUE WHEN max_id IS NULL;
-        -- Faqat oldinga: hisoblagich max_id dan ortda bo'lsagina suriladi.
-        EXECUTE format(
-            'SELECT setval(%L, %s) WHERE (SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM %s) < %s',
-            r.seq, max_id, r.seq, max_id
-        );
+        -- Bitta jadvaldagi xato (huquq, begona sxema) qolganlarini to'xtatmasin
+        BEGIN
+            EXECUTE format('SELECT MAX(%I) FROM %I', r.column_name, r.table_name) INTO max_id;
+            CONTINUE WHEN max_id IS NULL;
+            -- Faqat oldinga: hisoblagich max_id dan ortda bo'lsagina suriladi.
+            EXECUTE format(
+                'SELECT setval(%L, %s) WHERE (SELECT CASE WHEN is_called THEN last_value ELSE last_value - 1 END FROM %s) < %s',
+                r.seq, max_id, r.seq, max_id
+            );
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'reset_sequences: % o''tkazib yuborildi (%)', r.table_name, SQLERRM;
+        END;
     END LOOP;
 END $$;
 """

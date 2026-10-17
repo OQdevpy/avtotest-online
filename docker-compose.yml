@@ -18,9 +18,10 @@ services:
   backend:
     build: ./backend
     container_name: avtotest_backend
-    # reset_sequences: backup/import'dan keyin ortda qolgan id hisoblagichlarini tuzatadi
+    # reset_sequences: backup/import'dan keyin ortda qolgan id hisoblagichlarini tuzatadi.
+    # Xato bersa ham backend ko'tariladi — bu yordamchi qadam, majburiy emas.
     command: >
-      sh -c "python manage.py reset_sequences &&
+      sh -c "(python manage.py reset_sequences || echo 'reset_sequences xato berdi, davom etamiz') &&
              python manage.py migrate --noinput &&
              python manage.py collectstatic --noinput &&
              gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 config.wsgi:application"
