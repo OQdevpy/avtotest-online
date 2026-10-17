@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Logo from './Logo';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { LiaBarsSolid, LiaTimesSolid } from "react-icons/lia";
 import { useCustomContext } from '../context/TestContext';
 import Lang from './Lang';
@@ -11,8 +11,6 @@ function Navbar() {
     const { active, setActive, getTranslation } = useCustomContext();
     const [showModal, setShowModal] = useState(false);
     const [code, setCode] = useState("");
-    // Oxirgi yangilanish sanasi faqat bosh sahifada ko'rinadi
-    const isHome = useLocation().pathname === '/';
 
     const handleLogOut = () => {
         if (code === 'Aramis') {
@@ -36,7 +34,7 @@ function Navbar() {
 
                 <div className="flex items-center gap-4">
                     <div className='hidden md:flex gap-4'>
-                        {isHome && <UpdatedDate />}
+                        <UpdatedDate />
                         <Lang />
                         {/* LogOut component with rotated logout icon */}
                         <LogOut />
