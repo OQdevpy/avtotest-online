@@ -16,3 +16,7 @@ npm run electron:build       # release/Avto Teacher Setup <versiya>.exe
 ```
 
 Production build `.env.production` dagi API manzilini oladi.
+
+Ilgari alohida `avtotest-desktop-teacher` reposida edi (shifrlangan `db.enc`,
+eski server). Shu papkaga ko'chirilgach o'sha repo kerak emas; eski kodi
+o'sha repoda `main`, qayta yig'ilgani `desktop-api` branch'ida qoldi.
