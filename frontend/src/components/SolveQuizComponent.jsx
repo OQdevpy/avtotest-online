@@ -9,6 +9,8 @@ import { useNavigate } from "react-router-dom";
 import { useCustomContext } from "../context/TestContext";
 import Time from "./Time";
 import ImageComponent from "./ImageComponent";
+import SelectedAnswerPanel from "./SelectedAnswerPanel";
+import { preloadImages } from "../utils/preloadImages";
 
 const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
   
@@ -90,6 +92,11 @@ const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
   useEffect(() => {
     setShowDescImage(false);
   }, [activeIndex]);
+
+  // Keyingi 3 ta savolning rasmi oldindan yuklanadi
+  useEffect(() => {
+    preloadImages(variant.slice(activeIndex + 1, activeIndex + 4), media_path);
+  }, [activeIndex, variant]);
 
   const checkAnswers = (item, index, activeIndex) => {
     setAnswered((prevAnswered) => ({ ...prevAnswered, [activeIndex]: index }));
@@ -264,7 +271,18 @@ const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
             ))}
           </div>
 
-          <ImageComponent currentItem={variant[activeIndex]} />
+          <ImageComponent
+            currentItem={variant[activeIndex]}
+            overlay={
+              selected[activeIndex] !== undefined && !isAnswered(activeIndex) && !timeEnded && (
+                <SelectedAnswerPanel
+                  index={selected[activeIndex]}
+                  text={getTranslationValue(variant[activeIndex].answers[selected[activeIndex]], "answer")}
+                  onConfirm={() => checkAnswers(variant[activeIndex].answers[selected[activeIndex]], selected[activeIndex], activeIndex)}
+                />
+              )
+            }
+          />
         </div>
       </div>
       <div

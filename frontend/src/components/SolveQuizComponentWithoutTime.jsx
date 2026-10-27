@@ -7,6 +7,8 @@ import { FaInfoCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useCustomContext } from "../context/TestContext";
 import ImageComponent from "./ImageComponent";
+import SelectedAnswerPanel from "./SelectedAnswerPanel";
+import { preloadImages } from "../utils/preloadImages";
 
 const SolveQuizComponentWithoutTime = ({ data }) => {
 
@@ -88,6 +90,11 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
   useEffect(() => {
     setShowDescImage(false);
   }, [activeIndex]);
+
+  // Keyingi 3 ta savolning rasmi oldindan yuklanadi
+  useEffect(() => {
+    preloadImages(variant.slice(activeIndex + 1, activeIndex + 4), media_path);
+  }, [activeIndex, variant]);
 
   const selectAnswer = (item, index, activeIndex) => {
     if (selected[activeIndex] === index) {
@@ -224,7 +231,18 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
               </div>
             ))}
           </div>
-          <ImageComponent currentItem={variant[activeIndex]} />
+          <ImageComponent
+            currentItem={variant[activeIndex]}
+            overlay={
+              selected[activeIndex] !== undefined && !isAnswered(activeIndex) && (
+                <SelectedAnswerPanel
+                  index={selected[activeIndex]}
+                  text={getTranslationValue(variant[activeIndex].answers[selected[activeIndex]], "answer")}
+                  onConfirm={() => checkAnswers(variant[activeIndex].answers[selected[activeIndex]], selected[activeIndex], activeIndex)}
+                />
+              )
+            }
+          />
         </div>
       </div>
 

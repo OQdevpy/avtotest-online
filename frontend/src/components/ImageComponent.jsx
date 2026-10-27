@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useCustomContext } from '../context/TestContext';
 
 
-const ImageComponent = ({ currentItem }) => {
+// `overlay` — rasm ustida (pastda) ko'rsatiladigan qo'shimcha blok, masalan
+// imtihonda tanlangan javob paneli.
+const ImageComponent = ({ currentItem, overlay = null }) => {
   const [isImageLarge, setIsImageLarge] = useState(false);
   const [containerHeight, setContainerHeight] = useState("560px"); // Default height
   const { DefaultImge, media_path } = useCustomContext();
@@ -57,7 +59,7 @@ const ImageComponent = ({ currentItem }) => {
 
   return (
     <div
-      className="md:w-[60%] w-full flex items-center justify-center bg-white"
+      className="relative md:w-[60%] w-full flex items-center justify-center bg-white"
       style={{
         maxHeight: containerHeight,
         minHeight: containerHeight,
@@ -73,6 +75,7 @@ const ImageComponent = ({ currentItem }) => {
           maxHeight: "100%",                                                                                                                                                                                                                                                                                                                                                                                 
         }}
       />
+      {overlay}
     </div>
   );
 };
