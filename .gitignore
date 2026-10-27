@@ -28,3 +28,6 @@ release/
 
 # Arxivlar
 *.zip
+
+# Maxfiy ma'lumotlar (kirish kodlari eksporti)
+kirish_kodlari*.xlsx

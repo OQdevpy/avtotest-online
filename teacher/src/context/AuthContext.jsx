@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
                 body: {
                     code: password.trim(),
                     platform: electron ? 'desktop' : 'web',
-                    device_label: `${electron ? 'AvtoQuiz' : 'Brauzer'} / ${navigator.platform || ''}`.trim(),
+                    device_label: `${electron ? 'AvtoTeacher' : 'Brauzer'} / ${navigator.platform || ''}`.trim(),
                     device_id: await getDeviceId(),
                 },
             });
