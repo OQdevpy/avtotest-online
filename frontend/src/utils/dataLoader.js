@@ -162,7 +162,11 @@ async function loadAll() {
   const sortedTickets = [...tickets].sort((a, b) => a.number - b.number);
   // PRO bilet obunasiz o'quvchiga 403 qaytaradi — u qulflangan bo'lib qoladi,
   // butun yuklash yiqilmaydi (aks holda ilovaga umuman kirib bo'lmasdi).
+  // Yangi backend savol id'larini ro'yxatning o'zida beradi (`question_ids`,
+  // PRO yopiq bo'lsa null) — 58 ta alohida so'rov kerak emas. Eski backendda
+  // maydon yo'q: har bilet avvalgidek alohida so'raladi.
   const ticketQuestionIds = await mapLimited(sortedTickets, 6, async (ticket) => {
+    if (ticket.question_ids !== undefined) return ticket.question_ids;
     try {
       const detail = await apiFetch(`/tickets/${ticket.number}/`, { query: { mode: 'study' } });
       return (detail.questions || []).map((q) => q.id);
@@ -182,6 +186,7 @@ async function loadAll() {
 
   // Blits
   const blitsQuestionIds = await mapLimited(blits, 4, async (b) => {
+    if (b.question_ids !== undefined) return b.question_ids;
     const detail = await apiFetch(`/blits/${b.id}/`, { query: { mode: 'study' } });
     return (detail.questions || []).map((q) => q.id);
   });

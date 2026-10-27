@@ -174,13 +174,40 @@ class SectionDetailSerializer(SectionSerializer):
         fields = SectionSerializer.Meta.fields + ("lessons",)
 
 
+def ordered_question_ids(obj, context, key):
+    """Bilet/blits savollarining id'lari (tartib bo'yicha, faqat ko'rinadiganlari).
+
+    Ro'yxat view'i hammasini bitta so'rovda hisoblab kontekstga qo'yadi
+    (`key`); bo'lmasa shu obyekt uchun alohida o'qiladi.
+    """
+    by_owner = context.get(key)
+    if by_owner is not None:
+        return by_owner.get(obj.pk, [])
+    items = obj.items.all()
+    allowed = context.get("visible_questions")
+    if allowed is not None:
+        items = items.filter(question__in=allowed.values("pk"))
+    return list(items.values_list("question_id", flat=True))
+
+
 class TicketSerializer(serializers.ModelSerializer):
     question_count = serializers.IntegerField(read_only=True, default=0)
     best_score = serializers.IntegerField(read_only=True, default=0)
+    # Desktop har bir biletni alohida so'ramasligi uchun. PRO bilet obunasiz
+    # foydalanuvchiga `null` (tafsiloti ham 403 qaytaradi).
+    question_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = Ticket
-        fields = ("id", "number", "question_count", "best_score", "is_pro")
+        fields = ("id", "number", "question_count", "best_score", "is_pro", "question_ids")
+
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField(), allow_null=True))
+    def get_question_ids(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if obj.is_pro and not (user is not None and user.is_authenticated and user.pro_active):
+            return None
+        return ordered_question_ids(obj, self.context, "ticket_question_ids")
 
 
 class TicketDetailSerializer(TicketSerializer):
@@ -208,10 +235,15 @@ class TicketDetailSerializer(TicketSerializer):
 class BlitsSerializer(serializers.ModelSerializer):
     name = TranslatedField("name")
     question_count = serializers.SerializerMethodField()
+    question_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = Blits
-        fields = ("id", "name", "order", "question_count")
+        fields = ("id", "name", "order", "question_count", "question_ids")
+
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
+    def get_question_ids(self, obj):
+        return ordered_question_ids(obj, self.context, "blits_question_ids")
 
     @extend_schema_field(OpenApiTypes.INT)
     def get_question_count(self, obj) -> int:

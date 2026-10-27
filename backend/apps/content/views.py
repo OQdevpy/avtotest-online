@@ -1,4 +1,5 @@
 import random
+from collections import defaultdict
 
 from django.conf import settings
 from django.db.models import Count, OuterRef, Prefetch, Q, Subquery
@@ -10,7 +11,7 @@ from rest_framework.views import APIView
 
 from apps.progress.models import LessonResult, TicketResult
 from common.lang import LangSerializerContextMixin, resolve_lang
-from .models import Blits, Lesson, Question, Section, Ticket
+from .models import Blits, BlitsQuestion, Lesson, Question, Section, Ticket, TicketQuestion
 from .version import content_updated_at, content_version
 
 
@@ -234,10 +235,33 @@ class TicketQuerysetMixin:
 
 
 @extend_schema(tags=["content"], parameters=[LANG_PARAM])
+def question_ids_by_owner(through, owner_field, request):
+    """{bilet/blits id: [savol id, ...]} — barchasi bitta SQL so'rovda.
+
+    Tartib tafsilot view'idagi bilan bir xil (`order`, `id`), faqat so'rovchiga
+    ko'rinadigan savollar.
+    """
+    rows = (
+        through.objects
+        .filter(question__in=visible_questions(request))
+        .order_by(owner_field, "order", "id")
+        .values_list(owner_field, "question_id")
+    )
+    by_owner = defaultdict(list)
+    for owner, question in rows:
+        by_owner[owner].append(question)
+    return by_owner
+
+
 class TicketListView(TicketQuerysetMixin, LangSerializerContextMixin, generics.ListAPIView):
     """Biletlar ro'yxati (mobil `Biletlar` ekrani)."""
 
     serializer_class = TicketSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["ticket_question_ids"] = question_ids_by_owner(TicketQuestion, "ticket_id", self.request)
+        return ctx
 
 
 @extend_schema(
@@ -359,6 +383,11 @@ class BlitsListView(BlitsContextMixin, LangSerializerContextMixin, generics.List
 
     serializer_class = BlitsSerializer
     queryset = Blits.objects.filter(is_active=True)
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["blits_question_ids"] = question_ids_by_owner(BlitsQuestion, "blits_id", self.request)
+        return ctx
 
 
 @extend_schema(

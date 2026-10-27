@@ -160,6 +160,8 @@ async function loadAll() {
 
   // Blits
   const blitsQuestionIds = await mapLimited(blits, 4, async (b) => {
+    // Yangi backend id'larni ro'yxatning o'zida beradi; eskisida alohida so'raladi
+    if (b.question_ids !== undefined) return b.question_ids;
     const detail = await apiFetch(`/blits/${b.id}/`, { query: { mode: 'study' } });
     return (detail.questions || []).map((q) => q.id);
   });
