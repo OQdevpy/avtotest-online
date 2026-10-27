@@ -7,6 +7,12 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Set host to 0.0.0.0
     port: 5173,      // Specify the port
+    // Faqat `npm run dev` uchun — /api va /media shu backendga proxy qilinadi
+    // (VITE_API_URL=/api/v1 bilan ishlatiladi, qarang: ../dev.sh).
+    proxy: {
+      '/api': { target: process.env.DEV_BACKEND_URL || 'http://127.0.0.1:9005', changeOrigin: true },
+      '/media': { target: process.env.DEV_BACKEND_URL || 'http://127.0.0.1:9005', changeOrigin: true },
+    },
     watch: {
       ignored: ['**/C:/hiberfil.sys', '**/C:/pagefile.sys'],  // Ignore system files
     },
