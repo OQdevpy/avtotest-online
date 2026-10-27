@@ -180,3 +180,20 @@ def test_bulk_command_skips_missing_file(question, media_root):
     call_command("convert_images_to_webp")
     question.refresh_from_db()
     assert question.image == "images/yoq.png"
+
+
+# --- Kontent versiyasi --------------------------------------------------------
+
+@pytest.mark.parametrize("field", ["image", "explanation-image"])
+def test_image_upload_changes_content_version(api, admin_user, auth, question, media_root, field):
+    # Desktop versiya o'zgarsagina ma'lumotni qayta yuklaydi; aks holda eski
+    # (o'chirilgan) rasm yo'lida qolib ketadi.
+    from apps.content.version import content_version
+
+    before = content_version()
+    auth(api, admin_user)
+    response = upload(api, question,
+                      {"file": SimpleUploadedFile("a.png", png_bytes(), "image/png")},
+                      field=field)
+    assert response.status_code == 200
+    assert content_version() != before

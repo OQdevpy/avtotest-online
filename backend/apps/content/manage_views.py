@@ -86,7 +86,7 @@ class _MediaUploadMixin:
 
         remove_quietly(question.image)
         question.image = relative
-        question.save(update_fields=["image"])
+        question.save(update_fields=["image", "updated_at"])
         return Response({"image": relative})
 
     @extend_schema(request=None, responses={200: None})
@@ -101,7 +101,7 @@ class _MediaUploadMixin:
 
         remove_quietly(question.audio)
         question.audio = relative
-        question.save(update_fields=["audio"])
+        question.save(update_fields=["audio", "updated_at"])
         return Response({"audio": relative})
 
     # admin-panel'dagi "izoh rasmi" (description_image) shu maydonga to'g'ri
@@ -119,7 +119,7 @@ class _MediaUploadMixin:
 
         remove_quietly(question.explanation_image)
         question.explanation_image = relative
-        question.save(update_fields=["explanation_image"])
+        question.save(update_fields=["explanation_image", "updated_at"])
         return Response({"explanation_image": relative})
 
 
