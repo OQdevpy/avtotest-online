@@ -15,9 +15,9 @@ import { preloadImages } from "../utils/preloadImages";
 
 // `showExplanation={false}` — izoh tugmasi chiqmaydi (imtihon rejimi)
 // `maxMistakes` — shuncha xato qilinsa test tugaydi (imtihon: 20 → 3, 50 → 5)
-// `answerPanel={false}` — o'rtadagi tanlangan javob paneli chiqmaydi, javob
-// bosilishi bilan tekshiriladi (oraliq test)
-const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true, maxMistakes = null, answerPanel = true }) => {
+// `answerPanel` — bosilgan javob rasm o'rtasidagi panelda chiqadi, panel bosilsa
+// tekshiriladi (faqat imtihon 20/50). Yo'q bo'lsa javob bir bosishda tekshiriladi.
+const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true, maxMistakes = null, answerPanel = false }) => {
   
   const navigate = useNavigate();
   const timeRef = useRef(null);

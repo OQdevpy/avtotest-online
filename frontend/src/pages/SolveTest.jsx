@@ -214,7 +214,7 @@ function SolveTest() {
                 }}
             >
                 {
-                    time ? <SolveQuizComponent data={solveTest} showExplanation={false} maxMistakes={maxMistakes} /> : <SolveQuizComponentWithoutTime data={solveTest} showExplanation={false} maxMistakes={maxMistakes} />
+                    time ? <SolveQuizComponent data={solveTest} showExplanation={false} maxMistakes={maxMistakes} answerPanel /> : <SolveQuizComponentWithoutTime data={solveTest} showExplanation={false} maxMistakes={maxMistakes} answerPanel />
                 }
                 <Outlet />
             </div>
