@@ -30,6 +30,9 @@ const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [answered, setAnswered] = useState({});
+  // Birinchi bosilgan (hali tasdiqlanmagan) javob: kulrang bo'ladi.
+  // Shu javob ikkinchi marta bosilsagina tekshiriladi.
+  const [selected, setSelected] = useState({});
   const [timeEnded, setTimeEnded] = useState(false);
   const [trueCount, setTrueCount] = useState(0);
   const [showDescImage, setShowDescImage] = useState(false);
@@ -99,6 +102,14 @@ const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
     
   };
 
+  const selectAnswer = (item, index, activeIndex) => {
+    if (selected[activeIndex] === index) {
+      checkAnswers(item, index, activeIndex);
+    } else {
+      setSelected((prevSelected) => ({ ...prevSelected, [activeIndex]: index }));
+    }
+  };
+
   const isAnswered = (index) => {
     return answered[index] !== undefined;
   };
@@ -126,11 +137,12 @@ const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
         ? "#43A047"
         : "transparent";
     }
-    return "transparent";
+    return selected[activeIndex] === index ? "#6B7280" : "transparent";
   };
 
   const reset = () => {
     setAnswered({});
+    setSelected({});
     setActiveIndex(0);
     setTimeEnded(false);
     setTrueCount(0);
@@ -231,6 +243,10 @@ const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
                     border: "1px solid #000",
                     fontSize: "17px",
                     width: "100%",
+                    background:
+                      !isAnswered(activeIndex) && !timeEnded && selected[activeIndex] === index
+                        ? "rgba(107, 114, 128, 0.6)"
+                        : undefined,
                     cursor:
                       isAnswered(activeIndex) || timeEnded
                         ? "not-allowed"
@@ -238,7 +254,7 @@ const SolveQuizComponent = ({ data, initialMinutes = 25 }) => {
                   }}
                   onClick={() => {
                     if (!isAnswered(activeIndex) && !timeEnded) {
-                      checkAnswers(answer, index, activeIndex);
+                      selectAnswer(answer, index, activeIndex);
                     }
                   }}
                 >

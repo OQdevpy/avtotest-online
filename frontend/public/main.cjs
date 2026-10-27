@@ -62,6 +62,31 @@ function machineId() {
 
 ipcMain.handle('machine-id', () => machineId());
 
+// Kiritilgan kirish kodi. Foydalanuvchi papkasida (machine-id zaxirasi kabi):
+// installer AppData'ni, yangi versiya esa localStorage'ni tozalaydi — kod
+// shunda ham qayta so'ralmasin. Bo'sh qiymat — faylni o'chirish (chiqish).
+const CODE_FILE = path.join(os.homedir(), '.avtoquiz-code');
+
+ipcMain.handle('saved-code-get', () => {
+  try {
+    return fs.readFileSync(CODE_FILE, 'utf8').trim();
+  } catch {
+    return '';
+  }
+});
+
+ipcMain.handle('saved-code-set', (_event, code) => {
+  try {
+    if (code) {
+      fs.writeFileSync(CODE_FILE, code);
+    } else {
+      fs.rmSync(CODE_FILE, { force: true });
+    }
+  } catch {
+    // yozib bo'lmasa localStorage'dagi nusxa ishlayveradi
+  }
+});
+
 // Versiya o'zgarganda (yangi o'rnatish/yangilash) eski localStorage, IndexedDB,
 // cookie va kesh tozalanadi — eski `quizToken` va eski ma'lumot qolmaydi.
 const VERSION_FILE = path.join(app.getPath('userData'), 'app-version.txt');

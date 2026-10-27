@@ -5,12 +5,37 @@ import { resetData } from "../utils/dataLoader";
 
 const AuthContext = createContext(null);
 
+// Bir marta kiritilgan kirish kodi shu kompyuterda saqlanadi: sessiya tugasa
+// ham (refresh muddati, ilova yangilanib xotira tozalansa) kod qayta
+// yozilmaydi — login sahifasi u bilan o'zi kiradi. Desktopda kod faylga ham
+// yoziladi (main.cjs), chunki yangi versiya localStorage'ni tozalaydi.
+const CODE_KEY = 'quizCode';
+export const savedCode = {
+    get() { return localStorage.getItem(CODE_KEY) || ''; },
+    set(code) {
+        localStorage.setItem(CODE_KEY, code);
+        window.Electron?.setSavedCode?.(code);
+    },
+    clear() {
+        localStorage.removeItem(CODE_KEY);
+        window.Electron?.setSavedCode?.('');
+    },
+    async load() {
+        let code = savedCode.get();
+        if (!code && window.Electron?.getSavedCode) {
+            code = (await window.Electron.getSavedCode()) || '';
+            if (code) localStorage.setItem(CODE_KEY, code);
+        }
+        return code;
+    },
+};
+
 export const AuthProvider = ({ children }) => {
     const [isLoggedin, setIsLoggedin] = useState(Boolean(tokens.access || tokens.refresh));
 
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
-        password: ''
+        password: savedCode.get()
     });
 
 
@@ -19,8 +44,11 @@ export const AuthProvider = ({ children }) => {
     // Refresh ham o'tmasa (kod muddati tugagan, qurilma uzilgan) — login sahifasi
     useEffect(() => onSessionExpired(() => {
         setIsLoggedin(false);
-        toast.warning('Sessiya tugadi. Kodni qayta kiriting.');
+        // Saqlangan kod bo'lsa login sahifasi o'zi qayta kiradi
+        if (!savedCode.get()) toast.warning('Sessiya tugadi. Kodni qayta kiriting.');
     }), []);
+
+    const setPassword = (value) => setFormData((prev) => ({ ...prev, password: value }));
 
     const handleChange = (e) => {
         setFormData((prev) => ({
@@ -30,8 +58,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Shef bergan kirish kodi bilan kirish
-    const handleSubmit = async (e, fn) => {
-        e.preventDefault();
+    const loginWithCode = async (code, fn) => {
         setLoading(true);
 
         try {
@@ -40,23 +67,34 @@ export const AuthProvider = ({ children }) => {
                 method: 'POST',
                 auth: false,
                 body: {
-                    code: password.trim(),
+                    code,
                     platform: electron ? 'desktop' : 'web',
                     device_label: `${electron ? 'AvtoQuiz' : 'Brauzer'} / ${navigator.platform || ''}`.trim(),
                     device_id: await getDeviceId(),
                 },
             });
             tokens.set(data.tokens);
+            savedCode.set(code);
             resetData();
             setIsLoggedin(true);
-            setFormData({ password: '' });
             fn('/');
             toast.success('Hush kelibsiz.');
         } catch (error) {
+            // Kod rad etildi (nofaol, boshqa kompyuterga biriktirilgan...) —
+            // saqlangani o'chiriladi. Tarmoq xatosida kod qoladi.
+            if (error.status) {
+                savedCode.clear();
+                setFormData({ password: '' });
+            }
             toast.error(error.message || 'Server bilan aloqa yo\'q');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSubmit = (e, fn) => {
+        e.preventDefault();
+        return loginWithCode(password.trim(), fn);
     };
 
     // Chiqish — serverdagi qurilma slotini ham bo'shatadi
@@ -69,6 +107,8 @@ export const AuthProvider = ({ children }) => {
             console.error(error);
         }
         tokens.clear();
+        savedCode.clear();
+        setFormData({ password: '' });
         setIsLoggedin(false);
         toast.warning('Profildan chiqib ketdingiz.');
     }
@@ -81,7 +121,9 @@ export const AuthProvider = ({ children }) => {
             formData,
             password,
             handleChange,
+            setPassword,
             handleSubmit,
+            loginWithCode,
             logout
         }}>
             {children}

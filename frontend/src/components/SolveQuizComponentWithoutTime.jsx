@@ -27,6 +27,9 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [answered, setAnswered] = useState({});
+  // Birinchi bosilgan (hali tasdiqlanmagan) javob: kulrang bo'ladi.
+  // Shu javob ikkinchi marta bosilsagina tekshiriladi.
+  const [selected, setSelected] = useState({});
   const [trueCount, setTrueCount] = useState(0);
   const [showDescImage, setShowDescImage] = useState(false);
 
@@ -86,6 +89,14 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
     setShowDescImage(false);
   }, [activeIndex]);
 
+  const selectAnswer = (item, index, activeIndex) => {
+    if (selected[activeIndex] === index) {
+      checkAnswers(item, index, activeIndex);
+    } else {
+      setSelected((prevSelected) => ({ ...prevSelected, [activeIndex]: index }));
+    }
+  };
+
   const isAnswered = (index) => {
     return answered[index] !== undefined;
   };
@@ -113,11 +124,12 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
         ? "#43A047"
         : "transparent";
     }
-    return "transparent";
+    return selected[activeIndex] === index ? "#6B7280" : "transparent";
   };
 
   const reset = () => {
     setAnswered({});
+    setSelected({});
     setActiveIndex(0);
     setVariant(data.sort(() => Math.random() - 0.5));
     setTrueCount(0);
@@ -195,11 +207,15 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
                     border: "1px solid #000",
                     fontSize: "17px",
                     width: "100%",
+                    background:
+                      !isAnswered(activeIndex) && selected[activeIndex] === index
+                        ? "rgba(107, 114, 128, 0.6)"
+                        : undefined,
                     cursor: isAnswered(activeIndex) ? "not-allowed" : "pointer",
                   }}
                   onClick={() => {
                     if (!isAnswered(activeIndex)) {
-                      checkAnswers(answer, index, activeIndex);
+                      selectAnswer(answer, index, activeIndex);
                     }
                   }}
                 >
