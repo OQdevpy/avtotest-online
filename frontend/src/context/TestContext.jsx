@@ -285,7 +285,7 @@ const ContextProvider = ({ children }) => {
         },
         "notSubmitted": {
             "ru": "Не сдан",
-            "uz": "Topshrilmadi",
+            "uz": "Topshirilmadi",
             "cry": "Топширилмади"
         },
         "variants": {
@@ -302,6 +302,26 @@ const ContextProvider = ({ children }) => {
             "ru": "вопросов",
             "uz": "ta savol",
             "cry": "та савол"
+        },
+        "examPassedText": {
+            "ru": "Вы успешно сдали экзамен.",
+            "uz": "Imtihonni muvaffaqiyatli topshirdingiz.",
+            "cry": "Имтиҳонни муваффақиятли топширдингиз."
+        },
+        "examFailedText": {
+            "ru": "Вы не сдали экзамен.",
+            "uz": "Imtihonni topshira olmadingiz.",
+            "cry": "Имтиҳонни топшира олмадингиз."
+        },
+        "totalScore": {
+            "ru": "Результат",
+            "uz": "Natija",
+            "cry": "Натижа"
+        },
+        "menu": {
+            "ru": "Меню",
+            "uz": "Menyu",
+            "cry": "Меню"
         },
         "cancel": {
             "ru": "Отмена",

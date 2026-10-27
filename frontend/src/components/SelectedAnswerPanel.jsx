@@ -1,21 +1,26 @@
-// Imtihonda birinchi bosilgan (hali tasdiqlanmagan) javob rasm ustida, pastda
-// katta qilib ko'rsatiladi (imtihon ilovasidagi kabi). Panel yoki o'sha javob
-// qayta bosilsa — javob tekshiriladi.
+// Imtihonda bosilgan (hali tasdiqlanmagan) javob rasm ustida, vertikal markazda
+// javob qatori ko'rinishida chiqadi (imtihon ilovasidagi kabi). Panel
+// bosilgandagina javob tekshiriladi; Esc — panelni yopadi.
 const SelectedAnswerPanel = ({ index, text, onConfirm }) => (
   <div
-    className="absolute bottom-0 left-0 w-full bg-gradient-to-r from-gray-800 to-gray-900 border-2 border-blue-500 shadow-2xl flex items-stretch overflow-hidden cursor-pointer"
-    style={{ minHeight: "100px", zIndex: 100 }}
+    className="absolute left-4 right-4 flex items-stretch border border-gray-500 overflow-hidden shadow-lg cursor-pointer"
+    style={{
+      minHeight: "60px",
+      zIndex: 100,
+      top: "50%",
+      transform: "translateY(-50%)",
+    }}
     onClick={onConfirm}
   >
     <span
-      className="flex items-center justify-center text-white font-bold"
-      style={{ width: "4rem", background: "#3B82F6", fontSize: "24px" }}
+      className="flex items-center justify-center text-white font-semibold bg-blue-900/70"
+      style={{ width: "3rem", fontSize: "16px" }}
     >
       F{index + 1}
     </span>
     <div
-      className="flex-1 p-4 text-white flex items-center"
-      style={{ fontSize: "20px", lineHeight: "1.5", fontWeight: "500" }}
+      className="flex-1 p-3 text-white flex items-center bg-blue-950/80 hover:bg-blue-950"
+      style={{ border: "1px solid #000", fontSize: "16px", lineHeight: "1.4" }}
     >
       {text}
     </div>

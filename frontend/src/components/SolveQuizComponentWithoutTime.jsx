@@ -8,10 +8,14 @@ import { useNavigate } from "react-router-dom";
 import { useCustomContext } from "../context/TestContext";
 import ImageComponent from "./ImageComponent";
 import SelectedAnswerPanel from "./SelectedAnswerPanel";
+import ExamResult from "./ExamResult";
 import { preloadImages } from "../utils/preloadImages";
 
 // `showExplanation={false}` — izoh tugmasi chiqmaydi (imtihon rejimi)
-const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
+// `maxMistakes` — shuncha xato qilinsa test tugaydi (imtihon: 20 → 3, 50 → 5)
+// `answerPanel={false}` — o'rtadagi tanlangan javob paneli chiqmaydi, javob
+// bosilishi bilan tekshiriladi (blits)
+const SolveQuizComponentWithoutTime = ({ data, showExplanation = true, maxMistakes = null, answerPanel = true }) => {
 
   const navigate = useNavigate();
   const [variant, setVariant] = useState(data);
@@ -30,8 +34,8 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [answered, setAnswered] = useState({});
-  // Birinchi bosilgan (hali tasdiqlanmagan) javob: kulrang bo'ladi.
-  // Shu javob ikkinchi marta bosilsagina tekshiriladi.
+  // Bosilgan (hali tasdiqlanmagan) javob rasm ustidagi panelda chiqadi;
+  // panel bosilgandagina tekshiriladi (imtihon ilovasidagi kabi).
   const [selected, setSelected] = useState({});
   const [trueCount, setTrueCount] = useState(0);
   const [showDescImage, setShowDescImage] = useState(false);
@@ -78,6 +82,8 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
         handleNext();
       } else if (event.key === "ArrowLeft") {
         handlePrev();
+      } else if (event.key === "Escape") {
+        setSelected({});
       }
     };
 
@@ -90,6 +96,7 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
   // Close description modal when changing questions
   useEffect(() => {
     setShowDescImage(false);
+    setSelected({});
   }, [activeIndex]);
 
   // Keyingi 3 ta savolning rasmi oldindan yuklanadi
@@ -97,17 +104,30 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
     preloadImages(variant.slice(activeIndex + 1, activeIndex + 4), media_path);
   }, [activeIndex, variant]);
 
-  const selectAnswer = (item, index, activeIndex) => {
-    if (selected[activeIndex] === index) {
-      checkAnswers(item, index, activeIndex);
-    } else {
-      setSelected((prevSelected) => ({ ...prevSelected, [activeIndex]: index }));
+  const selectAnswer = (index, activeIndex) => {
+    if (!answerPanel) {
+      checkAnswers(variant[activeIndex].answers[index], index, activeIndex);
+      return;
     }
+    setSelected({ [activeIndex]: index });
   };
 
   const isAnswered = (index) => {
     return answered[index] !== undefined;
   };
+
+  // Xatolar chegaraga yetdi — boshqa javob berib bo'lmaydi, natija chiqadi
+  const failed = !!maxMistakes && Object.keys(answered).length - trueCount >= maxMistakes;
+  const examOver = !!maxMistakes && (failed || Object.keys(answered).length === variant.length);
+
+  // Imtihon tugadi (xato chegarasi, vaqt yoki hamma savol) — 2 soniyadan keyin
+  // savollar yashirinib, o'rtada katta natija chiqadi
+  const [showResult, setShowResult] = useState(false);
+  useEffect(() => {
+    if (!examOver) return;
+    const t = setTimeout(() => setShowResult(true), 2000);
+    return () => clearTimeout(t);
+  }, [examOver]);
 
   const checkButton = (index) => {
     if (activeIndex === index) {
@@ -132,7 +152,7 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
         ? "#43A047"
         : "transparent";
     }
-    return selected[activeIndex] === index ? "#6B7280" : "transparent";
+    return "transparent";
   };
 
   const reset = () => {
@@ -142,10 +162,15 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
     setVariant(data.sort(() => Math.random() - 0.5));
     setTrueCount(0);
     setShowDescImage(false);
+    setShowResult(false);
   };
 
 
   if (variant === null) return null;
+
+  if (showResult) {
+    return <ExamResult trueCount={trueCount} questionCount={variant.length} onRestart={reset} />;
+  }
 
   return (
     <div className="container max-w-full flex flex-col gap-5">
@@ -156,7 +181,7 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
           </h2>
 
           <div className="flex items-center gap-2 flex-grow justify-center text-white">
-            {variant.length === Object.keys(answered).length ? (
+            {variant.length === Object.keys(answered).length || failed ? (
               returnResult(trueCount, variant.length)
             ) : null}
           </div>
@@ -215,15 +240,11 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
                     border: "1px solid #000",
                     fontSize: "17px",
                     width: "100%",
-                    background:
-                      !isAnswered(activeIndex) && selected[activeIndex] === index
-                        ? "rgba(107, 114, 128, 0.6)"
-                        : undefined,
-                    cursor: isAnswered(activeIndex) ? "not-allowed" : "pointer",
+                    cursor: isAnswered(activeIndex) || failed ? "not-allowed" : "pointer",
                   }}
                   onClick={() => {
-                    if (!isAnswered(activeIndex)) {
-                      selectAnswer(answer, index, activeIndex);
+                    if (!isAnswered(activeIndex) && !failed) {
+                      selectAnswer(index, activeIndex);
                     }
                   }}
                 >
@@ -235,7 +256,7 @@ const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
           <ImageComponent
             currentItem={variant[activeIndex]}
             overlay={
-              selected[activeIndex] !== undefined && !isAnswered(activeIndex) && (
+              selected[activeIndex] !== undefined && !isAnswered(activeIndex) && !failed && (
                 <SelectedAnswerPanel
                   index={selected[activeIndex]}
                   text={getTranslationValue(variant[activeIndex].answers[selected[activeIndex]], "answer")}

@@ -184,6 +184,8 @@ function SolveTest() {
 
 
     const time = count === '20' ? true : false;
+    // Imtihon: 20 talikda 3 ta, 50 talikda 5 ta xato — test tugaydi
+    const maxMistakes = count === '20' ? 3 : 5;
 
 
 
@@ -212,7 +214,7 @@ function SolveTest() {
                 }}
             >
                 {
-                    time ? <SolveQuizComponent data={solveTest} showExplanation={false} /> : <SolveQuizComponentWithoutTime data={solveTest} showExplanation={false} />
+                    time ? <SolveQuizComponent data={solveTest} showExplanation={false} maxMistakes={maxMistakes} /> : <SolveQuizComponentWithoutTime data={solveTest} showExplanation={false} maxMistakes={maxMistakes} />
                 }
                 <Outlet />
             </div>

@@ -10,10 +10,14 @@ import { useCustomContext } from "../context/TestContext";
 import Time from "./Time";
 import ImageComponent from "./ImageComponent";
 import SelectedAnswerPanel from "./SelectedAnswerPanel";
+import ExamResult from "./ExamResult";
 import { preloadImages } from "../utils/preloadImages";
 
 // `showExplanation={false}` — izoh tugmasi chiqmaydi (imtihon rejimi)
-const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true }) => {
+// `maxMistakes` — shuncha xato qilinsa test tugaydi (imtihon: 20 → 3, 50 → 5)
+// `answerPanel={false}` — o'rtadagi tanlangan javob paneli chiqmaydi, javob
+// bosilishi bilan tekshiriladi (oraliq test)
+const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true, maxMistakes = null, answerPanel = true }) => {
   
   const navigate = useNavigate();
   const timeRef = useRef(null);
@@ -33,8 +37,8 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [answered, setAnswered] = useState({});
-  // Birinchi bosilgan (hali tasdiqlanmagan) javob: kulrang bo'ladi.
-  // Shu javob ikkinchi marta bosilsagina tekshiriladi.
+  // Bosilgan (hali tasdiqlanmagan) javob rasm ustidagi panelda chiqadi;
+  // panel bosilgandagina tekshiriladi (imtihon ilovasidagi kabi).
   const [selected, setSelected] = useState({});
   const [timeEnded, setTimeEnded] = useState(false);
   const [trueCount, setTrueCount] = useState(0);
@@ -80,6 +84,8 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
         handleNext();
       } else if (event.key === "ArrowLeft") {
         handlePrev();
+      } else if (event.key === "Escape") {
+        setSelected({});
       }
     };
 
@@ -92,12 +98,31 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
   // Close description modal when changing questions
   useEffect(() => {
     setShowDescImage(false);
+    setSelected({});
   }, [activeIndex]);
 
   // Keyingi 3 ta savolning rasmi oldindan yuklanadi
   useEffect(() => {
     preloadImages(variant.slice(activeIndex + 1, activeIndex + 4), media_path);
   }, [activeIndex, variant]);
+
+  // Xatolar chegaraga yetdi — vaqt tugagandek: javob berib bo'lmaydi, natija chiqadi
+  useEffect(() => {
+    if (maxMistakes && Object.keys(answered).length - trueCount >= maxMistakes) {
+      setTimeEnded(true);
+    }
+  }, [answered, trueCount, maxMistakes]);
+
+  const examOver = !!maxMistakes && (timeEnded || Object.keys(answered).length === variant.length);
+
+  // Imtihon tugadi (xato chegarasi, vaqt yoki hamma savol) — 2 soniyadan keyin
+  // savollar yashirinib, o'rtada katta natija chiqadi
+  const [showResult, setShowResult] = useState(false);
+  useEffect(() => {
+    if (!examOver) return;
+    const t = setTimeout(() => setShowResult(true), 2000);
+    return () => clearTimeout(t);
+  }, [examOver]);
 
   const checkAnswers = (item, index, activeIndex) => {
     setAnswered((prevAnswered) => ({ ...prevAnswered, [activeIndex]: index }));
@@ -110,12 +135,12 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
     
   };
 
-  const selectAnswer = (item, index, activeIndex) => {
-    if (selected[activeIndex] === index) {
-      checkAnswers(item, index, activeIndex);
-    } else {
-      setSelected((prevSelected) => ({ ...prevSelected, [activeIndex]: index }));
+  const selectAnswer = (index, activeIndex) => {
+    if (!answerPanel) {
+      checkAnswers(variant[activeIndex].answers[index], index, activeIndex);
+      return;
     }
+    setSelected({ [activeIndex]: index });
   };
 
   const isAnswered = (index) => {
@@ -145,7 +170,7 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
         ? "#43A047"
         : "transparent";
     }
-    return selected[activeIndex] === index ? "#6B7280" : "transparent";
+    return "transparent";
   };
 
   const reset = () => {
@@ -155,6 +180,7 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
     setTimeEnded(false);
     setTrueCount(0);
     setShowDescImage(false);
+    setShowResult(false);
     if (timeRef.current) {
       timeRef.current.resetTime(); // Call the resetTime method
     };
@@ -165,6 +191,10 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
 
 
   if (variant === null) return null;
+
+  if (showResult) {
+    return <ExamResult trueCount={trueCount} questionCount={variant.length} onRestart={reset} />;
+  }
 
   return (
     <div className="container max-w-full  flex flex-col gap-5">
@@ -251,10 +281,6 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
                     border: "1px solid #000",
                     fontSize: "17px",
                     width: "100%",
-                    background:
-                      !isAnswered(activeIndex) && !timeEnded && selected[activeIndex] === index
-                        ? "rgba(107, 114, 128, 0.6)"
-                        : undefined,
                     cursor:
                       isAnswered(activeIndex) || timeEnded
                         ? "not-allowed"
@@ -262,7 +288,7 @@ const SolveQuizComponent = ({ data, initialMinutes = 25, showExplanation = true 
                   }}
                   onClick={() => {
                     if (!isAnswered(activeIndex) && !timeEnded) {
-                      selectAnswer(answer, index, activeIndex);
+                      selectAnswer(index, activeIndex);
                     }
                   }}
                 >

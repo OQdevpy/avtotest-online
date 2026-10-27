@@ -118,7 +118,7 @@ function SolveOraliqTest() {
                     // marginBottom: '0.5rem',
                 }}
             >
-                <SolveQuizComponent data={OraliqTest} initialMinutes={count === '50' ? 45 : 25} />
+                <SolveQuizComponent data={OraliqTest} initialMinutes={count === '50' ? 45 : 25} answerPanel={false} />
                 <Outlet />
             </div>
         </div>

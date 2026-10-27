@@ -83,7 +83,7 @@ function BlitsTest() {
             <div
                 className="bg-gray-950/90 max-w-full min-h-full"
             >
-                <SolveQuizComponentWithoutTime data={solveTest} showExplanation={false} />
+                <SolveQuizComponentWithoutTime data={solveTest} showExplanation={false} answerPanel={false} />
                 <Outlet />
             </div>
         </div>
