@@ -10,7 +10,8 @@ import ImageComponent from "./ImageComponent";
 import SelectedAnswerPanel from "./SelectedAnswerPanel";
 import { preloadImages } from "../utils/preloadImages";
 
-const SolveQuizComponentWithoutTime = ({ data }) => {
+// `showExplanation={false}` — izoh tugmasi chiqmaydi (imtihon rejimi)
+const SolveQuizComponentWithoutTime = ({ data, showExplanation = true }) => {
 
   const navigate = useNavigate();
   const [variant, setVariant] = useState(data);
@@ -162,7 +163,7 @@ const SolveQuizComponentWithoutTime = ({ data }) => {
 
           <div className="text-blue-500 flex-shrink-0 flex items-center gap-2" style={{ minWidth: "200px" }}>
             {/* Izoh button - only show when answered and has description_image */}
-            {isAnswered(activeIndex) && variant[activeIndex].description_image && (
+            {showExplanation && isAnswered(activeIndex) && variant[activeIndex].description_image && (
               <button
                 className="btn bg-yellow-600/80 text-white flex items-center justify-center border border-yellow-500 cursor-pointer hover:bg-yellow-600"
                 onClick={() => setShowDescImage(true)}

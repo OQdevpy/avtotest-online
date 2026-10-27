@@ -212,7 +212,7 @@ function SolveTest() {
                 }}
             >
                 {
-                    time ? <SolveQuizComponent data={solveTest} /> : <SolveQuizComponentWithoutTime data={solveTest} />
+                    time ? <SolveQuizComponent data={solveTest} showExplanation={false} /> : <SolveQuizComponentWithoutTime data={solveTest} showExplanation={false} />
                 }
                 <Outlet />
             </div>
