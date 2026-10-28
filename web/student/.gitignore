@@ -1,0 +1,8 @@
+# Umumiy qoidalar ildizdagi .gitignore da; bu yerda faqat frontendga xoslari
+dist-ssr
+*.local
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

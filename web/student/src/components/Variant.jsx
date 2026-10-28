@@ -1,0 +1,31 @@
+import { Link } from "react-router-dom"
+import { useCustomContext } from "../context/TestContext"
+function Variant({ variants }) {
+    const { getTranslationValue } = useCustomContext();
+    return (
+        <>
+            <ul className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mt-5 gap-3 lg:grid-cols-4'>
+                {
+                    variants.map((variant, index) => {
+                        return (
+                            <li key={index} className="shadow-md p-2 rounded-md bg-blue-950/80 duration-500">
+                                {variant.locked ? (
+                                    // PRO bilet — obunasiz o'quvchiga ochilmaydi
+                                    <h3 className="text-slate-400 cursor-not-allowed" title="Faqat PRO uchun">
+                                        🔒 {getTranslationValue(variant, "name")} · PRO
+                                    </h3>
+                                ) : (
+                                    <Link to={`/variants/${index}`}>
+                                        <h3 className="text-white">{getTranslationValue(variant, "name")}</h3>
+                                    </Link>
+                                )}
+                            </li>
+                        )
+                    })
+                }
+            </ul>
+        </>
+    )
+}
+
+export default Variant
