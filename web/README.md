@@ -37,39 +37,54 @@ Cheklov: brauzer olgan ma'lumot baribir foydalanuvchining kompyuterida —
 JavaScript debugger bilan sahifa xotirasini o'qish mumkin. Shifrlash Network
 oynasidan va oraliq tarmoqdan himoya qiladi. Rasmlar (`/media/`) ochiq yuklanadi.
 
-## Ishga tushirish
+## Ishga tushirish (lokal)
 
 ```bash
 cd web/student            # yoki web/teacher
 npm install
 cp .env.example .env.local   # VITE_API_URL — backend manzili
-npm run dev                  # http://localhost:5183
-npm run build                # dist/ — statik fayllar
+npm run dev                  # student: http://localhost:5183, teacher: :5185
 ```
-
-`npm run build` `.env.production` dagi API manzilini oladi
-(`https://admin.avtotest-tayyorlov.uz/api/v1`).
 
 ## Serverga chiqarish
 
-`dist/` — oddiy statik sayt (HashRouter, nisbiy yo'llar), istalgan manzilda
-ochiladi. Masalan, tizim nginx'ida:
+| Domen | Papka | Serverdagi joyi |
+|---|---|---|
+| `web.avtotest-tayyorlov.uz` | `web/student` | `/var/www/avtotest-web-student` |
+| `teacher.avtotest-tayyorlov.uz` | `web/teacher` | `/var/www/avtotest-web-teacher` |
 
-```nginx
-server {
-    server_name web.avtotest-tayyorlov.uz;
-    root /var/www/avtotest-web;          # student/dist mazmuni
-    index index.html;
-    location / { try_files $uri $uri/ /index.html; }
-    location /assets/ { expires 30d; add_header Cache-Control "public, immutable"; }
-    # ... ssl (certbot)
-}
+Brauzer faqat sayt domeniga murojaat qiladi: nginx `/api/v1/s/` ni backendga
+(`127.0.0.1:8010`) uzatadi, `/media/` ni diskdan beradi, boshqa `/api/` yo'llari
+`404`. Shuning uchun build'da API manzili nisbiy (`VITE_API_URL=/api/v1`,
+`.env.production`) — backend domeni Network'da ham, kodda ham yo'q, CORS kerak emas.
+
+### Birinchi marta (serverda)
+
+1. **DNS:** `web` va `teacher` A-yozuvlari server IP'siga.
+2. **Backend:** `backend/.env` dagi `ALLOWED_HOSTS` ga ikkala domenni qo'shing
+   (nginx so'rovni shu `Host` bilan uzatadi), so'ng backendni yangilang:
+   ```bash
+   cd /root/avtotest/avtotest-online
+   git pull
+   # backend/.env: ALLOWED_HOSTS=...,web.avtotest-tayyorlov.uz,teacher.avtotest-tayyorlov.uz
+   docker compose up -d --build
+   ```
+3. **Saytlar:** `./web/deploy.sh` (Node.js 18+ kerak) — ikkalasini yig'ib,
+   `/var/www/avtotest-web-*` ga joylaydi.
+4. **nginx + HTTPS** (HTTPS shart — WebCrypto oddiy HTTP'da ishlamaydi):
+   ```bash
+   cp web/nginx/web.avtotest-tayyorlov.uz.conf web/nginx/teacher.avtotest-tayyorlov.uz.conf /etc/nginx/sites-enabled/
+   nginx -t && systemctl reload nginx
+   certbot --nginx -d web.avtotest-tayyorlov.uz -d teacher.avtotest-tayyorlov.uz
+   ```
+
+### Keyingi yangilanishlar
+
+```bash
+cd /root/avtotest/avtotest-online && git pull
+./web/deploy.sh               # yoki: ./web/deploy.sh student | teacher
+docker compose up -d --build  # faqat backend o'zgargan bo'lsa
 ```
-
-Sayt backenddan **boshqa domenda** bo'lsa, `backend/.env` dagi
-`CORS_ALLOWED_ORIGINS` ga uning manzilini qo'shing (vergul bilan), masalan
-`https://web.avtotest-tayyorlov.uz,https://teacher.avtotest-tayyorlov.uz`,
-so'ng `docker compose up -d`.
 
 Server logida ichki yo'llar ko'rinadi (`docker compose logs -f backend`):
 
