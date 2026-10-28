@@ -222,6 +222,16 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,
 }
 
+# --- Log --------------------------------------------------------------------
+# Web ilovalarning shifrlangan kanali (common/tunnel.py) ichki yo'lni logga
+# yozadi: `docker compose logs backend` da "tunnel GET /questions/ -> 200 75ms".
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"common.tunnel": {"handlers": ["console"], "level": "INFO"}},
+}
+
 # --- CORS -------------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL", False)
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")

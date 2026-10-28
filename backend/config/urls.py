@@ -22,9 +22,13 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 
+from common.tunnel import tunnel, tunnel_key
 from common.views import privacy_policy
 
 api_v1 = [
+    # Web ilovalar uchun shifrlangan kanal (common/tunnel.py)
+    path("s/", tunnel, name="tunnel"),
+    path("s/key/", tunnel_key, name="tunnel-key"),
     path("auth/", include("apps.accounts.urls")),
     path("auth/", include("apps.telegramauth.urls")),
     path("teacher/", include("apps.accounts.teacher_urls")),
