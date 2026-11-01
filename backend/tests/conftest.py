@@ -14,6 +14,18 @@ def _clear_cache():
 
 
 @pytest.fixture
+def fake_redis(monkeypatch):
+    """`otpstore.client()` o'rniga xotiradagi Redis (haqiqiy server kerak emas)."""
+    import fakeredis
+
+    from apps.telegramauth import otpstore
+
+    server = fakeredis.FakeRedis(decode_responses=True)
+    monkeypatch.setattr(otpstore, "_client", server)
+    return server
+
+
+@pytest.fixture
 def api():
     return APIClient()
 

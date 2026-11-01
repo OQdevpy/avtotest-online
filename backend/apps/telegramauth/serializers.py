@@ -32,3 +32,9 @@ class ResetPasswordSerializer(serializers.Serializer):
     phone = PhoneField(max_length=20)
     token = serializers.CharField(max_length=64)
     password = serializers.CharField(write_only=True, min_length=6)
+
+
+class TelegramStartSerializer(serializers.Serializer):
+    phone = PhoneField(max_length=20)
+    purpose = serializers.ChoiceField(choices=Purpose.choices)
+    lang = serializers.CharField(max_length=3, required=False, default="uz")

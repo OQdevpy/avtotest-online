@@ -22,11 +22,12 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 
-from . import otpstore, telegram
+from . import otpstore, telegram, verification
 from .models import TelegramAccount
 from .serializers import (
     ResetPasswordSerializer,
     SendCodeSerializer,
+    TelegramStartSerializer,
     VerifyCodeSerializer,
 )
 
@@ -158,3 +159,47 @@ class ResetPasswordView(APIView):
             user.save(update_fields=["password"])
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@extend_schema(tags=["auth"])
+class TelegramStartView(APIView):
+    """Raqamni Telegram bot orqali tasdiqlash sessiyasini ochadi.
+
+    Ilova `link` ni ochadi; bot kontaktni solishtirib sessiyani tasdiqlaydi,
+    ilova esa holatni `telegram/status/<token>/` dan so'raydi.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = TelegramStartSerializer
+
+    def post(self, request):
+        serializer = TelegramStartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data["phone"]
+        purpose = serializer.validated_data["purpose"]
+
+        exists = User.objects.filter(phone=phone).exists()
+        if purpose == "register" and exists:
+            return _error("phone_taken", "Bu raqam ro'yxatdan o'tgan. Kiring yoki parolni tiklang.")
+        if purpose == "reset" and not exists:
+            return _error("no_user", "Bu raqam bilan foydalanuvchi topilmadi.",
+                          http_status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            token = verification.start_session(phone, purpose,
+                                               serializer.validated_data["lang"])
+        except verification.TooManySessions:
+            return _error("too_many", "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.",
+                          http_status=status.HTTP_429_TOO_MANY_REQUESTS)
+        return Response({"token": token, "link": verification.bot_link(token),
+                         "expires_in": verification.SESSION_TTL})
+
+
+@extend_schema(tags=["auth"])
+class TelegramStatusView(APIView):
+    """Tasdiqlash holati: pending | verified | mismatch | expired."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, token: str):
+        return Response({"status": verification.status_of(token)})

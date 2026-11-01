@@ -9,5 +9,8 @@ from . import views
 urlpatterns = [
     path("send-code/", views.SendCodeView.as_view(), name="send-code"),
     path("verify-code/", views.VerifyCodeView.as_view(), name="verify-code"),
+    path("telegram/start/", views.TelegramStartView.as_view(), name="telegram-start"),
+    path("telegram/status/<str:token>/", views.TelegramStatusView.as_view(),
+         name="telegram-status"),
     path("reset-password/", views.ResetPasswordView.as_view(), name="reset-password"),
 ]
