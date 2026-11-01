@@ -81,6 +81,18 @@ def register_device(user, platform: str, label: str, refresh, not_after=None,
     )
 
 
+def register_guest_device(user, refresh, label: str, machine_id: str) -> Device:
+    """Mehmon sessiyasi — limitsiz, `settings.GUEST_DAYS` kundan keyin tugaydi."""
+    return Device.objects.create(
+        user=user,
+        platform=Device.Platform.MOBILE,
+        refresh_jti=refresh["jti"],
+        label=label or "",
+        machine_id=machine_id,
+        expires_at=timezone.now() + timedelta(days=settings.GUEST_DAYS),
+    )
+
+
 def device_for_refresh(jti: str) -> tuple[Device | None, str]:
     """Refresh uchun yaroqli qurilma va sabab.
 

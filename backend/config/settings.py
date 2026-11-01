@@ -200,6 +200,8 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
+    # Faqat `throttle_scope` belgilangan view'larga qo'llanadi.
+    "DEFAULT_THROTTLE_RATES": {"guest": "20/hour"},
 }
 
 SIMPLE_JWT = {
@@ -259,6 +261,8 @@ DEVICE_EVICT_OLDEST = {"mobile"}
 # Qurilma sessiyasining umri, kunda. None — muddat yo'q (refresh tokenning
 # o'z umri amal qiladi). Web va desktopda kirish sotilgani uchun 12 kun.
 SESSION_DAYS = {"mobile": None, "web": 12, "desktop": 12}
+# Mehmon (ro'yxatdan o'tmagan mobil foydalanuvchi) sessiyasining umri, kunda.
+GUEST_DAYS = 5
 # Shef chiqargan kirish kodi faollashtirilgandan keyin qancha kun ishlaydi.
 ACCESS_CODE_DAYS = 12
 

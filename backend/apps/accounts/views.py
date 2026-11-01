@@ -12,11 +12,12 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import AccessCode, SocialAccount, User, placeholder_phone
+from .models import AccessCode, SocialAccount, User, guest_phone, placeholder_phone
 from .serializers import (
     AccessCodeLoginSerializer,
     AccessCodeSerializer,
     ChangePasswordSerializer,
+    GuestSerializer,
     LoginSerializer,
     RegisterSerializer,
     DeviceSerializer,
@@ -25,7 +26,8 @@ from .serializers import (
     issue_tokens,
     tokens_for,
 )
-from common.permissions import IsAdminRole
+from common.permissions import IsAdminRole, IsRegistered
+from rest_framework.throttling import ScopedRateThrottle
 
 from .devices import (
     DeviceLimitReached,
@@ -82,6 +84,38 @@ class LoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return auth_response(serializer.validated_data["user"], request)
+
+
+@extend_schema(tags=["auth"])
+class GuestView(generics.GenericAPIView):
+    """Mehmon sessiyasi — ilova birinchi ochilganda, ro'yxatdan o'tmasdan.
+
+    Telefonsiz `role=guest` foydalanuvchi va `settings.GUEST_DAYS` kunlik
+    sessiya. Muddat tugagach har so'rov `401 guest_expired` oladi.
+    """
+
+    serializer_class = GuestSerializer
+    permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "guest"
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        with transaction.atomic():
+            # `create_user` emas — u telefonni `+998` ga normallashtiradi.
+            user = User(phone=guest_phone(), role=User.Role.GUEST, language=data["lang"])
+            user.set_unusable_password()
+            user.save()
+            tokens = issue_tokens(user, label=data.get("device_label", ""),
+                                  machine_id=data["device_id"], guest=True)
+        device = user.devices.get()
+        return Response(
+            {"user": UserSerializer(user).data, "tokens": tokens,
+             "guest_until": device.expires_at.isoformat()},
+            status=status.HTTP_201_CREATED,
+        )
 
 
 @extend_schema(tags=["auth"])
@@ -155,6 +189,8 @@ class MeView(generics.RetrieveUpdateDestroyAPIView):
 
 @extend_schema(tags=["auth"])
 class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated, IsRegistered]
+
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)

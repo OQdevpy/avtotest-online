@@ -5,6 +5,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 PASSWORD = "pass1234"
 
 
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    """Tezlik cheklovi (throttle) hisoblagichlari testlar orasida o'tib ketmasin."""
+    from django.core.cache import cache
+
+    cache.clear()
+
+
 @pytest.fixture
 def api():
     return APIClient()

@@ -8,7 +8,7 @@ from .models import AccessCode, Device, SocialAccount, User
 class UserAdmin(BaseUserAdmin):
     ordering = ("-date_joined",)
     list_display = ("phone", "full_name", "role", "branch", "hujjat",
-                    "is_pro", "is_active", "date_joined")
+                    "is_pro", "is_active", "date_joined", "guest_until")
     list_filter = ("role", "branch", "is_active", "is_staff", "is_pro", "hujjat", "language")
     search_fields = ("phone", "full_name")
     list_select_related = ("branch",)
@@ -25,6 +25,14 @@ class UserAdmin(BaseUserAdmin):
                                   "groups", "user_permissions")}),
         ("Sanalar", {"fields": ("last_login", "date_joined")}),
     )
+    @admin.display(description="Mehmon muddati")
+    def guest_until(self, obj):
+        """Mehmon sessiyasi qachon tugaydi (mehmon bo'lmasa —)."""
+        if not obj.is_guest:
+            return "—"
+        device = obj.devices.order_by("-created_at").first()
+        return device.expires_at if device else "—"
+
     add_fieldsets = (
         (None, {"classes": ("wide",),
                 "fields": ("phone", "password1", "password2", "full_name",

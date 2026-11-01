@@ -15,6 +15,14 @@ class IsStudent(BasePermission):
         return bool(user and user.is_authenticated and user.role == user.Role.STUDENT)
 
 
+class IsRegistered(BasePermission):
+    message = "Bu amal uchun ro'yxatdan o'ting."
+
+    def has_permission(self, request, view) -> bool:
+        user = request.user
+        return bool(user and user.is_authenticated and not user.is_guest)
+
+
 class IsTeacherOrAdmin(BasePermission):
     message = "Bu amal faqat o'qituvchi va shef uchun."
 

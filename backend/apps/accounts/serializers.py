@@ -27,19 +27,24 @@ SESSION_CLAIM = "did"
 
 
 def issue_tokens(user: User, platform: str = "", label: str = "",
-                 not_after=None, unlimited: bool = False, machine_id: str = "") -> dict:
+                 not_after=None, unlimited: bool = False, machine_id: str = "",
+                 guest: bool = False) -> dict:
     """JWT chiqaradi va sessiyani `Device` ga yozadi.
 
     `not_after` berilsa sessiya muddati undan oshmaydi.
     Limit to'lgan bo'lsa `devices.DeviceLimitReached` ko'tariladi;
     `unlimited=True` — qurilma limiti ham, sessiya muddati ham yo'q (kirish kodi).
+    `guest=True` — mehmon sessiyasi (`settings.GUEST_DAYS` kun).
     """
-    from .devices import register_device
+    from .devices import register_device, register_guest_device
 
     refresh = RefreshToken.for_user(user)
-    device = register_device(user, platform, label, refresh, not_after=not_after,
-                             unlimited=unlimited, machine_id=machine_id)
-    if machine_id:
+    if guest:
+        device = register_guest_device(user, refresh, label, machine_id)
+    else:
+        device = register_device(user, platform, label, refresh, not_after=not_after,
+                                 unlimited=unlimited, machine_id=machine_id)
+    if machine_id or guest:
         # Kod sessiyasi: har so'rovda `Device` tirikligi tekshiriladi
         # (`common.authentication`). Claim refresh rotatsiyasida ham saqlanadi.
         refresh[SESSION_CLAIM] = device.pk
@@ -85,6 +90,14 @@ class RegisterSerializer(serializers.Serializer):
         user.pro_until = timezone.now() + timedelta(days=12)
         user.save()
         return user
+
+
+class GuestSerializer(serializers.Serializer):
+    # Ilova o'rnatilganda yaratadigan tasodifiy ID — faqat ma'lumot uchun.
+    device_id = serializers.CharField(max_length=64)
+    lang = serializers.ChoiceField(choices=User.Language.choices, required=False,
+                                   default=User.Language.UZ)
+    device_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
 
 
 class LoginSerializer(serializers.Serializer):

@@ -41,6 +41,17 @@ def placeholder_phone(provider: str, uid: str) -> str:
     raise ValidationError("O'rinbosar telefon raqam topilmadi.")
 
 
+def guest_phone() -> str:
+    """Mehmon uchun noyob o'rinbosar `phone` (13 belgi).
+
+    `+998` bilan boshlanmaydi — haqiqiy raqam bilan hech qachon to'qnashmaydi.
+    """
+    while True:
+        phone = "g" + secrets.token_hex(6)
+        if not User.objects.filter(phone=phone).exists():
+            return phone
+
+
 class UserManager(BaseUserManager):
     def create_user(self, phone: str, password: str | None = None, **extra):
         phone = normalize_phone(phone)
@@ -67,6 +78,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         STUDENT = "student", "O'quvchi"
         TEACHER = "teacher", "O'qituvchi"
         ADMIN = "admin", "Shef"
+        # Ro'yxatdan o'tmagan, sinov muddatidagi mobil foydalanuvchi.
+        GUEST = "guest", "Mehmon"
 
     class Language(models.TextChoices):
         UZ = "uz", "O'zbekcha (lotin)"
@@ -122,6 +135,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def is_teacher(self) -> bool:
         """O'qituvchi huquqi — o'quvchilar natijasini ko'rish. Shefda ham bor."""
         return self.role in (self.Role.TEACHER, self.Role.ADMIN)
+
+    @property
+    def is_guest(self) -> bool:
+        return self.role == self.Role.GUEST
 
     @property
     def is_content_admin(self) -> bool:
