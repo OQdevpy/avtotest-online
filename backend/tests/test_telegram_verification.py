@@ -66,3 +66,52 @@ def test_consume_only_verified(db, fake_redis):
     assert verification.consume(token, "+998901234567", "reset") is False
     assert verification.consume(token, "+998901234567", "register") is True
     assert verification.consume(token, "+998901234567", "register") is False
+
+
+# --- Bot: kontaktni solishtirish -------------------------------------------
+
+def new_token(phone="+998901234567"):
+    return verification.start_session(phone, "register", "uz")
+
+
+def test_mask_phone():
+    assert verification.mask_phone("+998901234567") == "+998 90 ***-45-67"
+
+
+def test_resolve_contact_match(db, fake_redis):
+    token = new_token()
+    assert verification.resolve_contact(token, "+998901234567", 7) == (
+        "verified", "+998901234567", "+998901234567")
+    assert verification.status_of(token) == "verified"
+    assert verification.get_session(token)["telegram_id"] == 7
+
+
+def test_resolve_contact_normalizes(db, fake_redis):
+    for raw in ("998901234567", "+998 90 123 45 67"):
+        assert verification.resolve_contact(new_token(), raw, 7)[0] == "verified"
+
+
+def test_resolve_contact_mismatch(db, fake_redis):
+    token = new_token()
+    assert verification.resolve_contact(token, "+998911112233", 7) == (
+        "mismatch", "+998901234567", "+998911112233")
+    assert verification.status_of(token) == "mismatch"
+
+
+def test_resolve_contact_foreign(db, fake_redis):
+    token = new_token()
+    assert verification.resolve_contact(token, "+79161234567", 7)[0] == "foreign"
+    assert verification.status_of(token) == "mismatch"
+
+
+def test_resolve_contact_expired(db, fake_redis):
+    assert verification.resolve_contact("yoq-token", "+998901234567", 7) == (
+        "expired", None, None)
+
+
+def test_chat_binding(db, fake_redis):
+    token = new_token()
+    verification.bind_chat(7, token)
+    assert verification.chat_token(7) == token
+    verification.unbind_chat(7)
+    assert verification.chat_token(7) is None

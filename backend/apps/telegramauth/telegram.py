@@ -123,6 +123,48 @@ TEXTS: dict[str, dict[str, str]] = {
             "Никому его не сообщайте."
         ),
     },
+    # --- Ilovadan havola orqali tasdiqlash (/start <token>) ---
+    "verify_prompt": {
+        "uz": (
+            "Raqamingizni tasdiqlash uchun pastdagi «📱 Kontaktni ulashish» "
+            "tugmasini bosing."
+        ),
+        "kr": (
+            "Рақамингизни тасдиқлаш учун пастдаги «📱 Контактни улашиш» "
+            "тугмасини босинг."
+        ),
+        "ru": "Чтобы подтвердить номер, нажмите кнопку «📱 Поделиться контактом» ниже.",
+    },
+    "link_expired": {
+        "uz": "⌛ Havola eskirgan. Ilovaga qaytib, qaytadan boshlang.",
+        "kr": "⌛ Ҳавола эскирган. Иловага қайтиб, қайтадан бошланг.",
+        "ru": "⌛ Ссылка устарела. Вернитесь в приложение и начните заново.",
+    },
+    "verified": {
+        "uz": "✅ Raqamingiz tasdiqlandi. Ilovaga qayting.",
+        "kr": "✅ Рақамингиз тасдиқланди. Иловага қайтинг.",
+        "ru": "✅ Номер подтверждён. Вернитесь в приложение.",
+    },
+    "mismatch": {
+        "uz": (
+            "❌ Siz ulashgan raqam ({shared}) ilovaga kiritilgan raqam ({entered}) "
+            "bilan mos emas. Ilovaga qaytib, Telegram'dagi raqamingizni kiriting."
+        ),
+        "kr": (
+            "❌ Сиз улашган рақам ({shared}) иловага киритилган рақам ({entered}) "
+            "билан мос эмас. Иловага қайтиб, Телеграмдаги рақамингизни киритинг."
+        ),
+        "ru": (
+            "❌ Номер, которым вы поделились ({shared}), не совпадает с номером, "
+            "введённым в приложении ({entered}). Вернитесь в приложение и введите "
+            "номер вашего Telegram."
+        ),
+    },
+    "foreign_number": {
+        "uz": "❌ Faqat O'zbekiston raqami bilan ro'yxatdan o'tish mumkin.",
+        "kr": "❌ Фақат Ўзбекистон рақами билан рўйхатдан ўтиш мумкин.",
+        "ru": "❌ Регистрация возможна только с номером Узбекистана.",
+    },
 }
 
 

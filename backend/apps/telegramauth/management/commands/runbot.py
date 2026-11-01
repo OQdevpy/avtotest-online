@@ -26,6 +26,7 @@ from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
     Update,
 )
 from telegram.ext import (
@@ -38,7 +39,7 @@ from telegram.ext import (
 )
 
 from apps.accounts.models import User, normalize_phone
-from apps.telegramauth import otpstore, telegram as tg
+from apps.telegramauth import otpstore, telegram as tg, verification
 from apps.telegramauth.models import TelegramAccount
 
 
@@ -125,10 +126,29 @@ def _get_code_keyboard(lang: str) -> ReplyKeyboardMarkup:
 GET_CODE_LABELS = {tg.t("get_code_button", lang) for lang in ("uz", "kr", "ru")}
 
 
+@sync_to_async
+def open_session(telegram_id: int, token: str) -> dict | None:
+    """Ilova havolasidagi sessiyani shu chatga bog'laydi (yo'q bo'lsa None)."""
+    session = verification.get_session(token)
+    if session is not None:
+        verification.bind_chat(telegram_id, token)
+    return session
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # Deep link (t.me/...?start=payload) bo'lsa ham xush kelibsiz -> til ->
-    # kontakt oqimi bir xil; payload'ni e'tiborsiz qoldiramiz (kerak bo'lsa
-    # context.args orqali olinadi).
+    # Ilova havolasi (t.me/...?start=<token>) — til so'ralmaydi, darhol bitta
+    # «Kontaktni ulashish» tugmasi. Parametrsiz /start — eski oqim (til -> kontakt).
+    if context.args:
+        session = await open_session(update.effective_user.id, context.args[0])
+        if session is None:
+            await update.message.reply_text(tg.t("link_expired", "uz"))
+            return
+        lang = tg.app_lang_to_bot(session["lang"])
+        await update.message.reply_text(
+            tg.t("verify_prompt", lang), reply_markup=_contact_keyboard(lang),
+        )
+        return
+
     await update.message.reply_text(
         tg.t("choose_language", "uz"),
         reply_markup=_lang_keyboard(),
@@ -166,6 +186,11 @@ async def on_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         )
         return
 
+    token = await sync_to_async(verification.chat_token)(from_user.id)
+    if token:
+        await on_app_contact(message, token, lang)
+        return
+
     try:
         phone, lang = await link_contact(
             from_user.id,
@@ -181,6 +206,33 @@ async def on_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         tg.t("linked", lang, phone=phone),
         reply_markup=_get_code_keyboard(lang),
     )
+
+
+async def on_app_contact(message, token: str, lang: str) -> None:
+    """Ilova havolasi bilan kelgan kontakt: raqamni sessiyadagi bilan solishtiradi."""
+    from_user = message.from_user
+    session = await sync_to_async(verification.get_session)(token)
+    if session is not None:
+        lang = tg.app_lang_to_bot(session["lang"])
+    outcome, entered, shared = await sync_to_async(verification.resolve_contact)(
+        token, message.contact.phone_number, from_user.id,
+    )
+    await sync_to_async(verification.unbind_chat)(from_user.id)
+    removed = ReplyKeyboardRemove()
+    if outcome == "verified":
+        await link_contact(from_user.id, shared, from_user.username or "",
+                           from_user.full_name or "")
+        await message.reply_text(tg.t("verified", lang), reply_markup=removed)
+    elif outcome == "mismatch":
+        await message.reply_text(
+            tg.t("mismatch", lang, shared=verification.mask_phone(shared),
+                 entered=verification.mask_phone(entered)),
+            reply_markup=removed,
+        )
+    elif outcome == "foreign":
+        await message.reply_text(tg.t("foreign_number", lang), reply_markup=removed)
+    else:
+        await message.reply_text(tg.t("link_expired", lang), reply_markup=removed)
 
 
 async def on_get_code(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

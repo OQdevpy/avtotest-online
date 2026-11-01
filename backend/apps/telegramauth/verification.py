@@ -19,6 +19,10 @@ from __future__ import annotations
 import json
 import secrets
 
+from django.core.exceptions import ValidationError
+
+from apps.accounts.models import normalize_phone
+
 from . import otpstore
 from .telegram import BOT_USERNAME
 
@@ -117,5 +121,40 @@ def chat_token(telegram_id: int) -> str | None:
     return otpstore.client().get(_chat_key(telegram_id))
 
 
+def unbind_chat(telegram_id: int) -> None:
+    """Kontakt qabul qilingach — keyingi kontakt eski oqimga tushsin."""
+    otpstore.client().delete(_chat_key(telegram_id))
+
+
 def bot_link(token: str) -> str:
     return f"https://t.me/{BOT_USERNAME}?start={token}"
+
+
+def mask_phone(phone: str) -> str:
+    """`+998901234567` -> `+998 90 ***-45-67` (bot xabarlarida)."""
+    return f"{phone[:4]} {phone[4:6]} ***-{phone[9:11]}-{phone[11:13]}"
+
+
+def resolve_contact(token: str, shared_raw: str,
+                    telegram_id: int) -> tuple[str, str | None, str | None]:
+    """Bot'ga kelgan kontaktni sessiyadagi raqam bilan solishtiradi.
+
+    Qaytaradi: ``(outcome, session_phone, shared_phone)``; outcome —
+    ``verified`` | ``mismatch`` | ``foreign`` (O'zbekiston raqami emas) |
+    ``expired`` (sessiya yo'q). ``foreign`` ham sessiyani ``mismatch`` qiladi.
+    Kontakt aynan yuboruvchiniki ekani bot'da oldinroq tekshiriladi.
+    """
+    session = get_session(token)
+    if session is None:
+        return "expired", None, None
+    expected = session["phone"]
+    try:
+        shared = normalize_phone(shared_raw)
+    except ValidationError:
+        mark(token, Status.MISMATCH, telegram_id)
+        return "foreign", expected, None
+    if shared != expected:
+        mark(token, Status.MISMATCH, telegram_id)
+        return "mismatch", expected, shared
+    mark(token, Status.VERIFIED, telegram_id)
+    return "verified", expected, shared
