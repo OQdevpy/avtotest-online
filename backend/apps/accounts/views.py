@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from django.conf import settings
+
 from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
@@ -44,6 +46,9 @@ OTHER_COMPUTER_MESSAGE = ("Bu kod boshqa kompyuterga biriktirilgan. "
                           "Yangi kompyuter uchun shefga murojaat qiling.")
 OUTDATED_CLIENT_MESSAGE = "Ilovaning yangi versiyasini o'rnating."
 MIN_DEVICE_ID = 16
+UPDATE_REQUIRED = {"code": "update_required", "detail": "Ilovaning yangi versiyasini o'rnating."}
+VERIFICATION_INVALID = {"code": "verification_invalid",
+                        "detail": "Raqam tasdig'i yaroqsiz yoki muddati o'tgan. Qaytadan tasdiqlang."}
 
 
 def auth_response(user: User, request=None, created: bool = False) -> Response:
@@ -65,13 +70,30 @@ def auth_response(user: User, request=None, created: bool = False) -> Response:
 
 @extend_schema(tags=["auth"])
 class RegisterView(generics.GenericAPIView):
+    """Ro'yxatdan o'tish — raqam Telegram bot orqali tasdiqlangan bo'lishi shart.
+
+    `verification` — `auth/telegram/start/` tokeni (bot tasdiqlagan). Eski ilova
+    uni yubormaydi va `update_required` oladi. `guest_refresh` berilsa mehmon
+    hisobi o'quvchiga aylanadi (natijalari bilan).
+    """
+
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from apps.telegramauth import verification
+        from apps.telegramauth.models import TelegramAccount
+
+        if settings.REGISTER_REQUIRE_TELEGRAM and not request.data.get("verification"):
+            return Response(UPDATE_REQUIRED, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data["phone"]
+        token = serializer.validated_data.pop("verification", "")
+        if token and not verification.consume(token, phone, "register"):
+            return Response(VERIFICATION_INVALID, status=status.HTTP_400_BAD_REQUEST)
         user = serializer.save()
+        TelegramAccount.objects.filter(phone=phone, user__isnull=True).update(user=user)
         return auth_response(user, request, created=True)
 
 

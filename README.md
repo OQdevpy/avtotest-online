@@ -124,6 +124,23 @@ Yadro — JWT (access 1 kun, refresh 90 kun, rotatsiya yoqilgan). Kirish yo'llar
 | `auth/login/` — telefon + parol | Mobil, web |
 | `auth/login-code/` — shef bergan kod | Desktop darslik va imtihon |
 | `auth/social/` — Apple / Google / Telegram | Mobil |
+| `auth/guest/` — mehmon, ro'yxatdan o'tmasdan 5 kun | Mobil (yangi versiya) |
+
+**Mehmon rejimi.** Yangi mobil ilova birinchi ochilganda `auth/guest/` dan
+telefonsiz `role=guest` hisob va 5 kunlik sessiya oladi (`GUEST_DAYS`). Muddat
+tugagach har so'rov `401` va `code: "guest_expired"` qaytaradi.
+
+**Ro'yxatdan o'tish — Telegram orqali.** Ilova `POST auth/telegram/start/`
+(`{phone, purpose: register|reset, lang}`) dan `{token, link}` oladi va
+`t.me/<bot>?start=<token>` ni ochadi. Bot kontaktni so'raydi va raqamni
+solishtiradi; ilova `GET auth/telegram/status/<token>/` ni so'rab turadi
+(`pending | verified | mismatch | expired`). So'ng `auth/register/` ga
+`verification=<token>` (va mehmon bo'lsa `guest_refresh=<refresh>` — mehmon
+hisobi natijalari bilan o'quvchiga aylanadi). Tokensiz (eski ilova)
+`400 update_required`. Yangi ilova do'konga chiqquncha
+`REGISTER_REQUIRE_TELEGRAM=False` eski yo'lni ochiq qoldiradi.
+`auth/reset-password/` ham shu tokenni qabul qiladi; talaba parolni tiklasa
+ochiq PIN bo'shatiladi va u o'z paroli bilan kiradi.
 
 **Kirish kodi — bitta kompyuterga.** Desktop `device_id` (Windows MachineGuid'ining
 sha256 xeshi) yuboradi; birinchi kirish kodni shu kompyuterga biriktiradi, shu

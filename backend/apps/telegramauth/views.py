@@ -20,7 +20,10 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from django.conf import settings
+
 from apps.accounts.models import User
+from apps.billing.models import Student
 
 from . import otpstore, telegram, verification
 from .models import TelegramAccount
@@ -51,6 +54,11 @@ class SendCodeView(APIView):
         serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data["phone"]
         purpose = serializer.validated_data["purpose"]
+
+        # Ro'yxatdan o'tish endi Telegram havolasi orqali (`telegram/start/`) —
+        # eski ilova kod oqimiga kirmasdan "yangilang"ni ko'radi.
+        if purpose == "register" and settings.REGISTER_REQUIRE_TELEGRAM:
+            return _error("update_required", "Ilovaning yangi versiyasini o'rnating.")
 
         account = (
             TelegramAccount.objects.filter(phone=phone)
@@ -135,7 +143,8 @@ class ResetPasswordView(APIView):
         password = serializer.validated_data["password"]
 
         # Bir martalik tokenni Redis'dan tekshirib, darhol ishlatamiz.
-        if not otpstore.consume_token(token, phone, "reset"):
+        if not (verification.consume(token, phone, "reset")
+                or otpstore.consume_token(token, phone, "reset")):
             return _error(
                 "invalid_token",
                 "Token yaroqsiz yoki muddati tugagan. Qaytadan boshlang.",
@@ -157,6 +166,9 @@ class ResetPasswordView(APIView):
 
             user.set_password(password)
             user.save(update_fields=["password"])
+            # Talabaning ochiq PIN'i bo'shatiladi — endi o'z paroli bilan kiradi.
+            # `update()`: `save()` signal orqali User parolini bo'sh satrga almashtirardi.
+            Student.objects.filter(user=user).update(password="")
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

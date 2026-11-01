@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import AccessCode, Device, SocialAccount, User, normalize_phone
@@ -78,6 +79,11 @@ class RegisterSerializer(serializers.Serializer):
     language = serializers.ChoiceField(
         choices=User.Language.choices, required=False, default=User.Language.UZ
     )
+    # `auth/telegram/start/` tokeni — view tekshiradi va ishlatadi.
+    verification = serializers.CharField(max_length=64, required=False, allow_blank=True,
+                                         write_only=True)
+    # Mehmonning refresh tokeni — mehmon hisobi o'quvchiga aylanadi.
+    guest_refresh = serializers.CharField(required=False, allow_blank=True, write_only=True)
 
     def validate_phone(self, value: str) -> str:
         if User.objects.filter(phone=value).exists():
@@ -85,11 +91,39 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def create(self, validated):
-        user = User.objects.create_user(**validated)
+        guest = guest_from_refresh(validated.pop("guest_refresh", ""))
+        password = validated.pop("password")
+        if guest is not None:
+            # Yangi hisob ochilmaydi: natijalar, xatolar, sevimlilar shu userda qoladi.
+            user = guest
+            for field, value in validated.items():
+                setattr(user, field, value)
+            user.role = User.Role.STUDENT
+            user.set_password(password)
+            Device.objects.filter(user=user, is_active=True).update(is_active=False)
+        else:
+            user = User.objects.create_user(password=password, **validated)
         user.is_pro = True
         user.pro_until = timezone.now() + timedelta(days=12)
         user.save()
         return user
+
+
+def guest_from_refresh(raw: str) -> User | None:
+    """Mehmonni refresh tokeni orqali topadi (imzo va 90 kunlik umri tekshiriladi).
+
+    Mehmon sessiyasining 5 kunlik muddati bu yerda ahamiyatsiz — muddati
+    tugagan mehmon ham ro'yxatdan o'tib aylana oladi.
+    """
+    if not raw:
+        return None
+    try:
+        payload = RefreshToken(raw).payload
+    except TokenError:
+        return None
+    return User.objects.filter(
+        pk=payload.get("user_id"), role=User.Role.GUEST, is_active=True
+    ).first()
 
 
 class GuestSerializer(serializers.Serializer):
@@ -114,7 +148,8 @@ class LoginSerializer(serializers.Serializer):
         from apps.billing.models import Student
 
         student = Student.objects.filter(phone=phone).select_related("user").first()
-        if student is not None:
+        # Talaba parolni o'zi tiklagan bo'lsa PIN bo'shatiladi — odatdagi parol amal qiladi.
+        if student is not None and student.password:
             if student.password != password:
                 raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
             user = student.user
