@@ -200,8 +200,9 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
-    # Faqat `throttle_scope` belgilangan view'larga qo'llanadi.
-    "DEFAULT_THROTTLE_RATES": {"guest": "20/hour"},
+    # Faqat `throttle_scope` belgilangan view'larga qo'llanadi. Mobil operatorlarda
+    # ko'p foydalanuvchi bitta IP ortida — asosiy cheklov nginx `limit_req` da.
+    "DEFAULT_THROTTLE_RATES": {"guest": "300/hour"},
 }
 
 SIMPLE_JWT = {

@@ -28,6 +28,7 @@ from .serializers import (
     issue_tokens,
     tokens_for,
 )
+from common.authentication import GUEST_EXPIRED
 from common.permissions import IsAdminRole, IsRegistered
 from rest_framework.throttling import ScopedRateThrottle
 
@@ -288,6 +289,12 @@ class DeviceAwareTokenRefreshView(TokenRefreshView):
             # etiladi, ya'ni 12 kunlik qoida kuchida qoladi.
             device = grandfather_device(incoming)
         if device is None:
+            closed = Device.objects.select_related("user").filter(
+                refresh_jti=incoming["jti"]).first()
+            if closed is not None and closed.user.is_guest:
+                # Access token 1 kunda eskiradi — mehmon buni refresh'da bilishi kerak,
+                # aks holda ilova tokenni o'chirib, natijalar bilan aylanish imkoni yo'qoladi.
+                return Response(GUEST_EXPIRED, status=status.HTTP_401_UNAUTHORIZED)
             return Response({"detail": "Sessiya tugagan yoki uzilgan."},
                             status=status.HTTP_401_UNAUTHORIZED)
 

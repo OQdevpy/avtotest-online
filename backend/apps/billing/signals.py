@@ -58,7 +58,8 @@ def sync_student_user(sender, instance, created, **kwargs):
         changed.append("phone")
     # PIN o'zgargan bo'lsa — shef ataylab reset qilgan, login paroli ham
     # yangilanadi.
-    if getattr(student, "_previous_password", student.password) != student.password:
+    # Bo'sh PIN (talaba parolni o'zi tiklagan) login parolini almashtirmaydi.
+    if student.password and getattr(student, "_previous_password", student.password) != student.password:
         if not user.check_password(student.password):
             user.set_password(student.password)
             changed.append("password")

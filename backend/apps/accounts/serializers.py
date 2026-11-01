@@ -148,7 +148,8 @@ class LoginSerializer(serializers.Serializer):
         from apps.billing.models import Student
 
         student = Student.objects.filter(phone=phone).select_related("user").first()
-        # Talaba parolni o'zi tiklagan bo'lsa PIN bo'shatiladi — odatdagi parol amal qiladi.
+        # Talaba parolni o'zi tiklagan bo'lsa PIN bo'shatiladi — odatdagi parol amal qiladi,
+        # lekin front-ofis blokirovkasi (`Student.is_active`) baribir tekshiriladi.
         if student is not None and student.password:
             if student.password != password:
                 raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
@@ -156,6 +157,8 @@ class LoginSerializer(serializers.Serializer):
             if user is None or not student.is_active or not user.is_active:
                 raise serializers.ValidationError("Hisob bloklangan.")
         else:
+            if student is not None and not student.is_active:
+                raise serializers.ValidationError("Hisob bloklangan.")
             user = authenticate(username=phone, password=password)
             if user is None:
                 raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
