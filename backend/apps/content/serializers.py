@@ -41,6 +41,7 @@ class QuestionSerializer(CompatFieldsMixin, serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     explanation_image_url = serializers.SerializerMethodField()
     audio_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
     answers = AnswerSerializer(many=True, read_only=True)
 
     compat_aliases = {
@@ -55,7 +56,7 @@ class QuestionSerializer(CompatFieldsMixin, serializers.ModelSerializer):
         fields = (
             "id", "lesson_id", "text", "explanation", "image", "image_url",
             "explanation_image", "explanation_image_url", "audio", "audio_url",
-            "answers", "order",
+            "video", "video_url", "answers", "order",
         )
 
     def _media_url(self, path: str) -> str | None:
@@ -73,6 +74,9 @@ class QuestionSerializer(CompatFieldsMixin, serializers.ModelSerializer):
 
     def get_audio_url(self, obj) -> str | None:
         return self._media_url(obj.audio)
+
+    def get_video_url(self, obj) -> str | None:
+        return self._media_url(obj.video)
 
 
 class QuestionPublicSerializer(QuestionSerializer):

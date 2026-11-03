@@ -10,6 +10,7 @@ import { SortableContext, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useData } from '../context/DataContext';
 import ImagePreview from '../components/ImagePreview';
+import QuestionVideo from '../components/QuestionVideo';
 import { mediaUrl } from '../services/api';
 
 // ─── Sortable savol raqami ───
@@ -125,7 +126,7 @@ export default function QuestionDetail() {
     sections, lessons, getQuestionsByLesson, getAnswersByQuestion,
     updateQuestion, addQuestion, deleteQuestion, reorderQuestions,
     updateAnswer, addAnswer, deleteAnswer,
-    uploadQuestionImage, uploadExplanationImage,
+    uploadQuestionImage, uploadExplanationImage, uploadQuestionVideo,
     getVal, t, lang,
   } = useData();
 
@@ -152,6 +153,8 @@ export default function QuestionDetail() {
   const [pendingImagePreview, setPendingImagePreview] = useState(null);
   const [pendingDescFile, setPendingDescFile] = useState(null);
   const [pendingDescPreview, setPendingDescPreview] = useState(null);
+  const [pendingVideoFile, setPendingVideoFile] = useState(null);
+  const [pendingVideoPreview, setPendingVideoPreview] = useState(null);
   const fileInputRef = useRef(null);
   const descImageInputRef = useRef(null);
 
@@ -202,6 +205,7 @@ export default function QuestionDetail() {
       explanation_cry: currentQ.explanation_cry || '',
       image: currentQ.image,
       explanation_image: currentQ.explanation_image || '',
+      video: currentQ.video || '',
       is_in_web: currentQ.is_in_web,
       is_published: currentQ.is_published,
     });
@@ -211,6 +215,7 @@ export default function QuestionDetail() {
     setPendingImagePreview(null);
     setPendingDescFile(null);
     setPendingDescPreview(null);
+    clearPendingVideo();
     setEditing(true);
   };
 
@@ -231,7 +236,14 @@ export default function QuestionDetail() {
     setPendingImagePreview(null);
     setPendingDescFile(null);
     setPendingDescPreview(null);
+    clearPendingVideo();
     setEditing(false);
+  };
+
+  const clearPendingVideo = () => {
+    if (pendingVideoPreview) URL.revokeObjectURL(pendingVideoPreview);
+    setPendingVideoFile(null);
+    setPendingVideoPreview(null);
   };
 
   const cancelEdit = () => {
@@ -239,6 +251,7 @@ export default function QuestionDetail() {
     setPendingImagePreview(null);
     setPendingDescFile(null);
     setPendingDescPreview(null);
+    clearPendingVideo();
     setEditing(false);
   };
 
@@ -254,6 +267,8 @@ export default function QuestionDetail() {
       is_in_web: editQ.is_in_web,
       is_published: editQ.is_published,
     };
+    // Video × bilan olib tashlangan bo'lsa
+    if (!editQ.video && !pendingVideoFile && currentQ.video) questionUpdate.video = '';
     await updateQuestion(currentQ.id, questionUpdate);
 
     // Asosiy rasm yuklash
@@ -264,6 +279,11 @@ export default function QuestionDetail() {
     // Izoh rasmi yuklash
     if (pendingDescFile && uploadExplanationImage) {
       await uploadExplanationImage(currentQ.id, pendingDescFile);
+    }
+
+    // Video — katta fayl, xato bo'lsa saveEdit ogohlantiradi
+    if (pendingVideoFile) {
+      await uploadQuestionVideo(currentQ.id, pendingVideoFile);
     }
 
     // Javoblar: avval o'chirilganlar, so'ng ekrandagi tartibda yangilash/yaratish
@@ -622,6 +642,23 @@ export default function QuestionDetail() {
                 )
               )}
             </div>
+
+            <QuestionVideo
+              editing={editing}
+              src={editing
+                ? (pendingVideoPreview || (editQ.video ? mediaUrl(editQ.video) : null))
+                : (currentQ.video ? mediaUrl(currentQ.video) : null)}
+              pending={!!pendingVideoPreview}
+              onPick={(file) => {
+                clearPendingVideo();
+                setPendingVideoFile(file);
+                setPendingVideoPreview(URL.createObjectURL(file));
+              }}
+              onClear={() => {
+                clearPendingVideo();
+                setEditQ(prev => ({ ...prev, video: '' }));
+              }}
+            />
           </div>
 
           {/* O'ng tomon: Savol rasmi */}

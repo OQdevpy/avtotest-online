@@ -444,6 +444,15 @@ export function DataProvider({ children }) {
     }
   }, []);
 
+  // Video katta bo'lishi mumkin — xato yutilmaydi, "Saqlash" uni ko'rsatadi.
+  const uploadQuestionVideo = useCallback(async (questionId, file) => {
+    const result = await uploadFile(`/manage/questions/${questionId}/video/`, file, 'file');
+    setQuestions(prev => prev.map(q =>
+      q.id === questionId ? { ...q, video: result.video } : q
+    ));
+    return result.video;
+  }, []);
+
   // ── Eksport rasmlar ──
   const exportAllQuestionImages = useCallback(async () => {
     const sortedQuestions = [...questions].sort((a, b) => b.id - a.id).slice(0, 50);
@@ -537,6 +546,7 @@ export function DataProvider({ children }) {
     getAnswersByQuestion, updateAnswer, addAnswer, deleteAnswer,
     updateBlits, addBlits, deleteBlits, addQuestionToBlits, removeQuestionFromBlits,
     exportAllQuestionImages, exportDescriptionImages, uploadQuestionImage, uploadExplanationImage,
+    uploadQuestionVideo,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

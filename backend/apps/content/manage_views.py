@@ -17,8 +17,10 @@ from common.permissions import IsAdminRole
 from .media import (
     UnreadableImage,
     UnsupportedAudio,
+    UnsupportedVideo,
     remove_quietly,
     save_audio,
+    save_video,
     to_webp,
     unique_name,
 )
@@ -63,10 +65,10 @@ class ReorderMixin:
 
 
 
-# --- Rasm va audio yuklash --------------------------------------------------
+# --- Rasm, audio va video yuklash -------------------------------------------
 
 class _MediaUploadMixin:
-    """`manage/questions/{id}/image|audio/` — multipart yuklash."""
+    """`manage/questions/{id}/image|audio|video/` — multipart yuklash."""
 
     def _uploaded(self, request):
         file = request.data.get("file")
@@ -103,6 +105,21 @@ class _MediaUploadMixin:
         question.audio = relative
         question.save(update_fields=["audio", "updated_at"])
         return Response({"audio": relative})
+
+    @extend_schema(request=None, responses={200: None})
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser])
+    def video(self, request, pk=None):
+        question = self.get_object()
+        upload = self._uploaded(request)
+        try:
+            relative = save_video(upload, unique_name(f"q{question.pk}"), upload.name)
+        except UnsupportedVideo as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+
+        remove_quietly(question.video)
+        question.video = relative
+        question.save(update_fields=["video", "updated_at"])
+        return Response({"video": relative})
 
     # admin-panel'dagi "izoh rasmi" (description_image) shu maydonga to'g'ri
     # keladi. `image` bilan bir xil qoida: WebP'ga o'giriladi, eskisi o'chadi.

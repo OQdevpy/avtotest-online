@@ -83,6 +83,8 @@ class Question(TimeStampedModel):
     explanation_image = models.CharField(max_length=255, blank=True)
     # Audio izoh — media ichidagi ovozli fayl yo'li (bo'lsa karnay ikoni chiqadi).
     audio = models.CharField(max_length=255, blank=True)
+    # Video izoh — bo'lsa ilovada karnay o'rniga video tugmasi chiqadi.
+    video = models.CharField(max_length=255, blank=True)
     order = models.PositiveIntegerField(default=0)
     # admin-panel'dagi maydon — web versiyada ko'rsatish belgisi.
     is_in_web = models.BooleanField(default=False, verbose_name="Webda")

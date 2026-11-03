@@ -48,6 +48,7 @@ PROMISED = [
     "/api/v1/manage/blits/",
     "/api/v1/manage/questions/{id}/image/",
     "/api/v1/manage/questions/{id}/audio/",
+    "/api/v1/manage/questions/{id}/video/",
     "/api/v1/manage/branches/",
     "/api/v1/manage/payments/",
     "/api/v1/manage/payment-reports/",
