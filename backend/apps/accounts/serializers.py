@@ -94,15 +94,18 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, attrs):
         phone, password = attrs["phone"], attrs["password"]
 
-        # Talaba (Student) bo'lsa — mobil kirish ochiq PIN bilan tekshiriladi,
-        # front-ofisda berilgan PIN har doim ishlashi kerak. Aks holda odatdagi
-        # hash orqali tekshiriladi (o'qituvchi/shef yoki ilovada ro'yxatdan
-        # o'tgan foydalanuvchi).
+        # Talaba (Student) bo'lsa — front-ofisda berilgan ochiq PIN har doim
+        # ishlaydi. PIN faqat Student → User tomonga sinxronlanadi, shuning
+        # uchun foydalanuvchi paroli ham qabul qilinadi: shef Django admin'da
+        # parolni o'zgartirgan yoki talaba Telegram orqali tiklagan bo'lsa,
+        # PIN eskicha qoladi. Aks holda odatdagi hash orqali tekshiriladi
+        # (o'qituvchi/shef yoki ilovada ro'yxatdan o'tgan foydalanuvchi).
         from apps.billing.models import Student
 
         student = Student.objects.filter(phone=phone).select_related("user").first()
         if student is not None:
-            if student.password != password:
+            pin_ok = bool(student.password) and student.password == password
+            if not pin_ok and not (student.user and student.user.check_password(password)):
                 raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
             user = student.user
             if user is None or not student.is_active or not user.is_active:
