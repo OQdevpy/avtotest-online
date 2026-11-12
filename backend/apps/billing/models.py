@@ -10,6 +10,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models import F
 
@@ -76,6 +77,20 @@ class Student(models.Model):
         instance = super().from_db(db, field_names, values)
         instance._previous_password = instance.password
         return instance
+
+    def clean_fields(self, exclude=None):
+        # Formalar (Django admin) raqamni "band" tekshiruvidan OLDIN
+        # normallashtirsin: aks holda "901234567" bazadagi "+998901234567" bilan
+        # to'qnashmay o'tib, saqlashda IntegrityError (500) berardi; noto'g'ri
+        # raqam ham 500 emas, maydon xatosi bo'lib chiqadi.
+        from apps.accounts.models import normalize_phone
+
+        if not exclude or "phone" not in exclude:
+            try:
+                self.phone = normalize_phone(self.phone)
+            except ValidationError as exc:
+                raise ValidationError({"phone": exc.messages}) from exc
+        super().clean_fields(exclude=exclude)
 
     def save(self, *args, **kwargs):
         from apps.accounts.models import normalize_phone

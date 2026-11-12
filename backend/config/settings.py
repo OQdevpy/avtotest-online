@@ -229,7 +229,12 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"common.tunnel": {"handlers": ["console"], "level": "INFO"}},
+    "loggers": {
+        "common.tunnel": {"handlers": ["console"], "level": "INFO"},
+        # 500 xatolarning traceback'i `docker compose logs backend` da ko'rinsin
+        # (DEBUG=False da Django uni aks holda hech qayerga yozmaydi).
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
 }
 
 # --- CORS -------------------------------------------------------------------
