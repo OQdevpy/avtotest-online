@@ -39,6 +39,7 @@ api_v1 = [
     path("exams/", include("apps.exams.urls")),
     path("progress/", include("apps.progress.urls")),
     path("notifications/", include("apps.notifications.urls")),
+    path("payments/", include("apps.payments.urls")),
 ]
 
 urlpatterns = [
