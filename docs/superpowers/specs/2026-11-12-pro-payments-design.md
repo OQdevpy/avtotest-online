@@ -29,6 +29,12 @@ beriladi; ilovadagi "PRO'ni ochish" tugmasi hech narsa qilmaydi.
 
 ## Mening qarorlarim (tekshirib chiqing)
 
+- **Do'kon qoidalari (Apple 3.1.1 / Google Play to'lov siyosati):** sotish platforma
+  bo'yicha admin'dan yoqiladi — "Android'da sotish" (standart: yoqiq) va "iOS'da
+  sotish" (standart: o'chiq). Ilova `GET plans/?platform=ios|android` yuboradi; o'chiq
+  platformaga `providers: []` qaytadi, checkout `400 not_available` — ilova sotib olish
+  tugmasini ko'rsatmaydi (PRO holati va muddati baribir ko'rinadi).
+
 - "Admin panel" — Django admin (`/admin/`). Shefning React `admin/` paneliga
   qo'shilmaydi. Payme/Click kalitlarini faqat **superuser** ko'radi va o'zgartiradi
   (shef hisobi superuser bo'lishi kerak).
