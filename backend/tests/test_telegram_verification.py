@@ -3,6 +3,7 @@
 import re
 
 import pytest
+from django.conf import settings
 
 from apps.telegramauth import verification
 
@@ -20,7 +21,7 @@ def start(api, phone="901234567", purpose="register"):
 def test_start_returns_link(api, db, fake_redis):
     r = start(api)
     assert r.status_code == 200, r.data
-    assert r.data["link"] == f"https://t.me/AvtotestTayyorlovBot?start={r.data['token']}"
+    assert r.data["link"] == f"https://t.me/{settings.TELEGRAM_BOT_USERNAME}?start={r.data['token']}"
     assert re.fullmatch(r"[A-Za-z0-9_-]{1,64}", r.data["token"])
     assert r.data["expires_in"] == 600
 

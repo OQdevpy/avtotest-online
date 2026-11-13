@@ -275,6 +275,8 @@ ACCESS_CODE_DAYS = 12
 # Tasdiqlash kodlari SMS o'rniga Telegram bot orqali yuboriladi.
 # Token faqat .env'da saqlanadi (hech qachon kodga yozilmaydi).
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
+# Token qaysi botniki bo'lsa, o'sha botning @nomi (ilova ochadigan t.me havolasi uchun).
+TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", "AvtotestTayyorlovBot")
 
 # --- Ijtimoiy kirish --------------------------------------------------------
 # Provayder sozlanmagan bo'lsa u orqali kirish ham ochilmaydi — token
