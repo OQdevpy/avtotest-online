@@ -27,7 +27,7 @@ def test_return_button_uses_setting(settings):
     markup = tg.return_markup("uz")
     button = markup["inline_keyboard"][0][0]
     assert button["url"] == settings.APP_RETURN_URL
-    assert "PRAVA777" in button["text"]
+    assert "prava777" in button["text"]
 
 
 def test_no_return_button_without_setting(settings):

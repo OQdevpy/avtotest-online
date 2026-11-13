@@ -50,17 +50,17 @@ TEXTS: dict[str, dict[str, str]] = {
     },
     "welcome": {
         "uz": (
-            "Assalomu alaykum! Bu — PRAVA777 ilovasining tasdiqlash "
+            "Assalomu alaykum! Bu — prava777 ilovasining tasdiqlash "
             "boti.\n\nRaqamingizni ilovaga bog'lash uchun pastdagi "
             "«📱 Kontaktni ulashish» tugmasini bosing."
         ),
         "kr": (
-            "Ассалому алайкум! Бу — PRAVA777 иловасининг тасдиқлаш "
+            "Ассалому алайкум! Бу — prava777 иловасининг тасдиқлаш "
             "боти.\n\nРақамингизни иловага боғлаш учун пастдаги "
             "«📱 Контактни улашиш» тугмасини босинг."
         ),
         "ru": (
-            "Здравствуйте! Это бот подтверждения приложения «PRAVA777».\n\n"
+            "Здравствуйте! Это бот подтверждения приложения «prava777».\n\n"
             "Чтобы привязать ваш номер, нажмите кнопку «📱 Поделиться контактом» ниже."
         ),
     },
@@ -70,9 +70,9 @@ TEXTS: dict[str, dict[str, str]] = {
         "ru": "📱 Поделиться контактом",
     },
     "linked": {
-        "uz": "✅ Raqamingiz bog'landi: {phone}\n\nEndi PRAVA777 ilovasiga qaytishingiz mumkin.",
-        "kr": "✅ Рақамингиз боғланди: {phone}\n\nЭнди PRAVA777 иловасига қайтишингиз мумкин.",
-        "ru": "✅ Ваш номер привязан: {phone}\n\nТеперь можно вернуться в приложение PRAVA777.",
+        "uz": "✅ Raqamingiz bog'landi: {phone}\n\nEndi prava777 ilovasiga qaytishingiz mumkin.",
+        "kr": "✅ Рақамингиз боғланди: {phone}\n\nЭнди prava777 иловасига қайтишингиз мумкин.",
+        "ru": "✅ Ваш номер привязан: {phone}\n\nТеперь можно вернуться в приложение prava777.",
     },
     "not_own_contact": {
         "uz": "⚠️ Iltimos, faqat o'zingizning kontaktingizni ulashing.",
@@ -81,15 +81,15 @@ TEXTS: dict[str, dict[str, str]] = {
     },
     # Botdan ilovaga qaytaradigan inline tugma (APP_RETURN_URL sahifasini ochadi).
     "return_button": {
-        "uz": "📲 PRAVA777 ilovasiga qaytish",
-        "kr": "📲 PRAVA777 иловасига қайтиш",
-        "ru": "📲 Вернуться в PRAVA777",
+        "uz": "📲 prava777 ilovasiga qaytish",
+        "kr": "📲 prava777 иловасига қайтиш",
+        "ru": "📲 Вернуться в prava777",
     },
     # Eski foydalanuvchilarda qolib ketgan pastki tugma bosilganda (u olib tashlanadi).
     "keyboard_removed": {
-        "uz": "Bu tugma endi ishlatilmaydi. Tasdiqlash PRAVA777 ilovasining o'zida bo'ladi.",
-        "kr": "Бу тугма энди ишлатилмайди. Тасдиқлаш PRAVA777 иловасининг ўзида бўлади.",
-        "ru": "Эта кнопка больше не используется. Подтверждение проходит в приложении PRAVA777.",
+        "uz": "Bu tugma endi ishlatilmaydi. Tasdiqlash prava777 ilovasining o'zida bo'ladi.",
+        "kr": "Бу тугма энди ишлатилмайди. Тасдиқлаш prava777 иловасининг ўзида бўлади.",
+        "ru": "Эта кнопка больше не используется. Подтверждение проходит в приложении prava777.",
     },
     # {code} <code>...</code> ichida — Telegram'da monospace bo'lib, ustiga
     # bosganda avtomatik nusxa olinadi (parse_mode="HTML" bilan yuboriladi).
@@ -127,15 +127,15 @@ TEXTS: dict[str, dict[str, str]] = {
     "verified": {
         "uz": (
             "✅ Raqamingiz tasdiqlandi!\n\n"
-            "PRAVA777 ilovasiga qayting — jarayon o'zi davom etadi."
+            "prava777 ilovasiga qayting — jarayon o'zi davom etadi."
         ),
         "kr": (
             "✅ Рақамингиз тасдиқланди!\n\n"
-            "PRAVA777 иловасига қайтинг — жараён ўзи давом этади."
+            "prava777 иловасига қайтинг — жараён ўзи давом этади."
         ),
         "ru": (
             "✅ Номер подтверждён!\n\n"
-            "Вернитесь в приложение PRAVA777 — всё продолжится автоматически."
+            "Вернитесь в приложение prava777 — всё продолжится автоматически."
         ),
     },
     "mismatch": {
