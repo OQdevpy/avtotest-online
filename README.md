@@ -230,6 +230,19 @@ ochiq keladi, chunki shef uchalasini tahrirlaydi.
 O'qituvchi faqat o'z filialini ko'radi (filiali biriktirilmagan bo'lsa hech
 kimni). Begona filial o'quvchisi uchun `404`.
 
+### To'lovlar — `payments/` (PRO obuna)
+
+| Metod | Yo'l |
+|---|---|
+| GET | `payments/plans/?platform=android\|ios` — tariflar va shu platformadagi provayderlar |
+| POST | `payments/checkout/` — `{plan, provider, platform}` → `payment_url` (faqat ro'yxatdan o'tganlar) |
+| GET | `payments/orders/{id}/` — buyurtma holati, `pro_until` |
+| POST | `payments/payme/` · `payments/click/prepare/` · `payments/click/complete/` — provayder webhook'lari |
+
+Narx, kunlar va kalitlar faqat Django admin'da. To'lov tasdiqlangandagina PRO
+qo'shiladi: `pro_until = max(hozir, pro_until) + kunlar`. Batafsil —
+`docs/DEPLOY.md`, 10-bo'lim.
+
 ---
 
 ## Eski frontlar uchun

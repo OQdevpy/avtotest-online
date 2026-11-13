@@ -6,12 +6,13 @@ from django.core.management import call_command
 
 pytestmark = pytest.mark.django_db
 
-OUR_APPS = ("accounts", "content", "exams", "progress", "billing",
+OUR_APPS = ("accounts", "content", "exams", "progress", "billing", "payments",
             "notifications", "telegramauth")
 
 # Faqat inline orqali boshqariladigan bog'lovchi modellar — ularga alohida
 # admin sahifasi kerak emas (tartib ota yozuv ichida tahrirlanadi).
-INLINE_ONLY = {"TicketQuestion", "BlitsQuestion", "ExamSessionQuestion"}
+INLINE_ONLY = {"TicketQuestion", "BlitsQuestion", "ExamSessionQuestion",
+               "ProviderTransaction"}
 
 
 def test_every_model_is_registered_in_admin():

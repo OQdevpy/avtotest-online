@@ -160,7 +160,9 @@ papkasida (bind mount). Zaxira uchun shu papkani ko'chirish kifoya.
 4. Rasmlar: eski mobil backenddagi media/ → backend/media/
 5. Tizim nginx'i: mobile.avtotest-tayyorlov.uz → proxy_pass http://127.0.0.1:8010;
    (Host, X-Forwarded-For, X-Forwarded-Proto sarlavhalari shart — busiz rasm
-   URL'lari http:// bo'lib qoladi va iOS ularni ochmaydi)
+   URL'lari http:// bo'lib qoladi va iOS ularni ochmaydi;
+   `proxy_set_header X-Real-IP $remote_addr;` ham shart — Payme IP cheklovi
+   faqat shu sarlavhani o'qiydi, 10-bo'lim)
 6. Eski mobil backend botini to'xtating, keyin:
    docker compose --profile bot up -d
 ```
@@ -193,3 +195,30 @@ telefonsiz `role=guest` foydalanuvchi hamda 5 kunlik sessiya oladi
 - `prune_devices` (cron) ro'yxatdan o'tmagan, kelganiga 35 kundan oshgan
   mehmonlarni o'chiradi. Shu oraliqda ro'yxatdan o'tgan mehmon natijalari bilan
   o'quvchiga aylanadi.
+
+## 10. PRO to'lovlari (Payme / Click)
+
+Tariflar, sotish platformalari va provayder kalitlari **Django admin**'da
+(`/admin/payments/`) kiritiladi — `.env` da emas. "To'lov sozlamalari" sahifasini
+faqat **superuser** ko'radi; kalit maydonlari sahifaga qaytib chiqmaydi, bo'sh
+qoldirilsa eski qiymat saqlanadi.
+
+Merchant kabinetlariga yoziladigan manzillar (domen — API qaysi domenda bo'lsa):
+
+| Provayder | Manzil |
+|---|---|
+| Payme (Endpoint URL) | `https://<domen>/api/v1/payments/payme/` |
+| Click (Prepare URL) | `https://<domen>/api/v1/payments/click/prepare/` |
+| Click (Complete URL) | `https://<domen>/api/v1/payments/click/complete/` |
+
+To'lovdan keyingi qaytish sahifasi: `https://<domen>/api/v1/payments/done/`.
+
+Diqqat:
+
+- **`X-Real-IP`**: tizim nginx'ida `proxy_set_header X-Real-IP $remote_addr;`
+  bo'lmasa, Payme IP ro'yxati to'ldirilganda hamma so'rov rad etiladi.
+  `X-Forwarded-For` ataylab o'qilmaydi (soxtalashtirish oson).
+- **`SECRET_KEY` almashtirilsa** bazadagi shifrlangan kalitlar ochilmay qoladi —
+  Payme va Click kalitlarini admin'da qayta kiriting.
+- iOS'da sotish standart holatda o'chiq (`sell_ios`) — Apple App Store qoidalari
+  (3.1.1) ilova ichida tashqi to'lovni cheklaydi.
