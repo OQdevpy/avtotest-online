@@ -8,7 +8,7 @@ _PRIVACY_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy Policy — Avtotest Tayyorlov</title>
+<title>Privacy Policy — prava777</title>
 <style>
   body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.6;
        max-width:760px;margin:0 auto;padding:28px 20px;color:#1b1a17;background:#fff}
@@ -20,9 +20,9 @@ _PRIVACY_HTML = """<!DOCTYPE html>
 </head>
 <body>
 <h1>Privacy Policy</h1>
-<div class="muted">Avtotest Tayyorlov &middot; Last updated: 2026-09-06</div>
+<div class="muted">prava777 &middot; Last updated: 2026-11-13</div>
 
-<p>This Privacy Policy explains how the <strong>Avtotest Tayyorlov</strong> mobile
+<p>This Privacy Policy explains how the <strong>prava777</strong> mobile
 application ("the App") collects, uses, and protects your information. By using the
 App you agree to this policy.</p>
 
@@ -31,9 +31,12 @@ App you agree to this policy.</p>
   <li><strong>Account data:</strong> phone number, full name, and password (stored
       only as a secure hash).</li>
   <li><strong>Telegram data:</strong> your Telegram ID and phone number, used only to
-      deliver 6-digit verification codes for registration and password reset via our
-      Telegram bot (@AvtotestTayyorlovBot). You link it voluntarily by sharing your
-      contact in the bot.</li>
+      confirm that the phone number belongs to you during registration and password
+      reset. You share your contact voluntarily in our Telegram bot (@prava777Robot).</li>
+  <li><strong>Payment data:</strong> when you buy a PRO subscription, we store the order
+      (plan, amount, status, date) and the transaction ID returned by the payment
+      provider (Payme or Click). Card details are entered on the provider's page and
+      never reach our servers.</li>
   <li><strong>Learning progress:</strong> lesson/exam/ticket results, mistakes, saved
       questions, statistics, language and theme preferences.</li>
 </ul>
@@ -43,23 +46,25 @@ advertising identifiers. The App contains no third-party advertising or tracking
 <h2>How we use it</h2>
 <ul>
   <li>To create and secure your account and authenticate you.</li>
-  <li>To deliver one-time verification codes via Telegram.</li>
+  <li>To verify your phone number via Telegram.</li>
+  <li>To activate and confirm your PRO subscription after payment.</li>
   <li>To save and show your learning progress and statistics.</li>
 </ul>
 
 <h2>Sharing</h2>
-<p>We do <strong>not</strong> sell or rent your personal data. Verification codes are
-delivered through Telegram (Telegram LLC) solely to reach the account you linked. We
+<p>We do <strong>not</strong> sell or rent your personal data. Phone verification works
+through Telegram (Telegram LLC); payments are processed by Payme or Click, which receive
+only what is needed to complete the payment. We
 may disclose information if required by law.</p>
 
 <h2>Data storage &amp; security</h2>
-<p>Data is stored on our secured server. Passwords are hashed. One-time codes are kept
+<p>Data is stored on our secured server. Passwords are hashed. Verification tokens are kept
 in temporary storage (Redis) and expire within minutes. Traffic is encrypted (HTTPS).</p>
 
 <h2>Data retention &amp; deletion</h2>
 <p>We keep account data while your account is active. You may request deletion of your
-account and associated data by contacting us at the email below; we will remove it
-within a reasonable period.</p>
+account and associated data directly in the App (Profile → Delete account) or by
+contacting us at the email below; we will remove it within a reasonable period.</p>
 
 <h2>Children</h2>
 <p>The App is intended for users preparing for a driver's license exam and is not
@@ -74,27 +79,32 @@ directed at children under 13.</p>
 <hr>
 
 <h1>Maxfiylik siyosati (o'zbekcha)</h1>
-<p><strong>Avtotest Tayyorlov</strong> ilovasi qanday ma'lumot yig'ishi va ishlatishi.</p>
+<p><strong>prava777</strong> ilovasi qanday ma'lumot yig'ishi va ishlatishi.</p>
 <h2>Yig'iladigan ma'lumot</h2>
 <ul>
   <li><strong>Hisob:</strong> telefon raqami, ism, parol (faqat xavfsiz hash ko'rinishida).</li>
   <li><strong>Telegram:</strong> Telegram ID va raqamingiz — faqat ro'yxatdan o'tish va
-      parolni tiklash uchun 6 xonali kodni @AvtotestTayyorlovBot orqali yuborishga. Siz
-      buni botda kontakt ulashish orqali ixtiyoriy bog'laysiz.</li>
+      parolni tiklashda raqam sizniki ekanini tasdiqlash uchun. Kontaktingizni
+      @prava777Robot botida o'zingiz ixtiyoriy ulashasiz.</li>
+  <li><strong>To'lov:</strong> PRO obuna sotib olganingizda buyurtma (tarif, summa, holat,
+      sana) va to'lov tizimi (Payme yoki Click) qaytargan tranzaksiya raqami saqlanadi.
+      Karta ma'lumotlari to'lov tizimi sahifasida kiritiladi va bizning serverga
+      kelmaydi.</li>
   <li><strong>O'quv jarayoni:</strong> dars/imtihon/bilet natijalari, xatolar, saqlangan
       savollar, statistika, til va mavzu sozlamalari.</li>
 </ul>
 <p>Joylashuv, kamera, mikrofon, kontaktlar yoki reklama identifikatorlari
 <strong>yig'ilmaydi</strong>. Reklama/kuzatuv SDK'lari yo'q.</p>
 <h2>Ishlatilishi</h2>
-<p>Hisobni yaratish/himoyalash va kirish; Telegram orqali tasdiqlash kodi; o'quv
+<p>Hisobni yaratish/himoyalash va kirish; raqamni Telegram orqali tasdiqlash; PRO obunani
+faollashtirish; o'quv
 jarayonini saqlash va ko'rsatish.</p>
 <h2>Ulashish</h2>
-<p>Ma'lumotingiz <strong>sotilmaydi</strong>. Kodlar faqat siz bog'lagan hisobga yetkazish
-uchun Telegram orqali yuboriladi. Qonun talab qilsa oshkor qilinishi mumkin.</p>
+<p>Ma'lumotingiz <strong>sotilmaydi</strong>. Raqam tasdiqlash Telegram orqali, to'lovlar
+Payme yoki Click orqali amalga oshadi — ular faqat to'lov uchun zarur ma'lumotni oladi. Qonun talab qilsa oshkor qilinishi mumkin.</p>
 <h2>Saqlash va o'chirish</h2>
-<p>Hisob faol bo'lganda saqlanadi. O'chirishni so'rash uchun yuqoridagi elektron
-pochtaga yozing.</p>
+<p>Hisob faol bo'lganda saqlanadi. Hisobni ilovaning o'zida (Profil → Hisobni
+o'chirish) yoki quyidagi elektron pochtaga yozib o'chirishingiz mumkin.</p>
 <h2>Aloqa</h2>
 <p><a href="mailto:oqdevpy@gmail.com">oqdevpy@gmail.com</a></p>
 </body>

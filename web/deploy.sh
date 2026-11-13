@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Web saytlarni yig'ib, nginx papkalariga joylaydi (serverda ishlatiladi).
 #
-#   ./web/deploy.sh            — ikkalasi: web. va teacher.avtotest-tayyorlov.uz
+#   ./web/deploy.sh            — ikkalasi: web. va teacher.prava777.uz
 #   ./web/deploy.sh student    — faqat o'quvchi sayti
 #   ./web/deploy.sh teacher    — faqat o'qituvchi sayti
 #

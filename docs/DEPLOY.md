@@ -5,13 +5,20 @@ tushirish buyruqlari `README.md` da.
 
 ## 1. Do'kondagi mobil ilova hech qachon yangilanmaydi
 
-Ilovaning ichida server manzili qotib qolgan: `https://mobile.avtotest-tayyorlov.uz`
+Ilovaning ichida server manzili qotib qolgan: `https://mobile.prava777.uz`
 (`mobil/src/api/config.ts`). Uni o'zgartirish faqat yangi versiya chiqarish bilan
 mumkin, o'rnatilgan nusxalarga esa u yetib bormaydi.
 
-**Shuning uchun ko'chirish nginx darajasida qilinadi:** `mobile.avtotest-tayyorlov.uz`
+**Shuning uchun ko'chirish nginx darajasida qilinadi:** `mobile.prava777.uz`
 hostini yangi backendga yo'naltiring. Ilova o'z manzilini o'zgartirmasdan yangi
 tizimga tushadi.
+
+> **Domen almashdi (2026-11):** `avtotest-tayyorlov.uz` → `prava777.uz`. Yangi
+> build'lar `mobile.prava777.uz` ga ulanadi, ammo ilgari o'rnatilgan nusxalar hali
+> ham `mobile.avtotest-tayyorlov.uz` ga murojaat qiladi. Ular ishlashda davom
+> etishi uchun eski domen DNS'ini o'chirmang: nginx'da uni ham shu backendga
+> proksi qiling (yoki 308 bilan yangi domenga yo'naltiring — POST so'rovlar ham
+> saqlanadi) va `ALLOWED_HOSTS` ga ikkala hostni yozing.
 
 Ilova ishlatadigan va **buzilmasligi shart** bo'lgan yo'llar:
 
@@ -125,7 +132,7 @@ npm ci && npm run build   # → admin/dist/  (har yangilanishda qayta build)
 
 ```nginx
 server {
-    server_name admin.avtotest-tayyorlov.uz;   # + listen 443 ssl / certbot
+    server_name admin.prava777.uz;   # + listen 443 ssl / certbot
     client_max_body_size 50M;                  # rasm/audio yuklash
 
     root /yo'l/avtotest-online/admin/dist;
@@ -158,7 +165,7 @@ papkasida (bind mount). Zaxira uchun shu papkani ko'chirish kifoya.
 2. docker compose up -d --build
 3. Ma'lumot ko'chirish — 3-bo'lim (docker compose exec backend python manage.py ...)
 4. Rasmlar: eski mobil backenddagi media/ → backend/media/
-5. Tizim nginx'i: mobile.avtotest-tayyorlov.uz → proxy_pass http://127.0.0.1:8010;
+5. Tizim nginx'i: mobile.prava777.uz → proxy_pass http://127.0.0.1:8010;
    (Host, X-Forwarded-For, X-Forwarded-Proto sarlavhalari shart — busiz rasm
    URL'lari http:// bo'lib qoladi va iOS ularni ochmaydi;
    `proxy_set_header X-Real-IP $remote_addr;` ham shart — Payme IP cheklovi

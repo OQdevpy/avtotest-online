@@ -67,7 +67,7 @@ class SendCodeView(APIView):
             .first()
         )
         if account is None:
-            # Alohida error kodi — ilova @AvtotestTayyorlovBot'ga yo'naltiradi.
+            # Alohida error kodi — ilova botga yo'naltiradi.
             return _error(
                 "telegram_not_linked",
                 "Bu raqam Telegram'ga bog'lanmagan. Iltimos, "

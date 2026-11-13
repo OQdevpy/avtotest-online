@@ -47,7 +47,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # Admin login CSRF — Django 4+ sxema bilan ishonchli originni talab qiladi.
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
-    "https://mobile.avtotest-tayyorlov.uz",
+    "https://mobile.prava777.uz",
 )
 
 INSTALLED_APPS = [
@@ -276,10 +276,10 @@ ACCESS_CODE_DAYS = 12
 # Token faqat .env'da saqlanadi (hech qachon kodga yozilmaydi).
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
 # Token qaysi botniki bo'lsa, o'sha botning @nomi (ilova ochadigan t.me havolasi uchun).
-TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", "AvtotestTayyorlovBot")
+TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", "prava777Robot")
 # Botdagi «Ilovaga qaytish» tugmasi shu https sahifani ochadi (Telegram tugmalari
 # `prava777://` kabi ilova sxemasini qabul qilmaydi). Bo'sh bo'lsa tugma chiqmaydi.
-# Masalan: https://mobile.avtotest-tayyorlov.uz/api/v1/auth/telegram/return/
+# Masalan: https://mobile.prava777.uz/api/v1/auth/telegram/return/
 APP_RETURN_URL = env("APP_RETURN_URL", "")
 # Mobil ilova sxemasi va Android paketi (mobil `app.json` bilan bir xil).
 APP_SCHEME = "prava777"

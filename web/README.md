@@ -50,8 +50,8 @@ npm run dev                  # student: http://localhost:5183, teacher: :5185
 
 | Domen | Papka | Serverdagi joyi |
 |---|---|---|
-| `web.avtotest-tayyorlov.uz` | `web/student` | `/var/www/avtotest-web-student` |
-| `teacher.avtotest-tayyorlov.uz` | `web/teacher` | `/var/www/avtotest-web-teacher` |
+| `web.prava777.uz` | `web/student` | `/var/www/avtotest-web-student` |
+| `teacher.prava777.uz` | `web/teacher` | `/var/www/avtotest-web-teacher` |
 
 Brauzer faqat sayt domeniga murojaat qiladi: nginx `/api/v1/s/` ni backendga
 (`127.0.0.1:8010`) uzatadi, `/media/` ni diskdan beradi, boshqa `/api/` yo'llari
@@ -66,16 +66,16 @@ Brauzer faqat sayt domeniga murojaat qiladi: nginx `/api/v1/s/` ni backendga
    ```bash
    cd /root/avtotest/avtotest-online
    git pull
-   # backend/.env: ALLOWED_HOSTS=...,web.avtotest-tayyorlov.uz,teacher.avtotest-tayyorlov.uz
+   # backend/.env: ALLOWED_HOSTS=...,web.prava777.uz,teacher.prava777.uz
    docker compose up -d --build
    ```
 3. **Saytlar:** `./web/deploy.sh` (Node.js 18+ kerak) — ikkalasini yig'ib,
    `/var/www/avtotest-web-*` ga joylaydi.
 4. **nginx + HTTPS** (HTTPS shart — WebCrypto oddiy HTTP'da ishlamaydi):
    ```bash
-   cp web/nginx/web.avtotest-tayyorlov.uz.conf web/nginx/teacher.avtotest-tayyorlov.uz.conf /etc/nginx/sites-enabled/
+   cp web/nginx/web.prava777.uz.conf web/nginx/teacher.prava777.uz.conf /etc/nginx/sites-enabled/
    nginx -t && systemctl reload nginx
-   certbot --nginx -d web.avtotest-tayyorlov.uz -d teacher.avtotest-tayyorlov.uz
+   certbot --nginx -d web.prava777.uz -d teacher.prava777.uz
    ```
 
 ### Keyingi yangilanishlar
