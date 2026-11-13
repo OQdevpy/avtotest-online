@@ -50,17 +50,17 @@ TEXTS: dict[str, dict[str, str]] = {
     },
     "welcome": {
         "uz": (
-            "Assalomu alaykum! Bu — Avtotestga tayyorlov ilovasining tasdiqlash "
+            "Assalomu alaykum! Bu — PRAVA777 ilovasining tasdiqlash "
             "boti.\n\nRaqamingizni ilovaga bog'lash uchun pastdagi "
             "«📱 Kontaktni ulashish» tugmasini bosing."
         ),
         "kr": (
-            "Ассалому алайкум! Бу — Автотестга тайёрлов иловасининг тасдиқлаш "
+            "Ассалому алайкум! Бу — PRAVA777 иловасининг тасдиқлаш "
             "боти.\n\nРақамингизни иловага боғлаш учун пастдаги "
             "«📱 Контактни улашиш» тугмасини босинг."
         ),
         "ru": (
-            "Здравствуйте! Это бот подтверждения приложения «Автотест».\n\n"
+            "Здравствуйте! Это бот подтверждения приложения «PRAVA777».\n\n"
             "Чтобы привязать ваш номер, нажмите кнопку «📱 Поделиться контактом» ниже."
         ),
     },
