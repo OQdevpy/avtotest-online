@@ -70,42 +70,26 @@ TEXTS: dict[str, dict[str, str]] = {
         "ru": "📱 Поделиться контактом",
     },
     "linked": {
-        "uz": (
-            "✅ Raqamingiz bog'landi: {phone}\n\nEndi ilovada «Kodni olish» "
-            "tugmasini bossangiz, tasdiqlash kodi shu yerga keladi."
-        ),
-        "kr": (
-            "✅ Рақамингиз боғланди: {phone}\n\nЭнди иловада «Кодни олиш» "
-            "тугмасини боссангиз, тасдиқлаш коди шу ерга келади."
-        ),
-        "ru": (
-            "✅ Ваш номер привязан: {phone}\n\nТеперь при нажатии «Получить код» "
-            "в приложении код придёт сюда."
-        ),
+        "uz": "✅ Raqamingiz bog'landi: {phone}\n\nEndi PRAVA777 ilovasiga qaytishingiz mumkin.",
+        "kr": "✅ Рақамингиз боғланди: {phone}\n\nЭнди PRAVA777 иловасига қайтишингиз мумкин.",
+        "ru": "✅ Ваш номер привязан: {phone}\n\nТеперь можно вернуться в приложение PRAVA777.",
     },
     "not_own_contact": {
         "uz": "⚠️ Iltimos, faqat o'zingizning kontaktingizni ulashing.",
         "kr": "⚠️ Илтимос, фақат ўзингизнинг контактингизни улашинг.",
         "ru": "⚠️ Пожалуйста, делитесь только своим контактом.",
     },
-    "get_code_button": {
-        "uz": "🔐 Kodni olish",
-        "kr": "🔐 Кодни олиш",
-        "ru": "🔐 Получить код",
+    # Botdan ilovaga qaytaradigan inline tugma (APP_RETURN_URL sahifasini ochadi).
+    "return_button": {
+        "uz": "📲 PRAVA777 ilovasiga qaytish",
+        "kr": "📲 PRAVA777 иловасига қайтиш",
+        "ru": "📲 Вернуться в PRAVA777",
     },
-    "not_linked_yet": {
-        "uz": (
-            "Avval raqamingizni bog'lang. /start bosing va «📱 Kontaktni "
-            "ulashish» tugmasi orqali raqamingizni yuboring."
-        ),
-        "kr": (
-            "Аввал рақамингизни боғланг. /start босинг ва «📱 Контактни "
-            "улашиш» тугмаси орқали рақамингизни юборинг."
-        ),
-        "ru": (
-            "Сначала привяжите номер. Нажмите /start и отправьте контакт "
-            "кнопкой «📱 Поделиться контактом»."
-        ),
+    # Eski foydalanuvchilarda qolib ketgan pastki tugma bosilganda (u olib tashlanadi).
+    "keyboard_removed": {
+        "uz": "Bu tugma endi ishlatilmaydi. Tasdiqlash PRAVA777 ilovasining o'zida bo'ladi.",
+        "kr": "Бу тугма энди ишлатилмайди. Тасдиқлаш PRAVA777 иловасининг ўзида бўлади.",
+        "ru": "Эта кнопка больше не используется. Подтверждение проходит в приложении PRAVA777.",
     },
     # {code} <code>...</code> ichida — Telegram'da monospace bo'lib, ustiga
     # bosganda avtomatik nusxa olinadi (parse_mode="HTML" bilan yuboriladi).
@@ -141,9 +125,18 @@ TEXTS: dict[str, dict[str, str]] = {
         "ru": "⌛ Ссылка устарела. Вернитесь в приложение и начните заново.",
     },
     "verified": {
-        "uz": "✅ Raqamingiz tasdiqlandi. Ilovaga qayting.",
-        "kr": "✅ Рақамингиз тасдиқланди. Иловага қайтинг.",
-        "ru": "✅ Номер подтверждён. Вернитесь в приложение.",
+        "uz": (
+            "✅ Raqamingiz tasdiqlandi!\n\n"
+            "PRAVA777 ilovasiga qayting — jarayon o'zi davom etadi."
+        ),
+        "kr": (
+            "✅ Рақамингиз тасдиқланди!\n\n"
+            "PRAVA777 иловасига қайтинг — жараён ўзи давом этади."
+        ),
+        "ru": (
+            "✅ Номер подтверждён!\n\n"
+            "Вернитесь в приложение PRAVA777 — всё продолжится автоматически."
+        ),
     },
     "mismatch": {
         "uz": (
@@ -172,6 +165,17 @@ def t(key: str, lang: str, **kwargs) -> str:
     lang = lang if lang in ("uz", "kr", "ru") else "uz"
     template = TEXTS[key].get(lang) or TEXTS[key]["uz"]
     return template.format(**kwargs) if kwargs else template
+
+
+def return_markup(lang: str) -> dict | None:
+    """«Ilovaga qaytish» inline tugmasi (Bot API `reply_markup` shakli).
+
+    `APP_RETURN_URL` sozlanmagan bo'lsa None — xabar tugmasiz yuboriladi.
+    """
+    url = getattr(settings, "APP_RETURN_URL", "") or ""
+    if not url:
+        return None
+    return {"inline_keyboard": [[{"text": t("return_button", lang), "url": url}]]}
 
 
 def send_message(

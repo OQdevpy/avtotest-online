@@ -277,6 +277,13 @@ ACCESS_CODE_DAYS = 12
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
 # Token qaysi botniki bo'lsa, o'sha botning @nomi (ilova ochadigan t.me havolasi uchun).
 TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", "AvtotestTayyorlovBot")
+# Botdagi «Ilovaga qaytish» tugmasi shu https sahifani ochadi (Telegram tugmalari
+# `prava777://` kabi ilova sxemasini qabul qilmaydi). Bo'sh bo'lsa tugma chiqmaydi.
+# Masalan: https://mobile.avtotest-tayyorlov.uz/api/v1/auth/telegram/return/
+APP_RETURN_URL = env("APP_RETURN_URL", "")
+# Mobil ilova sxemasi va Android paketi (mobil `app.json` bilan bir xil).
+APP_SCHEME = "prava777"
+APP_ANDROID_PACKAGE = "com.oqdevpy.avtotest_tayyorlov"
 
 # --- Ijtimoiy kirish --------------------------------------------------------
 # Provayder sozlanmagan bo'lsa u orqali kirish ham ochilmaydi — token

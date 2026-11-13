@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PRAVA777</title>
+  <style>
+    :root { --bg: #f6f5f1; --card: #ffffff; --ink: #1b1a17; --muted: #6b6860; --brand: #ed020a; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #151513; --card: #1f1e1b; --ink: #f1efe8; --muted: #a8a59c; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+           padding: 16px; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+           background: var(--bg); color: var(--ink); }
+    main { width: 100%; max-width: 360px; background: var(--card); border-radius: 24px;
+           padding: 32px 24px; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,.08); }
+    .logo { width: 88px; height: 88px; margin: 0 auto 20px; border-radius: 22px; background: var(--brand);
+            color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: 900; line-height: .95; letter-spacing: .5px; }
+    .logo span:first-child { font-size: 19px; }
+    .logo span:last-child { font-size: 30px; }
+    h1 { font-size: 21px; margin: 0 0 8px; }
+    p { margin: 0 0 4px; color: var(--muted); line-height: 1.5; font-size: 15px; }
+    .ru { margin-top: 2px; }
+    a.btn { display: block; margin-top: 24px; padding: 16px; border-radius: 16px; background: var(--brand);
+            color: #fff; font-weight: 700; font-size: 16px; text-decoration: none; }
+    a.btn:active { opacity: .8; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo" aria-hidden="true"><span>PRAVA</span><span>777</span></div>
+    <h1>Ilovaga qaytish</h1>
+    <p>PRAVA777 ilovasi ochilmasa, pastdagi tugmani bosing.</p>
+    <p class="ru">Если приложение не открылось, нажмите кнопку ниже.</p>
+    <a class="btn" id="open" href="{{ scheme_url }}" data-android="{{ intent_url }}">PRAVA777 ilovasini ochish</a>
+  </main>
+  <script>
+    (function () {
+      var btn = document.getElementById("open");
+      // Android Chrome ilova sxemasini `intent://` orqali ochadi.
+      if (/android/i.test(navigator.userAgent)) btn.href = btn.getAttribute("data-android");
+      // Bir marta avtomatik urinish; brauzer bloklasa — tugma qoladi.
+      window.location.href = btn.href;
+    })();
+  </script>
+</body>
+</html>

@@ -15,6 +15,7 @@ from __future__ import annotations
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.shortcuts import render
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -215,3 +216,23 @@ class TelegramStatusView(APIView):
 
     def get(self, request, token: str):
         return Response({"status": verification.status_of(token)})
+
+
+@extend_schema(exclude=True)
+class AppReturnView(APIView):
+    """Botdagi «Ilovaga qaytish» tugmasi ochadigan sahifa — mobil ilovani ochadi.
+
+    Telegram inline tugmalari faqat http(s)/tg havolalarini qabul qiladi, shuning
+    uchun ilova sxemasiga shu https sahifa orqali o'tiladi. Sahifada hech qanday
+    ma'lumot yo'q — havola ochiq.
+    """
+
+    permission_classes = (permissions.AllowAny,)
+    authentication_classes = ()
+
+    def get(self, request):
+        scheme, package = settings.APP_SCHEME, settings.APP_ANDROID_PACKAGE
+        return render(request, "telegramauth/app_return.html", {
+            "scheme_url": f"{scheme}://open",
+            "intent_url": f"intent://open#Intent;scheme={scheme};package={package};end",
+        })

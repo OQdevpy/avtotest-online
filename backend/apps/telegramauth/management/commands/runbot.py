@@ -12,9 +12,13 @@ yuborish ishlashda davom etadi.
 Oqim:
     /start -> til tanlash (inline tugmalar) -> «Kontaktni ulashish» tugmasi
     -> kontakt ulashilganda telegram_id <-> phone bog'lanadi.
+    /start <token> (ilova havolasi) -> «Kontaktni ulashish» -> natija xabari.
+Natija xabarlari ostida «Ilovaga qaytish» inline tugmasi bo'ladi (APP_RETURN_URL).
 """
 
 from __future__ import annotations
+
+import logging
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
@@ -29,6 +33,7 @@ from telegram import (
     ReplyKeyboardRemove,
     Update,
 )
+from telegram.error import BadRequest
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -39,22 +44,13 @@ from telegram.ext import (
 )
 
 from apps.accounts.models import User, normalize_phone
-from apps.telegramauth import otpstore, telegram as tg, verification
+from apps.telegramauth import telegram as tg, verification
 from apps.telegramauth.models import TelegramAccount
+
+logger = logging.getLogger(__name__)
 
 
 # --- ORM yordamchilari (async kontekstdan chaqiriladi) --------------------
-
-@sync_to_async
-def get_account(telegram_id: int) -> TelegramAccount | None:
-    return TelegramAccount.objects.filter(telegram_id=telegram_id).first()
-
-
-@sync_to_async
-def issue_code_for(telegram_id: int, phone: str) -> str:
-    """Bog'langan hisob uchun yangi kod yaratadi (Redis)."""
-    return otpstore.issue_code("reset", phone, telegram_id)
-
 
 @sync_to_async
 def get_language(telegram_id: int) -> str:
@@ -113,17 +109,34 @@ def _contact_keyboard(lang: str) -> ReplyKeyboardMarkup:
     )
 
 
-def _get_code_keyboard(lang: str) -> ReplyKeyboardMarkup:
-    """Bog'langandan keyin doimiy «Kodni olish» tugmasi (pastda qoladi)."""
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton(tg.t("get_code_button", lang))]],
-        resize_keyboard=True,
-        is_persistent=True,
-    )
+def _return_keyboard(lang: str) -> InlineKeyboardMarkup | None:
+    """«Ilovaga qaytish» inline tugmasi (APP_RETURN_URL bo'lmasa None)."""
+    data = tg.return_markup(lang)
+    if data is None:
+        return None
+    button = data["inline_keyboard"][0][0]
+    return InlineKeyboardMarkup([[InlineKeyboardButton(button["text"], url=button["url"])]])
 
 
-# Uch tildagi «Kodni olish» tugma matnlari — kelgan xabarni shu bilan solishtiramiz.
-GET_CODE_LABELS = {tg.t("get_code_button", lang) for lang in ("uz", "kr", "ru")}
+async def _reply_with_return(message, text: str, lang: str) -> None:
+    """Xabarni «Ilovaga qaytish» tugmasi bilan yuboradi.
+
+    Telegram tugma manzilini rad etsa (masalan noto'g'ri APP_RETURN_URL), xabar
+    tugmasiz ketadi — tasdiqlash natijasi baribir foydalanuvchiga yetadi.
+    """
+    keyboard = _return_keyboard(lang)
+    if keyboard is not None:
+        try:
+            await message.reply_text(text, reply_markup=keyboard)
+            return
+        except BadRequest as exc:
+            logger.warning("Ilovaga qaytish tugmasi rad etildi: %s", exc)
+    await message.reply_text(text, reply_markup=ReplyKeyboardRemove())
+
+
+# Eski versiyada pastda doimiy turgan «Kodni olish» tugmasining matnlari. Bunday
+# foydalanuvchi uni bossa, tugma olib tashlanadi — kod bot orqali berilmaydi.
+LEGACY_CODE_LABELS = {"🔐 Kodni olish", "🔐 Кодни олиш", "🔐 Получить код"}
 
 
 @sync_to_async
@@ -202,10 +215,7 @@ async def on_contact(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await message.reply_text(tg.t("not_own_contact", lang))
         return
 
-    await message.reply_text(
-        tg.t("linked", lang, phone=phone),
-        reply_markup=_get_code_keyboard(lang),
-    )
+    await _reply_with_return(message, tg.t("linked", lang, phone=phone), lang)
 
 
 async def on_app_contact(message, token: str, lang: str) -> None:
@@ -218,43 +228,26 @@ async def on_app_contact(message, token: str, lang: str) -> None:
         token, message.contact.phone_number, from_user.id,
     )
     await sync_to_async(verification.unbind_chat)(from_user.id)
-    removed = ReplyKeyboardRemove()
     if outcome == "verified":
         await link_contact(from_user.id, shared, from_user.username or "",
                            from_user.full_name or "")
-        await message.reply_text(tg.t("verified", lang), reply_markup=removed)
+        text = tg.t("verified", lang)
     elif outcome == "mismatch":
-        await message.reply_text(
-            tg.t("mismatch", lang, shared=verification.mask_phone(shared),
-                 entered=verification.mask_phone(entered)),
-            reply_markup=removed,
-        )
+        text = tg.t("mismatch", lang, shared=verification.mask_phone(shared),
+                    entered=verification.mask_phone(entered))
     elif outcome == "foreign":
-        await message.reply_text(tg.t("foreign_number", lang), reply_markup=removed)
+        text = tg.t("foreign_number", lang)
     else:
-        await message.reply_text(tg.t("link_expired", lang), reply_markup=removed)
+        text = tg.t("link_expired", lang)
+    # Har qanday natijadan keyin ham ilovaga bir bosishda qaytish mumkin.
+    await _reply_with_return(message, text, lang)
 
 
-async def on_get_code(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """«Kodni olish» tugmasi: bog'langan hisob uchun yangi kod generatsiya
-    qilib, aynan shu chatga darhol yuboradi (kod Redis'da saqlanadi)."""
-    message = update.message
-    from_user = message.from_user
-    account = await get_account(from_user.id)
-    if account is None or not account.phone:
-        lang = await get_language(from_user.id)
-        await message.reply_text(
-            tg.t("not_linked_yet", lang),
-            reply_markup=_contact_keyboard(lang),
-        )
-        return
-
-    lang = account.language
-    plain = await issue_code_for(account.telegram_id, account.phone)
-    await message.reply_text(
-        tg.t("code_message", lang, code=plain, minutes=otpstore.CODE_TTL_SECONDS // 60),
-        reply_markup=_get_code_keyboard(lang),
-        parse_mode="HTML",
+async def on_legacy_code_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Eski «Kodni olish» tugmasi bosildi: uni klaviaturadan olib tashlaymiz."""
+    lang = await get_language(update.message.from_user.id)
+    await update.message.reply_text(
+        tg.t("keyboard_removed", lang), reply_markup=ReplyKeyboardRemove(),
     )
 
 
@@ -272,9 +265,9 @@ class Command(BaseCommand):
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CallbackQueryHandler(on_language, pattern=r"^lang:"))
         app.add_handler(MessageHandler(filters.CONTACT, on_contact))
-        # «Kodni olish» tugmasi (uch tildagi matnlarga mos keladi).
+        # Eski versiyadan qolgan «Kodni olish» tugmasini tozalash.
         app.add_handler(
-            MessageHandler(filters.Text(GET_CODE_LABELS), on_get_code)
+            MessageHandler(filters.Text(LEGACY_CODE_LABELS), on_legacy_code_button)
         )
 
         self.stdout.write(self.style.SUCCESS(
