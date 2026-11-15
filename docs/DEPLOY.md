@@ -24,8 +24,7 @@ Ilova ishlatadigan va **buzilmasligi shart** bo'lgan yo'llar:
 
 | Yo'l | Izoh |
 |---|---|
-| `POST /api/v1/auth/login/` | `platform` yubormaydi — default `mobile` bo'ladi |
-| `POST /api/v1/auth/token/refresh/` | Quyidagi 2-bandga qarang |
+| `POST /api/v1/auth/token/refresh/` | Quyidagi 2-bandga qarang — kirgan foydalanuvchilar chiqib ketmaydi |
 | `GET /api/v1/lessons/{id}/` | **O'rganish ekrani** — `?mode=study` yubormaydi, lekin to'g'ri javob, `explanation`, `audio_url` va `explanation_image_url` kerak |
 | `GET /api/v1/exam/generate/?count=` | `deprecated`, lekin ishlaydi |
 | `POST /api/v1/progress/exam-attempts/` | `deprecated`, lekin ishlaydi |
@@ -33,6 +32,14 @@ Ilova ishlatadigan va **buzilmasligi shart** bo'lgan yo'llar:
 
 Bu yo'llarning javob shaklini o'zgartirishdan oldin `mobil/src/api/types.ts` ni
 va tegishli ekranni o'qib chiqing.
+
+> **Parol bilan kirish yopildi (2026-11).** Kirish faqat Telegram orqali
+> (`auth/telegram/claim/`). Eski ilova `auth/login/`, `register/` va parol
+> tiklashda `400 update_required` oladi — bunday foydalanuvchi ilovani
+> yangilashi kerak. Allaqachon kirib turganlar refresh token bilan ishlashda
+> davom etadi. Qoraqalpoq tili (`qq`) ham olib tashlandi: migratsiya
+> `language=qq` ni `uz` qiladi, eski ilovaning `?lang=qq` so'rovlari `uz` kontent
+> oladi.
 
 ## 2. Jonli sessiyalar
 
@@ -90,15 +97,17 @@ Muddati o'tgan qurilmalarni tozalash uchun cron:
 python manage.py prune_devices
 ```
 
-## 6. Ijtimoiy kirish
+## 6. Telegram orqali kirish
 
-`APPLE_BUNDLE_ID`, `GOOGLE_CLIENT_IDS` yoki `TELEGRAM_BOT_TOKEN` bo'sh bo'lsa
-o'sha provayder orqali kirish **ochilmaydi**. Tekshiruvsiz ishlash imkoni yo'q.
+Yagona kirish yo'li (mobil va React admin panel). `TELEGRAM_BOT_TOKEN` va
+`TELEGRAM_BOT_USERNAME` (token egasi bo'lgan bot) to'ldirilgan bo'lishi va bot
+(`docker compose --profile bot up -d`) ishlab turishi **shart** — bot to'xtasa
+hech kim kira olmaydi (mehmon rejimidan tashqari). Sessiyalar Redis'da.
 
-`auth/social/` mijoz yuborgan telefon raqami bo'yicha hisob qidirmaydi —
-hisob faqat tasdiqlangan provayder `uid` si bo'yicha topiladi. Telefonsiz
-ijtimoiy hisobga o'rinbosar raqam beriladi; foydalanuvchi haqiqiy raqamini
-keyin qo'shadi.
+Bot faqat yuboruvchining o'z kontaktini va faqat `+998` raqamini qabul qiladi.
+Shef React panelga ham Telegram bilan kiradi — uning raqami bazada `admin`
+rolida bo'lishi kerak. Apple/Google orqali kirish olib tashlandi (`SocialAccount`
+jadvali saqlangan).
 
 ## 7. Mobil qurilma limiti
 

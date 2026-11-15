@@ -117,30 +117,39 @@ kirishni. `setup_groups` admin paneli ichidagi huquqlarni sozlaydi.
 
 ## Autentifikatsiya
 
-Yadro — JWT (access 1 kun, refresh 90 kun, rotatsiya yoqilgan). Kirish yo'llari:
+Yadro — JWT (access 1 kun, refresh 90 kun, rotatsiya yoqilgan). **Parol yo'q.**
+Kirish yo'llari:
 
 | Yo'l | Kim ishlatadi |
 |---|---|
-| `auth/login/` — telefon + parol | Mobil, web |
-| `auth/login-code/` — shef bergan kod | Desktop darslik va imtihon |
-| `auth/social/` — Apple / Google / Telegram | Mobil |
-| `auth/guest/` — mehmon, ro'yxatdan o'tmasdan 5 kun | Mobil (yangi versiya) |
+| `auth/telegram/start → status → claim` — Telegram kontakti | Mobil ilova, React admin panel |
+| `auth/guest/` — mehmon, ro'yxatdan o'tmasdan 5 kun | Mobil |
+| `auth/login-code/` — shef bergan kod | Desktop va web (darslik, imtihon) |
+
+Django admin (`/admin/`) — superuser paroli bilan (`createsuperuser`), faqat
+server egasi uchun favqulodda eshik.
+
+**Telegram orqali kirish (kirish = ro'yxatdan o'tish).** Ilova
+`POST auth/telegram/start/` (`{lang}`, raqamsiz) dan `{token, link}` oladi va
+`t.me/<bot>?start=<token>` ni ochadi. Bot kontaktni so'raydi (faqat
+yuboruvchining o'ziniki, faqat `+998`) va raqam hamda ismni sessiyaga yozadi.
+Ilova `GET auth/telegram/status/<token>/` ni so'rab turadi
+(`pending | verified | mismatch | expired`), `verified` bo'lgach
+`POST auth/telegram/claim/` (`{token, guest_refresh?, platform?, device_label?}`)
+bilan bir marta tokenlarni oladi:
+
+- raqam bazada bo'lsa — o'sha hisobga kirish (`200`, `created: false`);
+- bo'lmasa — yangi o'quvchi, 12 kunlik PRO sovg'a bilan (`201`, `created: true`);
+  `guest_refresh` berilsa mehmon hisobi natijalari bilan o'quvchiga aylanadi;
+- bloklangan hisob (`is_active=False` yoki avtomaktab bloklagan talaba) — `403 blocked`.
+
+Start IP bo'yicha cheklangan (10 daqiqada 5 ta). Eski ilova chaqiradigan
+`auth/login/`, `register/`, `social/`, `change-password/`, `send-code/`,
+`verify-code/`, `reset-password/` — `400 update_required`.
 
 **Mehmon rejimi.** Yangi mobil ilova birinchi ochilganda `auth/guest/` dan
 telefonsiz `role=guest` hisob va 5 kunlik sessiya oladi (`GUEST_DAYS`). Muddat
 tugagach har so'rov `401` va `code: "guest_expired"` qaytaradi.
-
-**Ro'yxatdan o'tish — Telegram orqali.** Ilova `POST auth/telegram/start/`
-(`{phone, purpose: register|reset, lang}`) dan `{token, link}` oladi va
-`t.me/<bot>?start=<token>` ni ochadi. Bot kontaktni so'raydi va raqamni
-solishtiradi; ilova `GET auth/telegram/status/<token>/` ni so'rab turadi
-(`pending | verified | mismatch | expired`). So'ng `auth/register/` ga
-`verification=<token>` (va mehmon bo'lsa `guest_refresh=<refresh>` — mehmon
-hisobi natijalari bilan o'quvchiga aylanadi). Tokensiz (eski ilova)
-`400 update_required`. Yangi ilova do'konga chiqquncha
-`REGISTER_REQUIRE_TELEGRAM=False` eski yo'lni ochiq qoldiradi.
-`auth/reset-password/` ham shu tokenni qabul qiladi; talaba parolni tiklasa
-ochiq PIN bo'shatiladi va u o'z paroli bilan kiradi.
 
 **Kirish kodi — bitta kompyuterga.** Desktop `device_id` (Windows MachineGuid'ining
 sha256 xeshi) yuboradi; birinchi kirish kodni shu kompyuterga biriktiradi, shu
@@ -161,16 +170,13 @@ web va desktop 1), `User.max_devices` bilan qayta yozish mumkin. Muddat ham
 platforma bo'yicha: mobilda yo'q, web va desktopda 12 kun — muddati o'tgan
 qurilma bilan token yangilanmaydi.
 
-`auth/social/` provayder tokenini **tekshiradi** (Apple imzosi, Google
-`tokeninfo`, Telegram `hash`). Provayder sozlanmagan bo'lsa u orqali kirish
-ochilmaydi.
-
 ---
 
 ## Endpointlar
 
-Barcha `GET` so'rovlar `?lang=` ni qo'llaydi (`uz` / `kr` / `qq` / `ru`), so'ng
-`Accept-Language`, so'ng `uz`. Bo'sh matn `uz → ru → cry` tartibida zaxiraga tushadi.
+Barcha `GET` so'rovlar `?lang=` ni qo'llaydi (`uz` / `kr` / `ru`), so'ng
+`Accept-Language`, so'ng `uz`. Olib tashlangan `qq` (eski ilova yuboradi) `uz` deb
+o'qiladi. Bo'sh matn `uz → ru → cry` tartibida zaxiraga tushadi.
 
 ### Kontent
 
