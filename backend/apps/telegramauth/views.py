@@ -27,11 +27,12 @@ from apps.accounts.models import User
 from apps.billing.models import Student
 from common.net import client_ip
 
-from . import otpstore, telegram, verification
+from . import claim, otpstore, telegram, verification
 from .models import TelegramAccount
 from .serializers import (
     ResetPasswordSerializer,
     SendCodeSerializer,
+    TelegramClaimSerializer,
     TelegramStartSerializer,
     VerifyCodeSerializer,
 )
@@ -201,6 +202,50 @@ class TelegramStartView(APIView):
                           http_status=status.HTTP_429_TOO_MANY_REQUESTS)
         return Response({"token": token, "link": verification.bot_link(token),
                          "expires_in": verification.SESSION_TTL})
+
+
+@extend_schema(tags=["auth"])
+class TelegramClaimView(APIView):
+    """Tasdiqlangan sessiyani tokenlarga almashtiradi (bir marta).
+
+    Raqam bazada bo'lsa — kirish (`200`), bo'lmasa — yangi o'quvchi (`201`);
+    `guest_refresh` berilsa mehmon hisobi natijalari bilan aylanadi.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = ()
+    serializer_class = TelegramClaimSerializer
+
+    def post(self, request):
+        from apps.accounts.devices import DeviceLimitReached
+        from apps.accounts.serializers import UserSerializer, issue_tokens
+        from apps.accounts.views import DEVICE_LIMIT_MESSAGE, VERIFICATION_INVALID
+
+        serializer = TelegramClaimSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        session = verification.consume_auth(data["token"])
+        if session is None:
+            return Response(VERIFICATION_INVALID, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            user, created = claim.user_for_phone(
+                session["phone"], session.get("full_name") or "",
+                session.get("lang") or "uz", data.get("guest_refresh", ""),
+            )
+            if claim.is_blocked(user):
+                return _error("blocked", "Hisob bloklangan.", status.HTTP_403_FORBIDDEN)
+            try:
+                tokens = issue_tokens(user, platform=data.get("platform", ""),
+                                      label=data.get("device_label", ""))
+            except DeviceLimitReached:
+                return Response({"detail": DEVICE_LIMIT_MESSAGE},
+                                status=status.HTTP_403_FORBIDDEN)
+        return Response(
+            {"user": UserSerializer(user).data, "tokens": tokens, "created": created},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
 
 
 @extend_schema(tags=["auth"])

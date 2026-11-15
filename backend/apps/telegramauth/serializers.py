@@ -34,6 +34,14 @@ class ResetPasswordSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=6)
 
 
+class TelegramClaimSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=64)
+    # Mehmonning refresh tokeni — yangi hisob o'rniga mehmon hisobi aylanadi.
+    guest_refresh = serializers.CharField(required=False, allow_blank=True)
+    platform = serializers.CharField(max_length=10, required=False, allow_blank=True)
+    device_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+
+
 class TelegramStartSerializer(serializers.Serializer):
     # Raqam so'ralmaydi — bot uni kontaktdan oladi.
     purpose = serializers.ChoiceField(choices=[Purpose.AUTH], required=False,

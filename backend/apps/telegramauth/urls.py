@@ -12,6 +12,7 @@ urlpatterns = [
     path("telegram/start/", views.TelegramStartView.as_view(), name="telegram-start"),
     path("telegram/status/<str:token>/", views.TelegramStatusView.as_view(),
          name="telegram-status"),
+    path("telegram/claim/", views.TelegramClaimView.as_view(), name="telegram-claim"),
     path("telegram/return/", views.AppReturnView.as_view(), name="telegram-app-return"),
     path("reset-password/", views.ResetPasswordView.as_view(), name="reset-password"),
 ]
