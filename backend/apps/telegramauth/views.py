@@ -25,6 +25,7 @@ from django.conf import settings
 
 from apps.accounts.models import User
 from apps.billing.models import Student
+from common.net import client_ip
 
 from . import otpstore, telegram, verification
 from .models import TelegramAccount
@@ -176,31 +177,25 @@ class ResetPasswordView(APIView):
 
 @extend_schema(tags=["auth"])
 class TelegramStartView(APIView):
-    """Raqamni Telegram bot orqali tasdiqlash sessiyasini ochadi.
+    """Telegram orqali kirish sessiyasini ochadi (raqamsiz).
 
-    Ilova `link` ni ochadi; bot kontaktni solishtirib sessiyani tasdiqlaydi,
-    ilova esa holatni `telegram/status/<token>/` dan so'raydi.
+    Ilova `link` ni ochadi; bot kontaktdan raqam va ismni sessiyaga yozadi,
+    ilova holatni `telegram/status/<token>/` dan so'raydi va tasdiqlangach
+    `telegram/claim/` bilan tokenlarni oladi.
     """
 
     permission_classes = [permissions.AllowAny]
+    authentication_classes = ()
     serializer_class = TelegramStartSerializer
 
     def post(self, request):
         serializer = TelegramStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        phone = serializer.validated_data["phone"]
-        purpose = serializer.validated_data["purpose"]
-
-        exists = User.objects.filter(phone=phone).exists()
-        if purpose == "register" and exists:
-            return _error("phone_taken", "Bu raqam ro'yxatdan o'tgan. Kiring yoki parolni tiklang.")
-        if purpose == "reset" and not exists:
-            return _error("no_user", "Bu raqam bilan foydalanuvchi topilmadi.",
-                          http_status=status.HTTP_404_NOT_FOUND)
-
         try:
-            token = verification.start_session(phone, purpose,
-                                               serializer.validated_data["lang"])
+            token = verification.start_session(
+                None, serializer.validated_data["purpose"],
+                serializer.validated_data["lang"], ip=client_ip(request),
+            )
         except verification.TooManySessions:
             return _error("too_many", "Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.",
                           http_status=status.HTTP_429_TOO_MANY_REQUESTS)

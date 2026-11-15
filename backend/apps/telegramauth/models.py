@@ -17,6 +17,7 @@ from django.db import models
 
 
 class Purpose(models.TextChoices):
+    AUTH = "auth", "Kirish"
     REGISTER = "register", "Ro'yxatdan o'tish"
     RESET = "reset", "Parolni tiklash"
 

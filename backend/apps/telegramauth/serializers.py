@@ -35,6 +35,7 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 
 class TelegramStartSerializer(serializers.Serializer):
-    phone = PhoneField(max_length=20)
-    purpose = serializers.ChoiceField(choices=Purpose.choices)
+    # Raqam so'ralmaydi — bot uni kontaktdan oladi.
+    purpose = serializers.ChoiceField(choices=[Purpose.AUTH], required=False,
+                                      default=Purpose.AUTH)
     lang = serializers.CharField(max_length=3, required=False, default="uz")

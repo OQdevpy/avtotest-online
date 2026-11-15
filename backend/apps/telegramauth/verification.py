@@ -1,17 +1,18 @@
-"""Telegram orqali raqamni tasdiqlash sessiyasi (Redis, TTL bilan).
+"""Telegram orqali kirish sessiyasi (Redis, TTL bilan).
 
-Oqim: ilova `start_session` dan token oladi va `t.me/<bot>?start=<token>`
-havolasini ochadi. Bot `/start <token>` da sessiyani shu Telegram chatiga
-bog'laydi (`bind_chat`), kontakt kelganda raqamni solishtirib sessiyani
-`verified` yoki `mismatch` qiladi. Ilova holatni `status_of` orqali so'rab
-turadi; `register/` va `reset-password/` tasdiqlangan tokenni `consume`
-bilan bir marta ishlatadi.
+Oqim: ilova (yoki admin panel) `start_session` dan token oladi va
+`t.me/<bot>?start=<token>` havolasini ochadi. Raqam so'ralmaydi. Bot
+`/start <token>` da sessiyani shu Telegram chatiga bog'laydi (`bind_chat`),
+kontakt kelganda raqam va ismni sessiyaga yozib `verified` qiladi (O'zbekiston
+raqami bo'lmasa — `mismatch`). Ilova holatni `status_of` orqali so'rab turadi
+va `auth/telegram/claim/` tasdiqlangan sessiyani `consume_auth` bilan bir marta
+tokenlarga almashtiradi.
 
 Redis kalitlari:
 
-* ``tgv:{token}``            -> JSON {phone, purpose, lang, status, telegram_id}
+* ``tgv:{token}``            -> JSON {phone, purpose, lang, status, telegram_id, full_name}
 * ``tgv:chat:{telegram_id}`` -> token (bot kontaktni qaysi sessiyaga bog'lashini biladi)
-* ``tgv:count:{phone}``      -> shu raqamga ochilgan sessiyalar soni (cheklov uchun)
+* ``tgv:count:ip:{ip}``      -> shu IP dan ochilgan sessiyalar soni (cheklov uchun)
 """
 
 from __future__ import annotations
@@ -27,7 +28,8 @@ from . import otpstore
 from .telegram import BOT_USERNAME
 
 SESSION_TTL = 600
-# Bir raqamga `COUNT_WINDOW` soniya ichida ko'pi bilan shuncha sessiya.
+AUTH = "auth"
+# Bir IP dan `COUNT_WINDOW` soniya ichida ko'pi bilan shuncha sessiya.
 MAX_SESSIONS = 5
 COUNT_WINDOW = 600
 
@@ -51,14 +53,17 @@ def _chat_key(telegram_id: int) -> str:
     return f"tgv:chat:{telegram_id}"
 
 
-def _count_key(phone: str) -> str:
-    return f"tgv:count:{phone}"
+def _count_key(ip: str) -> str:
+    return f"tgv:count:ip:{ip or '-'}"
 
 
-def start_session(phone: str, purpose: str, lang: str) -> str:
-    """Yangi `pending` sessiya ochadi va tokenni qaytaradi."""
+def start_session(phone: str | None, purpose: str, lang: str, ip: str = "") -> str:
+    """Yangi `pending` sessiya ochadi va tokenni qaytaradi.
+
+    `auth` sessiyasida `phone=None` — raqam bot olgan kontaktdan yoziladi.
+    """
     r = otpstore.client()
-    count_key = _count_key(phone)
+    count_key = _count_key(ip)
     count = r.incr(count_key)
     if count == 1:
         r.expire(count_key, COUNT_WINDOW)
@@ -68,7 +73,7 @@ def start_session(phone: str, purpose: str, lang: str) -> str:
     # token_urlsafe — faqat [A-Za-z0-9_-]; 24 bayt → 32 belgi (Telegram cheklovi 64).
     token = secrets.token_urlsafe(24)
     payload = {"phone": phone, "purpose": purpose, "lang": lang,
-               "status": Status.PENDING, "telegram_id": None}
+               "status": Status.PENDING, "telegram_id": None, "full_name": ""}
     r.set(_key(token), json.dumps(payload), ex=SESSION_TTL)
     return token
 
@@ -83,14 +88,15 @@ def status_of(token: str) -> str:
     return session["status"] if session else Status.EXPIRED
 
 
-def mark(token: str, status: str, telegram_id: int | None = None) -> None:
-    """Sessiya holatini yozadi. Tasdiqlangach yana `SESSION_TTL` yashaydi —
-    foydalanuvchi ilovaga kech qaytsa ham ro'yxatdan o'ta oladi."""
+def mark(token: str, status: str, telegram_id: int | None = None, **fields) -> None:
+    """Sessiya holatini (va qo'shimcha maydonlarni) yozadi. Tasdiqlangach yana
+    `SESSION_TTL` yashaydi — foydalanuvchi ilovaga kech qaytsa ham kira oladi."""
     r = otpstore.client()
     session = get_session(token)
     if session is None:
         return
     session["status"] = status
+    session.update(fields)
     if telegram_id is not None:
         session["telegram_id"] = telegram_id
     if status == Status.VERIFIED:
@@ -111,6 +117,20 @@ def consume(token: str, phone: str, purpose: str) -> bool:
         return False
     # `delete` 1 qaytarsa — aynan shu chaqiruv ishlatdi (parallel ikkinchisi 0 oladi).
     return otpstore.client().delete(_key(token)) == 1
+
+
+def consume_auth(token: str) -> dict | None:
+    """Tasdiqlangan `auth` sessiyasini bir marta ishlatadi: o'chirib, qaytaradi."""
+    if not token:
+        return None
+    session = get_session(token)
+    if (session is None or session["status"] != Status.VERIFIED
+            or session.get("purpose") != AUTH or not session.get("phone")):
+        return None
+    # `delete` 1 qaytarsa — aynan shu chaqiruv ishlatdi (parallel ikkinchisi 0 oladi).
+    if otpstore.client().delete(_key(token)) != 1:
+        return None
+    return session
 
 
 def bind_chat(telegram_id: int, token: str) -> None:
@@ -135,13 +155,14 @@ def mask_phone(phone: str) -> str:
     return f"{phone[:4]} {phone[4:6]} ***-{phone[9:11]}-{phone[11:13]}"
 
 
-def resolve_contact(token: str, shared_raw: str,
-                    telegram_id: int) -> tuple[str, str | None, str | None]:
-    """Bot'ga kelgan kontaktni sessiyadagi raqam bilan solishtiradi.
+def resolve_contact(token: str, shared_raw: str, telegram_id: int,
+                    full_name: str = "") -> tuple[str, str | None, str | None]:
+    """Bot'ga kelgan kontaktni sessiyaga yozadi.
 
     Qaytaradi: ``(outcome, session_phone, shared_phone)``; outcome —
     ``verified`` | ``mismatch`` | ``foreign`` (O'zbekiston raqami emas) |
-    ``expired`` (sessiya yo'q). ``foreign`` ham sessiyani ``mismatch`` qiladi.
+    ``expired`` (sessiya yo'q). ``foreign`` sessiyani ``mismatch`` qiladi.
+    `auth` sessiyasida raqam solishtirilmaydi — kontakt raqami va ism yoziladi.
     Kontakt aynan yuboruvchiniki ekani bot'da oldinroq tekshiriladi.
     """
     session = get_session(token)
@@ -153,6 +174,9 @@ def resolve_contact(token: str, shared_raw: str,
     except ValidationError:
         mark(token, Status.MISMATCH, telegram_id)
         return "foreign", expected, None
+    if session.get("purpose") == AUTH:
+        mark(token, Status.VERIFIED, telegram_id, phone=shared, full_name=full_name.strip())
+        return "verified", shared, shared
     if shared != expected:
         mark(token, Status.MISMATCH, telegram_id)
         return "mismatch", expected, shared

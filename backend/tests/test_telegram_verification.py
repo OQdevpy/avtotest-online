@@ -1,8 +1,10 @@
-"""Telegram orqali raqamni tasdiqlash — sessiya, start/status va bot mantig'i."""
+"""Telegram orqali kirish sessiyasi — start/status va bot kontakt mantig'i.
+
+Sessiya raqamsiz ochiladi; raqam va ism bot olgan kontaktdan yoziladi.
+"""
 
 import re
 
-import pytest
 from django.conf import settings
 
 from apps.telegramauth import verification
@@ -14,95 +16,82 @@ def status_url(token):
     return f"/api/v1/auth/telegram/status/{token}/"
 
 
-def start(api, phone="901234567", purpose="register"):
-    return api.post(START, {"phone": phone, "purpose": purpose, "lang": "uz"}, format="json")
+def start(api, ip="10.0.0.1"):
+    return api.post(START, {"lang": "uz"}, format="json", HTTP_X_REAL_IP=ip)
 
 
-def test_start_returns_link(api, db, fake_redis):
+def new_token():
+    return verification.start_session(None, "auth", "uz", ip="10.0.0.1")
+
+
+def test_start_without_phone(api, db, fake_redis):
     r = start(api)
     assert r.status_code == 200, r.data
-    assert r.data["link"] == f"https://t.me/{settings.TELEGRAM_BOT_USERNAME}?start={r.data['token']}"
-    assert re.fullmatch(r"[A-Za-z0-9_-]{1,64}", r.data["token"])
+    token = r.data["token"]
+    assert r.data["link"] == f"https://t.me/{settings.TELEGRAM_BOT_USERNAME}?start={token}"
+    assert re.fullmatch(r"[A-Za-z0-9_-]{1,64}", token)
     assert r.data["expires_in"] == 600
+    session = verification.get_session(token)
+    assert session["purpose"] == "auth"
+    assert session["phone"] is None
 
 
-def test_status_flow(api, db, fake_redis):
-    token = start(api).data["token"]
-    assert api.get(status_url(token)).data == {"status": "pending"}
-    verification.mark(token, verification.Status.VERIFIED, telegram_id=7)
-    assert api.get(status_url(token)).data == {"status": "verified"}
-    assert api.get(status_url("yoq-token")).data == {"status": "expired"}
-
-
-def test_register_phone_taken(api, student, fake_redis):
-    r = start(api, phone=student.phone)
-    assert r.status_code == 400
-    assert r.data["code"] == "phone_taken"
-
-
-def test_guest_phone_not_taken(api, db, fake_redis):
-    api.post("/api/v1/auth/guest/", {"device_id": "a" * 32}, format="json")
-    assert start(api).status_code == 200
-
-
-def test_reset_no_user(api, db, fake_redis):
-    r = start(api, purpose="reset")
-    assert r.status_code == 404
-    assert r.data["code"] == "no_user"
-
-
-def test_too_many_sessions(api, db, fake_redis):
+def test_start_rate_limited_by_ip(api, db, fake_redis):
     for _ in range(5):
         assert start(api).status_code == 200
     r = start(api)
     assert r.status_code == 429
     assert r.data["code"] == "too_many"
+    # Boshqa IP cheklovga tushmaydi.
+    assert start(api, ip="10.0.0.2").status_code == 200
 
 
-def test_consume_only_verified(db, fake_redis):
-    token = verification.start_session("+998901234567", "register", "uz")
-    assert verification.consume(token, "+998901234567", "register") is False
-    verification.mark(token, verification.Status.VERIFIED, telegram_id=7)
-    assert verification.consume(token, "+998911112233", "register") is False
-    assert verification.consume(token, "+998901234567", "reset") is False
-    assert verification.consume(token, "+998901234567", "register") is True
-    assert verification.consume(token, "+998901234567", "register") is False
+def test_status_flow(api, db, fake_redis):
+    token = start(api).data["token"]
+    assert api.get(status_url(token)).data == {"status": "pending"}
+    verification.resolve_contact(token, "+998901234567", 7, "Ali")
+    assert api.get(status_url(token)).data == {"status": "verified"}
+    assert api.get(status_url("yoq-token")).data == {"status": "expired"}
 
 
-# --- Bot: kontaktni solishtirish -------------------------------------------
+def test_auth_contact_verifies_and_stores_phone(db, fake_redis):
+    token = new_token()
+    outcome, _, shared = verification.resolve_contact(token, "998901234567", 7, "Ali Valiyev")
+    assert outcome == "verified"
+    assert shared == "+998901234567"
+    session = verification.get_session(token)
+    assert session["phone"] == "+998901234567"
+    assert session["full_name"] == "Ali Valiyev"
+    assert session["telegram_id"] == 7
+    assert verification.status_of(token) == "verified"
 
-def new_token(phone="+998901234567"):
-    return verification.start_session(phone, "register", "uz")
+
+def test_auth_contact_foreign(db, fake_redis):
+    token = new_token()
+    assert verification.resolve_contact(token, "+79001234567", 7, "Ivan")[0] == "foreign"
+    assert verification.status_of(token) == "mismatch"
+    assert verification.get_session(token)["phone"] is None
+
+
+def test_consume_auth_once(db, fake_redis):
+    pending = new_token()
+    assert verification.consume_auth(pending) is None
+
+    token = new_token()
+    verification.resolve_contact(token, "+998901234567", 7, "Ali")
+    session = verification.consume_auth(token)
+    assert session["phone"] == "+998901234567"
+    assert verification.consume_auth(token) is None
+
+
+def test_consume_auth_rejects_mismatch(db, fake_redis):
+    token = new_token()
+    verification.resolve_contact(token, "+79001234567", 7, "Ivan")
+    assert verification.consume_auth(token) is None
 
 
 def test_mask_phone():
     assert verification.mask_phone("+998901234567") == "+998 90 ***-45-67"
-
-
-def test_resolve_contact_match(db, fake_redis):
-    token = new_token()
-    assert verification.resolve_contact(token, "+998901234567", 7) == (
-        "verified", "+998901234567", "+998901234567")
-    assert verification.status_of(token) == "verified"
-    assert verification.get_session(token)["telegram_id"] == 7
-
-
-def test_resolve_contact_normalizes(db, fake_redis):
-    for raw in ("998901234567", "+998 90 123 45 67"):
-        assert verification.resolve_contact(new_token(), raw, 7)[0] == "verified"
-
-
-def test_resolve_contact_mismatch(db, fake_redis):
-    token = new_token()
-    assert verification.resolve_contact(token, "+998911112233", 7) == (
-        "mismatch", "+998901234567", "+998911112233")
-    assert verification.status_of(token) == "mismatch"
-
-
-def test_resolve_contact_foreign(db, fake_redis):
-    token = new_token()
-    assert verification.resolve_contact(token, "+79161234567", 7)[0] == "foreign"
-    assert verification.status_of(token) == "mismatch"
 
 
 def test_resolve_contact_expired(db, fake_redis):

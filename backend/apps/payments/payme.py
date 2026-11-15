@@ -21,6 +21,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.net import client_ip
+
 from . import services
 from .models import PaymentConfig, ProOrder, Provider, ProviderTransaction
 
@@ -73,11 +75,6 @@ def _ms(dt) -> int:
 
 def _from_ms(value) -> datetime:
     return datetime.fromtimestamp(int(value) / 1000, tz=dt_timezone.utc)
-
-
-def client_ip(request) -> str:
-    """nginx `X-Real-IP` ni `$remote_addr` bilan yozadi; `X-Forwarded-For` ga ishonilmaydi."""
-    return (request.META.get("HTTP_X_REAL_IP") or request.META.get("REMOTE_ADDR") or "").strip()
 
 
 def ip_allowed(request, config: PaymentConfig) -> bool:
