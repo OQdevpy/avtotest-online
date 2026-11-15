@@ -264,7 +264,7 @@ DEVICE_EVICT_OLDEST = {"mobile"}
 # o'z umri amal qiladi). Web va desktopda kirish sotilgani uchun 12 kun.
 SESSION_DAYS = {"mobile": None, "web": 12, "desktop": 12}
 # Mehmon (ro'yxatdan o'tmagan mobil foydalanuvchi) sessiyasining umri, kunda.
-GUEST_DAYS = 5
+GUEST_DAYS = 3
 # Shef chiqargan kirish kodi faollashtirilgandan keyin qancha kun ishlaydi.
 ACCESS_CODE_DAYS = 12
 

@@ -84,7 +84,7 @@ class UserSerializer(serializers.ModelSerializer):
 def guest_from_refresh(raw: str) -> User | None:
     """Mehmonni refresh tokeni orqali topadi (imzo va 90 kunlik umri tekshiriladi).
 
-    Mehmon sessiyasining 5 kunlik muddati bu yerda ahamiyatsiz — muddati
+    Mehmon sessiyasining 3 kunlik muddati bu yerda ahamiyatsiz — muddati
     tugagan mehmon ham ro'yxatdan o'tib aylana oladi.
     """
     if not raw:

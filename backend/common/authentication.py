@@ -3,7 +3,7 @@
 Kirish kodi va mehmon tokenlarida `did` (Device pk) bor. Shef kodni nofaol
 qilsa yoki kompyuter bog'lanishini bekor qilsa `Device.is_active=False`
 bo'ladi — shu kompyuter keyingi so'rovdayoq 401 oladi (access token 1 kun
-yashashini kutmaydi). Mehmonning 5 kunlik muddati tugasa ham shunday, lekin
+yashashini kutmaydi). Mehmonning 3 kunlik muddati tugasa ham shunday, lekin
 `code: "guest_expired"` bilan — ilova ro'yxatdan o'tish ekranini ochadi.
 `did` yo'q tokenlar (mobil, telefon+parol) avvalgidek.
 """

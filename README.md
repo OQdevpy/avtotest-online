@@ -123,7 +123,7 @@ Kirish yo'llari:
 | Yo'l | Kim ishlatadi |
 |---|---|
 | `auth/telegram/start → status → claim` — Telegram kontakti | Mobil ilova, React admin panel |
-| `auth/guest/` — mehmon, ro'yxatdan o'tmasdan 5 kun | Mobil |
+| `auth/guest/` — mehmon, ro'yxatdan o'tmasdan 3 kun | Mobil |
 | `auth/login-code/` — shef bergan kod | Desktop va web (darslik, imtihon) |
 
 Django admin (`/admin/`) — superuser paroli bilan (`createsuperuser`), faqat
@@ -148,7 +148,7 @@ Start IP bo'yicha cheklangan (10 daqiqada 60 ta — operator NAT ortidagilar uch
 `verify-code/`, `reset-password/` — `400 update_required`.
 
 **Mehmon rejimi.** Yangi mobil ilova birinchi ochilganda `auth/guest/` dan
-telefonsiz `role=guest` hisob va 5 kunlik sessiya oladi (`GUEST_DAYS`). Muddat
+telefonsiz `role=guest` hisob va 3 kunlik sessiya oladi (`GUEST_DAYS`). Muddat
 tugagach har so'rov `401` va `code: "guest_expired"` qaytaradi.
 
 **Kirish kodi — bitta kompyuterga.** Desktop `device_id` (Windows MachineGuid'ining

@@ -1,4 +1,4 @@
-"""Mehmon rejimi — ro'yxatdan o'tmasdan 5 kun (`POST /auth/guest/`)."""
+"""Mehmon rejimi — ro'yxatdan o'tmasdan 3 kun (`POST /auth/guest/`)."""
 
 from datetime import timedelta
 
@@ -36,7 +36,7 @@ def test_guest_creates_session(api, db):
     assert not user.has_usable_password()
     device = user.devices.get()
     assert device.platform == "mobile" and device.machine_id == "a" * 32
-    assert round((device.expires_at - device.created_at).total_seconds() / 86400) == 5
+    assert round((device.expires_at - device.created_at).total_seconds() / 86400) == 3
 
 
 def test_two_guests_get_distinct_phones(api, db):

@@ -200,7 +200,7 @@ Diqqat:
 ## 9. Mehmon rejimi
 
 Yangi mobil ilova birinchi ochilganda `POST /api/v1/auth/guest/` chaqiradi va
-telefonsiz `role=guest` foydalanuvchi hamda 5 kunlik sessiya oladi
+telefonsiz `role=guest` foydalanuvchi hamda 3 kunlik sessiya oladi
 (`settings.GUEST_DAYS`). Muddat tugagach har so'rov `401` va
 `code: "guest_expired"` qaytaradi.
 
@@ -208,7 +208,7 @@ telefonsiz `role=guest` foydalanuvchi hamda 5 kunlik sessiya oladi
   tezlik cheklovini qo'ying (`nginx/conf.d/default.conf` dagi
   `location = /api/v1/auth/guest/` blokiga qarang). Backend o'zi ham IP bo'yicha
   soatiga 20 ta bilan cheklaydi (`DEFAULT_THROTTLE_RATES["guest"]`).
-- `prune_devices` (cron) ro'yxatdan o'tmagan, kelganiga 35 kundan oshgan
+- `prune_devices` (cron) ro'yxatdan o'tmagan, kelganiga 33 kundan oshgan
   mehmonlarni o'chiradi. Shu oraliqda ro'yxatdan o'tgan mehmon natijalari bilan
   o'quvchiga aylanadi.
 
