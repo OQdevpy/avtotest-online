@@ -30,11 +30,11 @@ def bot_token() -> str:
 
 
 def app_lang_to_bot(lang: str | None) -> str:
-    """Ilova tili (uz/kr/qq/ru) -> bot tili (uz/kr/ru).
+    """Ilova tili (uz/kr/ru) -> bot tili (uz/kr/ru).
 
-    `qq` (qoraqalpoq) uchun ham `uz` (lotin) ishlatiladi.
+    Noma'lum til (masalan eski ilovaning `qq`) — `uz`.
     """
-    mapping = {"uz": "uz", "kr": "kr", "qq": "uz", "ru": "ru"}
+    mapping = {"uz": "uz", "kr": "kr", "ru": "ru"}
     return mapping.get((lang or "").lower(), "uz")
 
 

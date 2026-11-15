@@ -58,7 +58,7 @@ from .serializers import (
 
 LANG_PARAM = OpenApiParameter(
     name="lang",
-    description="Kontent tili: uz | kr | qq | ru (standart: uz)",
+    description="Kontent tili: uz | kr | ru (standart: uz)",
     required=False,
     type=str,
 )

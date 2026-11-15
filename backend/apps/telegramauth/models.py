@@ -20,7 +20,7 @@ class Purpose(models.TextChoices):
 
 
 class BotLanguage(models.TextChoices):
-    """Bot ichidagi tillar. Ilova tillari (uz/kr/qq/ru) shu yerga xaritalanadi."""
+    """Bot ichidagi tillar. Ilova tillari (uz/kr/ru) bilan bir xil."""
 
     UZ = "uz", "O'zbekcha (lotin)"
     KR = "kr", "Ўзбекча (кирилл)"

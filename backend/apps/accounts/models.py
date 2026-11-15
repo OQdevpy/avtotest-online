@@ -67,7 +67,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Language(models.TextChoices):
         UZ = "uz", "O'zbekcha (lotin)"
         KR = "kr", "Ўзбекча (кирилл)"
-        QQ = "qq", "Qaraqalpaqsha"
         RU = "ru", "Русский"
 
     phone = models.CharField(max_length=13, unique=True, db_index=True)

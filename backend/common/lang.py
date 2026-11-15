@@ -4,11 +4,11 @@ Content is stored in three columns (`*_uz`, `*_ru`, `*_cry`) exactly like the
 legacy `avtotest-desktop-seoul` fixtures. The API flattens them to a single
 field chosen by the request, so the mobile client never sees the suffixes.
 
-The mobile app has four language codes; two of them map onto stored columns:
+The mobile app has three language codes:
     uz  -> uz      (O'zbekcha, lotin)
     kr  -> cry     (Ўзбекча, кирилл)
-    qq  -> uz      (Qaraqalpaqsha — no separate content yet, falls back to uz)
     ru  -> ru
+`qq` (Qaraqalpaqsha) was removed; old app builds still send it and get uz.
 """
 
 from drf_spectacular.types import OpenApiTypes
@@ -24,7 +24,7 @@ CLIENT_TO_DB = {
     "uz": "uz",
     "kr": "cry",
     "cry": "cry",
-    "qq": "uz",
+    "qq": "uz",  # olib tashlangan til — eski ilova yuboradi
     "ru": "ru",
 }
 

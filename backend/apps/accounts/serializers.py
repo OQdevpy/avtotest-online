@@ -15,6 +15,18 @@ class PhoneField(serializers.CharField):
             raise serializers.ValidationError(exc.messages[0]) from exc
 
 
+class LanguageField(serializers.ChoiceField):
+    """Ilova tili. Olib tashlangan `qq` (eski ilova yuboradi) — `uz` deb olinadi."""
+
+    LEGACY = {"qq": User.Language.UZ}
+
+    def __init__(self, **kwargs):
+        super().__init__(choices=User.Language.choices, **kwargs)
+
+    def to_internal_value(self, data):
+        return super().to_internal_value(self.LEGACY.get(data, data))
+
+
 def tokens_for(user: User) -> dict:
     refresh = RefreshToken.for_user(user)
     return {"access": str(refresh.access_token), "refresh": str(refresh)}
@@ -55,6 +67,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    language = LanguageField(required=False)
     initials = serializers.CharField(read_only=True)
     pro_active = serializers.BooleanField(read_only=True)
 
@@ -88,8 +101,7 @@ def guest_from_refresh(raw: str) -> User | None:
 class GuestSerializer(serializers.Serializer):
     # Ilova o'rnatilganda yaratadigan tasodifiy ID — faqat ma'lumot uchun.
     device_id = serializers.CharField(max_length=64)
-    lang = serializers.ChoiceField(choices=User.Language.choices, required=False,
-                                   default=User.Language.UZ)
+    lang = LanguageField(required=False, default=User.Language.UZ)
     device_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
 
 
