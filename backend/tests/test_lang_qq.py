@@ -44,3 +44,15 @@ def test_migration_moves_qq(db):
     module = importlib.import_module("apps.accounts.migrations.0008_language_qq_to_uz")
     module.qq_to_uz(django_apps, None)
     assert User.objects.get(phone="+998901112299").language == "uz"
+
+
+def test_telegram_start_lang_qq_creates_uz_user(api, db, fake_redis):
+    from apps.telegramauth import verification
+
+    r = api.post("/api/v1/auth/telegram/start/", {"lang": "qq"}, format="json")
+    assert r.status_code == 200, r.data
+    token = r.data["token"]
+    verification.resolve_contact(token, "+998901234567", 7, "Ali")
+    res = api.post("/api/v1/auth/telegram/claim/", {"token": token}, format="json")
+    assert res.status_code == 201, res.data
+    assert res.data["user"]["language"] == "uz"

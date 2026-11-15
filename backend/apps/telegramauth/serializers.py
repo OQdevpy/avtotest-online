@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.accounts.serializers import LanguageField
+
 from .models import Purpose
 
 
@@ -15,4 +17,4 @@ class TelegramStartSerializer(serializers.Serializer):
     # Raqam so'ralmaydi — bot uni kontaktdan oladi.
     purpose = serializers.ChoiceField(choices=Purpose.choices, required=False,
                                       default=Purpose.AUTH)
-    lang = serializers.CharField(max_length=3, required=False, default="uz")
+    lang = LanguageField(required=False, default="uz")
