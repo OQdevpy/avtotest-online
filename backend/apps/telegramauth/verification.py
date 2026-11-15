@@ -30,7 +30,8 @@ from .telegram import BOT_USERNAME
 SESSION_TTL = 600
 AUTH = "auth"
 # Bir IP dan `COUNT_WINDOW` soniya ichida ko'pi bilan shuncha sessiya.
-MAX_SESSIONS = 5
+# Mobil operatorlarda ko'p foydalanuvchi bitta IP ortida (mehmon cheklovi kabi keng).
+MAX_SESSIONS = 60
 COUNT_WINDOW = 600
 
 

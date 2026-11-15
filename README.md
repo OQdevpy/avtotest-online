@@ -143,7 +143,7 @@ bilan bir marta tokenlarni oladi:
   `guest_refresh` berilsa mehmon hisobi natijalari bilan o'quvchiga aylanadi;
 - bloklangan hisob (`is_active=False` yoki avtomaktab bloklagan talaba) — `403 blocked`.
 
-Start IP bo'yicha cheklangan (10 daqiqada 5 ta). Eski ilova chaqiradigan
+Start IP bo'yicha cheklangan (10 daqiqada 60 ta — operator NAT ortidagilar uchun keng). Eski ilova chaqiradigan
 `auth/login/`, `register/`, `social/`, `change-password/`, `send-code/`,
 `verify-code/`, `reset-password/` — `400 update_required`.
 

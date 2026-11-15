@@ -36,14 +36,30 @@ def test_start_without_phone(api, db, fake_redis):
     assert session["phone"] is None
 
 
+def test_start_allows_carrier_nat(api, db, fake_redis):
+    """Mobil operatorda ko'p foydalanuvchi bitta IP ortida — oddiy oqim cheklanmaydi."""
+    for _ in range(50):
+        assert start(api).status_code == 200
+
+
 def test_start_rate_limited_by_ip(api, db, fake_redis):
-    for _ in range(5):
+    for _ in range(verification.MAX_SESSIONS):
         assert start(api).status_code == 200
     r = start(api)
     assert r.status_code == 429
     assert r.data["code"] == "too_many"
     # Boshqa IP cheklovga tushmaydi.
     assert start(api, ip="10.0.0.2").status_code == 200
+
+
+def test_old_app_register_start_update_required(api, db, fake_redis):
+    """Eski ilova raqam va `purpose=register|reset` yuboradi — yangilashga yo'naltiriladi."""
+    for purpose in ("register", "reset"):
+        r = api.post(START, {"phone": "901234567", "purpose": purpose, "lang": "uz"},
+                     format="json")
+        assert r.status_code == 400
+        assert r.data == {"code": "update_required",
+                          "detail": "Ilovaning yangi versiyasini o'rnating."}
 
 
 def test_status_flow(api, db, fake_redis):

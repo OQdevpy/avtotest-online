@@ -45,6 +45,11 @@ class TelegramStartView(APIView):
     serializer_class = TelegramStartSerializer
 
     def post(self, request):
+        from apps.accounts.views import UPDATE_REQUIRED
+
+        # Eski ilova raqam bilan `register`/`reset` sessiyasini so'raydi — u yangilanishi kerak.
+        if request.data.get("purpose", "auth") != "auth":
+            return Response(UPDATE_REQUIRED, status=status.HTTP_400_BAD_REQUEST)
         serializer = TelegramStartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
