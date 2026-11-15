@@ -138,25 +138,10 @@ TEXTS: dict[str, dict[str, str]] = {
             "Вернитесь в приложение prava777 — всё продолжится автоматически."
         ),
     },
-    "mismatch": {
-        "uz": (
-            "❌ Siz ulashgan raqam ({shared}) ilovaga kiritilgan raqam ({entered}) "
-            "bilan mos emas. Ilovaga qaytib, Telegram'dagi raqamingizni kiriting."
-        ),
-        "kr": (
-            "❌ Сиз улашган рақам ({shared}) иловага киритилган рақам ({entered}) "
-            "билан мос эмас. Иловага қайтиб, Телеграмдаги рақамингизни киритинг."
-        ),
-        "ru": (
-            "❌ Номер, которым вы поделились ({shared}), не совпадает с номером, "
-            "введённым в приложении ({entered}). Вернитесь в приложение и введите "
-            "номер вашего Telegram."
-        ),
-    },
     "foreign_number": {
-        "uz": "❌ Faqat O'zbekiston raqami bilan ro'yxatdan o'tish mumkin.",
-        "kr": "❌ Фақат Ўзбекистон рақами билан рўйхатдан ўтиш мумкин.",
-        "ru": "❌ Регистрация возможна только с номером Узбекистана.",
+        "uz": "❌ Faqat O'zbekiston raqami bilan kirish mumkin.",
+        "kr": "❌ Фақат Ўзбекистон рақами билан кириш мумкин.",
+        "ru": "❌ Вход возможен только с номером Узбекистана.",
     },
 }
 

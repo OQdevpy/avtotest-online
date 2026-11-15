@@ -263,9 +263,6 @@ DEVICE_EVICT_OLDEST = {"mobile"}
 # Qurilma sessiyasining umri, kunda. None — muddat yo'q (refresh tokenning
 # o'z umri amal qiladi). Web va desktopda kirish sotilgani uchun 12 kun.
 SESSION_DAYS = {"mobile": None, "web": 12, "desktop": 12}
-# Ro'yxatdan o'tish faqat Telegram tasdig'i bilan. Yangi ilova do'konga
-# chiqquncha vaqtincha False qilib eski (tasdiqsiz) yo'lni ochiq qoldirish mumkin.
-REGISTER_REQUIRE_TELEGRAM = env_bool("REGISTER_REQUIRE_TELEGRAM", True)
 # Mehmon (ro'yxatdan o'tmagan mobil foydalanuvchi) sessiyasining umri, kunda.
 GUEST_DAYS = 5
 # Shef chiqargan kirish kodi faollashtirilgandan keyin qancha kun ishlaydi.
@@ -284,12 +281,6 @@ APP_RETURN_URL = env("APP_RETURN_URL", "")
 # Mobil ilova sxemasi va Android paketi (mobil `app.json` bilan bir xil).
 APP_SCHEME = "prava777"
 APP_ANDROID_PACKAGE = "com.oqdevpy.avtotest_tayyorlov"
-
-# --- Ijtimoiy kirish --------------------------------------------------------
-# Provayder sozlanmagan bo'lsa u orqali kirish ham ochilmaydi — token
-# tekshiruvisiz ishlash imkoni yo'q (apps/accounts/social.py).
-APPLE_BUNDLE_ID = env("APPLE_BUNDLE_ID")
-GOOGLE_CLIENT_IDS = env_list("GOOGLE_CLIENT_IDS")
 
 # --- Redis ------------------------------------------------------------------
 # Bir martalik tasdiqlash kodlari (OTP) TTL bilan Redis'da saqlanadi

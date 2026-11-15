@@ -1,7 +1,3 @@
-from datetime import timedelta
-
-from django.conf import settings
-
 from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
@@ -14,31 +10,24 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .models import AccessCode, SocialAccount, User, guest_phone, placeholder_phone
+from .models import AccessCode, User, guest_phone
 from .serializers import (
     AccessCodeLoginSerializer,
     AccessCodeSerializer,
-    ChangePasswordSerializer,
     GuestSerializer,
-    LoginSerializer,
-    RegisterSerializer,
     DeviceSerializer,
-    SocialLoginSerializer,
     UserSerializer,
     issue_tokens,
-    tokens_for,
 )
 from common.authentication import GUEST_EXPIRED
-from common.permissions import IsAdminRole, IsRegistered
+from common.permissions import IsAdminRole
 from rest_framework.throttling import ScopedRateThrottle
 
 from .devices import (
-    DeviceLimitReached,
     device_for_refresh,
     grandfather_device,
     rotate,
 )
-from .social import SocialVerificationError, verify_social_token
 from .models import Device
 
 
@@ -52,61 +41,16 @@ VERIFICATION_INVALID = {"code": "verification_invalid",
                         "detail": "Raqam tasdig'i yaroqsiz yoki muddati o'tgan. Qaytadan tasdiqlang."}
 
 
-def auth_response(user: User, request=None, created: bool = False) -> Response:
-    """Foydalanuvchi va JWT. Sessiya `Device` ga yoziladi; limit to'lsa 403."""
-    data = request.data if request is not None else {}
-    try:
-        tokens = issue_tokens(
-            user,
-            platform=data.get("platform", ""),
-            label=data.get("device_label", ""),
-        )
-    except DeviceLimitReached:
-        return Response({"detail": DEVICE_LIMIT_MESSAGE}, status=status.HTTP_403_FORBIDDEN)
-    return Response(
-        {"user": UserSerializer(user).data, "tokens": tokens},
-        status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-    )
+@extend_schema(tags=["auth"], deprecated=True)
+class UpdateRequiredView(APIView):
+    """Yopilgan yo'l: parol, ijtimoiy kirish va OTP. Kirish faqat Telegram orqali
+    (`auth/telegram/`); eski ilova `update_required` ni ko'rib yangilanadi."""
 
-
-@extend_schema(tags=["auth"])
-class RegisterView(generics.GenericAPIView):
-    """Ro'yxatdan o'tish — raqam Telegram bot orqali tasdiqlangan bo'lishi shart.
-
-    `verification` — `auth/telegram/start/` tokeni (bot tasdiqlagan). Eski ilova
-    uni yubormaydi va `update_required` oladi. `guest_refresh` berilsa mehmon
-    hisobi o'quvchiga aylanadi (natijalari bilan).
-    """
-
-    serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    authentication_classes = ()
 
-    def post(self, request):
-        from apps.telegramauth import verification
-        from apps.telegramauth.models import TelegramAccount
-
-        if settings.REGISTER_REQUIRE_TELEGRAM and not request.data.get("verification"):
-            return Response(UPDATE_REQUIRED, status=status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        phone = serializer.validated_data["phone"]
-        token = serializer.validated_data.pop("verification", "")
-        if token and not verification.consume(token, phone, "register"):
-            return Response(VERIFICATION_INVALID, status=status.HTTP_400_BAD_REQUEST)
-        user = serializer.save()
-        TelegramAccount.objects.filter(phone=phone, user__isnull=True).update(user=user)
-        return auth_response(user, request, created=True)
-
-
-@extend_schema(tags=["auth"])
-class LoginView(generics.GenericAPIView):
-    serializer_class = LoginSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return auth_response(serializer.validated_data["user"], request)
+    def post(self, request, *args, **kwargs):
+        return Response(UPDATE_REQUIRED, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(tags=["auth"])
@@ -142,62 +86,6 @@ class GuestView(generics.GenericAPIView):
 
 
 @extend_schema(tags=["auth"])
-class SocialLoginView(generics.GenericAPIView):
-    """Apple / Google / Telegram orqali kirish.
-
-    Provayder tokeni server tomonda tekshiriladi (`apps.accounts.social`).
-    Mijoz yuborgan `uid` ga o'z-o'zidan ishonilmaydi.
-    """
-
-    serializer_class = SocialLoginSerializer
-    permission_classes = [permissions.AllowAny]
-
-    @transaction.atomic
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        try:
-            verified = verify_social_token(
-                data["provider"], data.get("token", ""), data["uid"]
-            )
-        except SocialVerificationError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_401_UNAUTHORIZED)
-        data["uid"] = verified["uid"]
-        data["email"] = data.get("email") or verified["email"]
-
-        link = (
-            SocialAccount.objects
-            .select_related("user")
-            .filter(provider=data["provider"], uid=data["uid"])
-            .first()
-        )
-        if link:
-            return auth_response(link.user, request)
-
-        # Mijoz yuborgan `phone` ga hisobni topish uchun ISHONILMAYDI: aks holda
-        # o'z provayder tokeni bilan begona raqamni yuborgan odam o'sha hisobning
-        # JWT'sini olardi. Hisob faqat tasdiqlangan `uid` bo'yicha topiladi
-        # (yuqoridagi SocialAccount qidiruvi); topilmasa yangisi yaratiladi.
-        # Haqiqiy raqamni foydalanuvchi keyin `auth/me/` orqali (Telegram OTP
-        # tasdig'i bilan) qo'shadi.
-        user = User.objects.create_user(
-            phone=placeholder_phone(data["provider"], data["uid"]),
-            full_name=data.get("full_name", ""),
-        )
-        created = True
-
-        SocialAccount.objects.create(
-            user=user,
-            provider=data["provider"],
-            uid=data["uid"],
-            email=data.get("email", ""),
-        )
-        return auth_response(user, request, created=created)
-
-
-@extend_schema(tags=["auth"])
 class MeView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
 
@@ -208,18 +96,6 @@ class MeView(generics.RetrieveUpdateDestroyAPIView):
         # Hisob va unga bog'liq barcha ma'lumotlar (progress, xatolar, saqlangan
         # savollar, natijalar) FK cascade orqali o'chadi. Apple/Google talabi.
         instance.delete()
-
-
-@extend_schema(tags=["auth"])
-class ChangePasswordView(APIView):
-    permission_classes = [permissions.IsAuthenticated, IsRegistered]
-
-    def post(self, request):
-        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        request.user.set_password(serializer.validated_data["new_password"])
-        request.user.save(update_fields=["password"])
-        return Response({"detail": "Parol yangilandi."})
 
 
 @extend_schema(tags=["auth"])

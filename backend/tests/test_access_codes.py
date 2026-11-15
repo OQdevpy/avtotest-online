@@ -279,10 +279,9 @@ def test_session_survives_token_refresh_and_still_checked(api, student, admin_us
     assert api.get("/api/v1/sections/").status_code == 401
 
 
-def test_phone_login_tokens_unaffected(api, student):
-    """Mobil (telefon+parol) tokenlarida kod sessiyasi belgisi yo'q — tekshiruv tegmaydi."""
-    from tests.conftest import PASSWORD
-    tokens = api.post("/api/v1/auth/login/", {"phone": student.phone, "password": PASSWORD},
-                      format="json").json()["tokens"]
+def test_phone_login_tokens_unaffected(api, student, fake_redis):
+    """Mobil (Telegram) tokenlarida kod sessiyasi belgisi yo'q — tekshiruv tegmaydi."""
+    from tests.helpers import telegram_login
+    tokens = telegram_login(api, student.phone).json()["tokens"]
     api.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
     assert api.get("/api/v1/sections/").status_code == 200

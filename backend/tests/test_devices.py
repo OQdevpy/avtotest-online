@@ -4,18 +4,13 @@ import pytest
 from django.utils import timezone
 
 from apps.accounts.models import Device
+from tests.helpers import telegram_login
 
-pytestmark = pytest.mark.django_db
-
-PASSWORD = "pass1234"
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("fake_redis")]
 
 
 def login(api, user, platform="mobile", label=""):
-    body = {"phone": user.phone, "password": PASSWORD, "platform": platform}
-    if label:
-        body["device_label"] = label
-    response = api.post("/api/v1/auth/login/", body, format="json")
-    return response
+    return telegram_login(api, user.phone, platform=platform, label=label)
 
 
 def test_login_creates_device(api, student):
@@ -30,8 +25,7 @@ def test_login_records_device_label(api, student):
 
 
 def test_default_platform_is_mobile(api, student):
-    api.post("/api/v1/auth/login/",
-             {"phone": student.phone, "password": PASSWORD}, format="json")
+    telegram_login(api, student.phone)
     assert Device.objects.get(user=student).platform == "mobile"
 
 

@@ -123,11 +123,13 @@ def test_student_cannot_create_student(api, student, auth):
     }, format="json").status_code == 403
 
 
-def test_mobile_login_uses_student_password(api, branch_a):
-    """Mobil kirish Student.password (ochiq PIN) bilan tekshiriladi."""
-    Student.objects.create(name="Ali", phone="901234580", password="777700", branch=branch_a)
-    response = api.post("/api/v1/auth/login/", {
-        "phone": "901234580", "password": "777700", "platform": "web",
-    }, format="json")
+def test_student_logs_in_via_telegram(api, branch_a, fake_redis):
+    """Avtomaktab qo'shgan talaba Telegram orqali (raqami bo'yicha) o'z hisobiga kiradi."""
+    from tests.helpers import telegram_login
+
+    student = Student.objects.create(name="Ali", phone="901234580", password="777700",
+                                     branch=branch_a)
+    response = telegram_login(api, "+998901234580")
     assert response.status_code == 200, response.data
-    assert response.data["user"]["phone"] == "+998901234580"
+    assert response.data["user"]["id"] == student.user_id
+    assert response.data["created"] is False

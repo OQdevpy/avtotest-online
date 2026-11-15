@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from apps.accounts.models import Device, User
 from apps.billing.models import Student
-from apps.telegramauth import verification
+from tests.helpers import telegram_login
 
 PHONE = "+998901234567"
 
@@ -22,26 +22,13 @@ def test_expired_guest_refresh_says_guest_expired(api, db):
     assert res.data["code"] == "guest_expired"
 
 
-def test_closed_student_refresh_not_guest_expired(api, student):
-    login = api.post("/api/v1/auth/login/", {"phone": student.phone, "password": "pass1234"},
-                     format="json")
+def test_closed_student_refresh_not_guest_expired(api, student, fake_redis):
+    login = telegram_login(api, student.phone)
     Device.objects.filter(user=student).update(is_active=False)
     res = api.post("/api/v1/auth/token/refresh/", {"refresh": login.data["tokens"]["refresh"]},
                    format="json")
     assert res.status_code == 401
     assert res.data.get("code") != "guest_expired"
-
-
-def test_blocked_student_cannot_login_after_reset(api, db, fake_redis):
-    Student.objects.create(name="Talaba", phone=PHONE, password="1234")
-    token = verification.start_session(PHONE, "reset", "uz")
-    verification.mark(token, verification.Status.VERIFIED, telegram_id=7)
-    api.post("/api/v1/auth/reset-password/",
-             {"phone": PHONE, "token": token, "password": "yangi123"}, format="json")
-    Student.objects.filter(phone=PHONE).update(is_active=False)
-
-    res = api.post("/api/v1/auth/login/", {"phone": PHONE, "password": "yangi123"}, format="json")
-    assert res.status_code == 400
 
 
 def test_staff_edits_reset_student_without_pin(api, auth, admin_user, db):

@@ -8,14 +8,14 @@ pytestmark = pytest.mark.django_db
 
 # Spec §7 dagi endpointlar. `{id}` — drf-spectacular yozadigan ko'rinish.
 PROMISED = [
-    "/api/v1/auth/register/",
-    "/api/v1/auth/login/",
+    "/api/v1/auth/telegram/start/",
+    "/api/v1/auth/telegram/status/{token}/",
+    "/api/v1/auth/telegram/claim/",
+    "/api/v1/auth/guest/",
     "/api/v1/auth/login-code/",
-    "/api/v1/auth/social/",
     "/api/v1/auth/token/refresh/",
     "/api/v1/auth/logout/",
     "/api/v1/auth/me/",
-    "/api/v1/auth/change-password/",
     "/api/v1/auth/devices/",
     "/api/v1/auth/devices/{id}/",
     "/api/v1/sections/",

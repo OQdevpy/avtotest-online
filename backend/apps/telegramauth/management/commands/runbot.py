@@ -227,7 +227,7 @@ async def on_app_contact(message, token: str, lang: str) -> None:
         lang = tg.app_lang_to_bot(session["lang"])
     # Kontaktdagi ism (foydalanuvchi o'zi saqlagan) — bo'lmasa Telegram profili.
     name = " ".join(x for x in (contact.first_name, contact.last_name) if x)
-    outcome, entered, shared = await sync_to_async(verification.resolve_contact)(
+    outcome, _, shared = await sync_to_async(verification.resolve_contact)(
         token, contact.phone_number, from_user.id, name or from_user.full_name or "",
     )
     await sync_to_async(verification.unbind_chat)(from_user.id)
@@ -235,9 +235,6 @@ async def on_app_contact(message, token: str, lang: str) -> None:
         await link_contact(from_user.id, shared, from_user.username or "",
                            from_user.full_name or "")
         text = tg.t("verified", lang)
-    elif outcome == "mismatch":
-        text = tg.t("mismatch", lang, shared=verification.mask_phone(shared),
-                    entered=verification.mask_phone(entered))
     elif outcome == "foreign":
         text = tg.t("foreign_number", lang)
     else:

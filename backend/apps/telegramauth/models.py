@@ -3,11 +3,10 @@
 Bazada faqat bitta model bor:
 
 * ``TelegramAccount`` — bot'da "kontaktni ulashish" tugmasi bosilganda
-  yaratiladigan bog'lanish: ``telegram_id`` <-> ``phone``. Kod aynan shu
-  bog'langan Telegram chatiga yuboriladi.
+  yaratiladigan bog'lanish: ``telegram_id`` <-> ``phone`` <-> ``user``.
 
-Bir martalik kodlar (OTP) esa bazaga emas, **Redis**'ga TTL bilan yoziladi —
-``apps.telegramauth.otpstore`` moduliga qarang.
+Kirish sessiyalari esa bazaga emas, **Redis**'ga TTL bilan yoziladi —
+``apps.telegramauth.verification`` moduliga qarang.
 """
 
 from __future__ import annotations
@@ -18,8 +17,6 @@ from django.db import models
 
 class Purpose(models.TextChoices):
     AUTH = "auth", "Kirish"
-    REGISTER = "register", "Ro'yxatdan o'tish"
-    RESET = "reset", "Parolni tiklash"
 
 
 class BotLanguage(models.TextChoices):

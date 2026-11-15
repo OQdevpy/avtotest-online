@@ -2,9 +2,10 @@
 
 Talaba (Student) saqlanganda unga bog'liq `accounts.User` yaratiladi yoki
 yangilanadi — "student yaratilsa default foydalanuvchi ham yaratilishi
-kerak" qoidasi shu yerda. Mobil ilovaning kirishi (`LoginSerializer`)
-`Student.password`ni to'g'ridan-to'g'ri tekshiradi, lekin JWT har doim shu
-User uchun chiqariladi.
+kerak" qoidasi shu yerda. Mobil ilovaga talaba Telegram orqali (raqami
+bo'yicha) shu User sifatida kiradi; `Student.is_active=False` bo'lsa kira
+olmaydi (`telegramauth.claim.is_blocked`). `Student.password` kirish uchun
+ishlatilmaydi.
 
 Mavjud foydalanuvchi qoidasi: telefon bo'yicha allaqachon `User` bo'lsa
 (masalan ilovada o'z parolini o'rnatgan), uning paroli va ismi tegilmaydi —

@@ -75,13 +75,6 @@ def test_closed_code_session_still_session_closed(api, student):
     assert res.data["code"] == "session_closed"
 
 
-def test_guest_cannot_change_password(api, db):
-    use(api, make_guest(api))
-    res = api.post("/api/v1/auth/change-password/",
-                   {"old_password": "x", "new_password": "yangi123"}, format="json")
-    assert res.status_code == 403
-
-
 def test_guest_throttled(api, db, monkeypatch):
     from rest_framework.throttling import SimpleRateThrottle
 

@@ -1,13 +1,9 @@
-from datetime import timedelta
-
-from django.contrib.auth import authenticate
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import AccessCode, Device, SocialAccount, User, normalize_phone
+from .models import AccessCode, Device, User, normalize_phone
 
 
 class PhoneField(serializers.CharField):
@@ -72,43 +68,6 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "phone", "role", "is_pro", "pro_until", "date_joined")
 
 
-class RegisterSerializer(serializers.Serializer):
-    phone = PhoneField(max_length=20)
-    password = serializers.CharField(write_only=True, min_length=6)
-    full_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    language = serializers.ChoiceField(
-        choices=User.Language.choices, required=False, default=User.Language.UZ
-    )
-    # `auth/telegram/start/` tokeni — view tekshiradi va ishlatadi.
-    verification = serializers.CharField(max_length=64, required=False, allow_blank=True,
-                                         write_only=True)
-    # Mehmonning refresh tokeni — mehmon hisobi o'quvchiga aylanadi.
-    guest_refresh = serializers.CharField(required=False, allow_blank=True, write_only=True)
-
-    def validate_phone(self, value: str) -> str:
-        if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError("Bu raqam allaqachon ro'yxatdan o'tgan.")
-        return value
-
-    def create(self, validated):
-        guest = guest_from_refresh(validated.pop("guest_refresh", ""))
-        password = validated.pop("password")
-        if guest is not None:
-            # Yangi hisob ochilmaydi: natijalar, xatolar, sevimlilar shu userda qoladi.
-            user = guest
-            for field, value in validated.items():
-                setattr(user, field, value)
-            user.role = User.Role.STUDENT
-            user.set_password(password)
-            Device.objects.filter(user=user, is_active=True).update(is_active=False)
-        else:
-            user = User.objects.create_user(password=password, **validated)
-        user.is_pro = True
-        user.pro_until = timezone.now() + timedelta(days=12)
-        user.save()
-        return user
-
-
 def guest_from_refresh(raw: str) -> User | None:
     """Mehmonni refresh tokeni orqali topadi (imzo va 90 kunlik umri tekshiriladi).
 
@@ -132,66 +91,6 @@ class GuestSerializer(serializers.Serializer):
     lang = serializers.ChoiceField(choices=User.Language.choices, required=False,
                                    default=User.Language.UZ)
     device_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
-
-
-class LoginSerializer(serializers.Serializer):
-    phone = PhoneField(max_length=20)
-    password = serializers.CharField(write_only=True)
-
-    def validate(self, attrs):
-        phone, password = attrs["phone"], attrs["password"]
-
-        # Talaba (Student) bo'lsa — mobil kirish ochiq PIN bilan tekshiriladi,
-        # front-ofisda berilgan PIN har doim ishlashi kerak. Aks holda odatdagi
-        # hash orqali tekshiriladi (o'qituvchi/shef yoki ilovada ro'yxatdan
-        # o'tgan foydalanuvchi).
-        from apps.billing.models import Student
-
-        student = Student.objects.filter(phone=phone).select_related("user").first()
-        # Talaba parolni o'zi tiklagan bo'lsa PIN bo'shatiladi — odatdagi parol amal qiladi,
-        # lekin front-ofis blokirovkasi (`Student.is_active`) baribir tekshiriladi.
-        if student is not None and student.password:
-            if student.password != password:
-                raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
-            user = student.user
-            if user is None or not student.is_active or not user.is_active:
-                raise serializers.ValidationError("Hisob bloklangan.")
-        else:
-            if student is not None and not student.is_active:
-                raise serializers.ValidationError("Hisob bloklangan.")
-            user = authenticate(username=phone, password=password)
-            if user is None:
-                raise serializers.ValidationError("Telefon raqam yoki parol noto'g'ri.")
-            if not user.is_active:
-                raise serializers.ValidationError("Hisob bloklangan.")
-
-        attrs["user"] = user
-        return attrs
-
-
-class SocialLoginSerializer(serializers.Serializer):
-    """Tashqi provayder orqali kirish.
-
-    `token` majburiy — `views.SocialLoginView` uni provayderda tekshiradi va
-    `uid` ni tasdiqlangan qiymat bilan almashtiradi.
-    """
-
-    provider = serializers.ChoiceField(choices=SocialAccount.Provider.choices)
-    token = serializers.CharField()
-    uid = serializers.CharField(max_length=191)
-    email = serializers.EmailField(required=False, allow_blank=True)
-    full_name = serializers.CharField(max_length=120, required=False, allow_blank=True)
-    phone = PhoneField(max_length=20, required=False)
-
-
-class ChangePasswordSerializer(serializers.Serializer):
-    old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True, min_length=6)
-
-    def validate_old_password(self, value: str) -> str:
-        if not self.context["request"].user.check_password(value):
-            raise serializers.ValidationError("Joriy parol noto'g'ri.")
-        return value
 
 
 class AccessCodeLoginSerializer(serializers.Serializer):

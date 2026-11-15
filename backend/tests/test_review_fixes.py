@@ -7,58 +7,9 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import Device
+from tests.helpers import telegram_login
 
 pytestmark = pytest.mark.django_db
-
-GOOGLE_CLIENT = "123.apps.googleusercontent.com"
-
-
-@pytest.fixture
-def google_ok(settings, monkeypatch):
-    """Google tekshiruvi 'g-attacker' uid'i uchun muvaffaqiyatli o'tadi."""
-    from apps.accounts import social
-
-    settings.GOOGLE_CLIENT_IDS = [GOOGLE_CLIENT]
-
-    class Response:
-        status_code = 200
-
-        def json(self):
-            return {"aud": GOOGLE_CLIENT, "sub": "g-attacker", "email": "a@b.c"}
-
-    monkeypatch.setattr(social, "_http_get", lambda url, **kw: Response())
-
-
-# --- Critical #1: hisob o'g'irlash ------------------------------------------
-
-def test_social_login_cannot_claim_existing_account_by_phone(api, student, google_ok):
-    """Mijoz yuborgan telefon bilan begona hisobga kirib bo'lmaydi."""
-    response = api.post("/api/v1/auth/social/", {
-        "provider": "google", "token": "ok", "uid": "g-attacker",
-        "phone": student.phone,
-    }, format="json")
-    assert response.status_code != 200 or response.json()["user"]["id"] != student.id
-    if response.status_code in (200, 201):
-        # Yangi hisob yaratilgan bo'lishi kerak, jabrlanuvchining hisobi emas.
-        assert response.json()["user"]["id"] != student.id
-    assert not student.social_accounts.exists()
-
-
-def test_social_login_reuses_account_only_via_verified_uid(api, google_ok):
-    """Ikkinchi kirish o'sha uid bo'yicha o'sha hisobga tushadi."""
-    first = api.post("/api/v1/auth/social/", {
-        "provider": "google", "token": "ok", "uid": "g-attacker",
-    }, format="json")
-    assert first.status_code == 201
-    user_id = first.json()["user"]["id"]
-
-    Device.objects.filter(user_id=user_id).update(is_active=False)
-    second = api.post("/api/v1/auth/social/", {
-        "provider": "google", "token": "ok", "uid": "g-attacker",
-    }, format="json")
-    assert second.status_code == 200
-    assert second.json()["user"]["id"] == user_id
-
 
 # --- Critical #2: do'kondagi ilovaning o'rganish ekrani ---------------------
 
@@ -104,11 +55,9 @@ def test_grandfathered_device_gets_default_platform_and_expiry(api, student):
     assert device.expires_at is None
 
 
-def test_expired_device_is_still_rejected(api, student):
+def test_expired_device_is_still_rejected(api, student, fake_redis):
     """Grandfathering Focus #4 ni buzmasligi kerak."""
-    login = api.post("/api/v1/auth/login/", {
-        "phone": student.phone, "password": "pass1234", "platform": "web",
-    }, format="json")
+    login = telegram_login(api, student.phone, platform="web")
     refresh = login.json()["tokens"]["refresh"]
     Device.objects.filter(user=student).update(
         expires_at=timezone.now() - timedelta(seconds=1)
@@ -117,10 +66,8 @@ def test_expired_device_is_still_rejected(api, student):
     assert response.status_code == 401
 
 
-def test_deactivated_device_is_still_rejected(api, student):
-    login = api.post("/api/v1/auth/login/", {
-        "phone": student.phone, "password": "pass1234", "platform": "web",
-    }, format="json")
+def test_deactivated_device_is_still_rejected(api, student, fake_redis):
+    login = telegram_login(api, student.phone, platform="web")
     refresh = login.json()["tokens"]["refresh"]
     Device.objects.filter(user=student).update(is_active=False)
     response = api.post("/api/v1/auth/token/refresh/", {"refresh": refresh}, format="json")

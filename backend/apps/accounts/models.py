@@ -24,23 +24,6 @@ def normalize_phone(raw: str) -> str:
     return phone
 
 
-def placeholder_phone(provider: str, uid: str) -> str:
-    """Telefonsiz ijtimoiy hisob uchun yaroqli o'rinbosar raqam.
-
-    Apple va Google `uid` lari harf ham saqlaydi, shuning uchun raqamni
-    to'g'ridan-to'g'ri undan yasab bo'lmaydi — deterministik hash ishlatiladi.
-    Raqam band bo'lsa keyingisi olinadi. Foydalanuvchi haqiqiy raqamini
-    kiritgach bu qiymat almashadi.
-    """
-    digest = hashlib.sha256(f"{provider}:{uid}".encode()).digest()
-    base = int.from_bytes(digest[:8], "big") % 1_000_000_000
-    for offset in range(1000):
-        phone = f"+998{(base + offset) % 1_000_000_000:09d}"
-        if not User.objects.filter(phone=phone).exists():
-            return phone
-    raise ValidationError("O'rinbosar telefon raqam topilmadi.")
-
-
 def guest_phone() -> str:
     """Mehmon uchun noyob o'rinbosar `phone` (13 belgi).
 

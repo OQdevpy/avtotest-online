@@ -107,18 +107,6 @@ def mark(token: str, status: str, telegram_id: int | None = None, **fields) -> N
     r.set(_key(token), json.dumps(session), ex=ttl)
 
 
-def consume(token: str, phone: str, purpose: str) -> bool:
-    """Tasdiqlangan va mos sessiyani bir marta ishlatadi (o'chiradi)."""
-    if not token:
-        return False
-    session = get_session(token)
-    if (session is None or session["status"] != Status.VERIFIED
-            or session["phone"] != phone or session["purpose"] != purpose):
-        return False
-    # `delete` 1 qaytarsa — aynan shu chaqiruv ishlatdi (parallel ikkinchisi 0 oladi).
-    return otpstore.client().delete(_key(token)) == 1
-
-
 def consume_auth(token: str) -> dict | None:
     """Tasdiqlangan `auth` sessiyasini bir marta ishlatadi: o'chirib, qaytaradi."""
     if not token:
@@ -160,9 +148,9 @@ def resolve_contact(token: str, shared_raw: str, telegram_id: int,
     """Bot'ga kelgan kontaktni sessiyaga yozadi.
 
     Qaytaradi: ``(outcome, session_phone, shared_phone)``; outcome —
-    ``verified`` | ``mismatch`` | ``foreign`` (O'zbekiston raqami emas) |
-    ``expired`` (sessiya yo'q). ``foreign`` sessiyani ``mismatch`` qiladi.
-    `auth` sessiyasida raqam solishtirilmaydi — kontakt raqami va ism yoziladi.
+    ``verified`` | ``foreign`` (O'zbekiston raqami emas) | ``expired`` (sessiya
+    yo'q). ``foreign`` sessiyani ``mismatch`` qiladi. Raqam solishtirilmaydi —
+    kontakt raqami va ism sessiyaga yoziladi.
     Kontakt aynan yuboruvchiniki ekani bot'da oldinroq tekshiriladi.
     """
     session = get_session(token)
@@ -174,11 +162,5 @@ def resolve_contact(token: str, shared_raw: str, telegram_id: int,
     except ValidationError:
         mark(token, Status.MISMATCH, telegram_id)
         return "foreign", expected, None
-    if session.get("purpose") == AUTH:
-        mark(token, Status.VERIFIED, telegram_id, phone=shared, full_name=full_name.strip())
-        return "verified", shared, shared
-    if shared != expected:
-        mark(token, Status.MISMATCH, telegram_id)
-        return "mismatch", expected, shared
-    mark(token, Status.VERIFIED, telegram_id)
-    return "verified", expected, shared
+    mark(token, Status.VERIFIED, telegram_id, phone=shared, full_name=full_name.strip())
+    return "verified", shared, shared
