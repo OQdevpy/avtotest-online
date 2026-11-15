@@ -95,19 +95,39 @@ async function apiFetch(url, options = {}) {
   return response;
 }
 
-export async function login(phone, password) {
-  const res = await apiFetch('/auth/login/', {
+// --- Telegram orqali kirish (parol yo'q) -------------------------------------
+// start → shef telefonida botga kontaktini yuboradi → status "verified" → claim.
+
+async function authPost(url, body) {
+  const res = await fetch(`${API_BASE}${url}`, {
     method: 'POST',
-    body: JSON.stringify({ phone, password, platform: 'web', device_label: 'Admin Panel' }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
-  
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 403) throw new Error("Boshqa qurilmadan chiqing yoki kuting");
-    if (res.status === 429) throw new Error("Kirish cheklangan. Keyinroq urinib ko'ring");
-    throw new Error("Telefon yoki parol noto'g'ri");
+    const err = new Error(data.detail || `Xato: ${res.status}`);
+    err.code = data.code || (res.status === 403 ? 'device_limit' : null);
+    err.status = res.status;
+    throw err;
   }
-  
-  const data = await res.json();
+  return data;
+}
+
+export function startTelegram() {
+  return authPost('/auth/telegram/start/', { lang: 'uz' });
+}
+
+export async function telegramStatus(token) {
+  const res = await fetch(`${API_BASE}/auth/telegram/status/${encodeURIComponent(token)}/`);
+  if (!res.ok) return 'pending';
+  return (await res.json()).status;
+}
+
+export async function claimTelegram(token) {
+  const data = await authPost('/auth/telegram/claim/', {
+    token, platform: 'web', device_label: 'Admin Panel',
+  });
   setTokens(data.tokens);
   return data;
 }
