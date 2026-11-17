@@ -136,3 +136,14 @@ def test_done_page_public(api, db):
     assert r.status_code == 200
     assert r["Content-Type"].startswith("text/html")
     assert "ilovaga qayting" in r.content.decode().lower()
+
+
+def test_done_page_opens_app(api, db, settings):
+    # Payme/Click faqat https'ga qaytaradi — sahifa ilovani o'zi ochishi kerak.
+    settings.APP_SCHEME = "prava777"
+    settings.APP_ANDROID_PACKAGE = "com.example.app"
+    body = api.get("/api/v1/payments/done/").content.decode()
+    assert "intent://open#Intent;scheme=prava777;package=com.example.app;end" in body
+    assert 'href="prava777://open"' in body
+    # Bekor qilinganda ham shu sahifa — to'lov o'tdi deb da'vo qilmaydi.
+    assert "qabul qilindi" not in body.lower()

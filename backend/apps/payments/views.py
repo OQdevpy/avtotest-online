@@ -1,5 +1,6 @@
 """Ilova uchun API: tariflar, to'lovni boshlash, buyurtma holati, qaytish sahifasi."""
 
+from django.conf import settings
 from django.shortcuts import get_object_or_404, render
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -94,10 +95,20 @@ class OrderDetailView(APIView):
 
 @extend_schema(exclude=True)
 class DoneView(APIView):
-    """Payme/Click to'lovdan keyin qaytaradigan sahifa. Hech qanday ma'lumot ko'rsatmaydi."""
+    """Payme/Click to'lovdan keyin qaytaradigan sahifa — mobil ilovani o'zi ochadi.
+
+    Provayderlar foydalanuvchini faqat https manzilga qaytaradi; ilovaga shu sahifa
+    orqali o'tiladi (Telegram'dagi `AppReturnView` bilan bir xil usul). To'lov
+    bekor qilinganda ham shu yerga qaytiladi — sahifa natijani da'vo qilmaydi,
+    holatni ilova `orders/{id}/` dan oladi. Hech qanday ma'lumot ko'rsatmaydi.
+    """
 
     permission_classes = (AllowAny,)
     authentication_classes = ()
 
     def get(self, request):
-        return render(request, "payments/done.html")
+        scheme, package = settings.APP_SCHEME, settings.APP_ANDROID_PACKAGE
+        return render(request, "payments/done.html", {
+            "scheme_url": f"{scheme}://open",
+            "intent_url": f"intent://open#Intent;scheme={scheme};package={package};end",
+        })
