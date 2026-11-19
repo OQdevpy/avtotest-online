@@ -70,6 +70,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.telegramauth",
     "apps.payments",
+    "apps.releases",
 ]
 
 MIDDLEWARE = [

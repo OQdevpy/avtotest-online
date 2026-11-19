@@ -40,6 +40,7 @@ api_v1 = [
     path("progress/", include("apps.progress.urls")),
     path("notifications/", include("apps.notifications.urls")),
     path("payments/", include("apps.payments.urls")),
+    path("app/", include("apps.releases.urls")),
 ]
 
 urlpatterns = [
