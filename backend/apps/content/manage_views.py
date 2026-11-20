@@ -141,6 +141,34 @@ class ManageLessonViewSet(ReorderMixin, viewsets.ModelViewSet):
         qs = super().get_queryset()
         return qs.filter(section_id=section) if section else qs
 
+    def perform_destroy(self, instance):
+        banner = instance.banner
+        super().perform_destroy(instance)
+        remove_quietly(banner)
+
+    @extend_schema(request=None, responses={200: None})
+    @action(detail=True, methods=["post", "delete"], parser_classes=[MultiPartParser])
+    def banner(self, request, pk=None):
+        """Dars banneri: POST — multipart `file` (WebP'ga o'giriladi), DELETE — olib tashlash."""
+        lesson = self.get_object()
+        if request.method == "DELETE":
+            remove_quietly(lesson.banner)
+            lesson.banner = ""
+            lesson.save(update_fields=["banner"])
+            return Response({"banner": ""})
+
+        file = request.data.get("file")
+        if not file:
+            raise ValidationError({"file": "Fayl yuborilmadi."})
+        try:
+            relative = to_webp(file, unique_name(f"lesson{lesson.pk}_banner"))
+        except UnreadableImage as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+        remove_quietly(lesson.banner)
+        lesson.banner = relative
+        lesson.save(update_fields=["banner"])
+        return Response({"banner": relative})
+
 
 @extend_schema(tags=["manage"])
 class ManageQuestionViewSet(_MediaUploadMixin, ReorderMixin, viewsets.ModelViewSet):

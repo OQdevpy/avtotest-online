@@ -91,7 +91,18 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        fields = ("id", "section_id", "name", "order", "question_count", "best_score", "is_done")
+        fields = ("id", "section_id", "name", "order", "question_count", "best_score", "is_done",
+                  "banner")
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # Banner — faqat o'qituvchi ilovasi uchun (dars ochilganda katta rasm).
+        # O'quvchi ilovalari (desktop, mobil) uni olmaydi.
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not getattr(user, "is_teacher", False):
+            fields.pop("banner", None)
+        return fields
 
     def get_is_done(self, obj) -> bool:
         total = getattr(obj, "question_count", 0) or 0

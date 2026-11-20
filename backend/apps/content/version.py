@@ -17,7 +17,7 @@ NAMES = ("name_uz", "name_ru", "name_cry")
 
 PARTS = (
     (Section, ("id", "order", *NAMES)),
-    (Lesson, ("id", "section_id", "order", *NAMES)),
+    (Lesson, ("id", "section_id", "order", "banner", *NAMES)),
     (Question, ("id", "lesson_id", "order", "is_published", "updated_at")),
     (Answer, ("id", "question_id", "order", "is_true", "updated_at")),
     (Ticket, ("id", "number", "is_pro")),

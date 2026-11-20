@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   MdKeyboardDoubleArrowLeft,
   MdKeyboardDoubleArrowRight,
@@ -8,16 +8,21 @@ import "../assets/styles/style.css";
 
 import { useCustomContext } from "../context/TestContext";
 import ImageComponent from "./ImageComponent";
+import LessonBanner from "./LessonBanner";
 
-const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
+const OraliqLessonDetailComponent = ({ oraliqLessontest, banner = "", lessonTitle = "" }) => {
   const data = oraliqLessontest.oraliqLessontest;
-  const { getTranslationValue, media_path } = useCustomContext();
+  const { getTranslation, getTranslationValue, media_path } = useCustomContext();
+  // Banner bo'lsa dars u bilan ochiladi; "Savollarga o'tish" — savollar
+  const [showBanner, setShowBanner] = useState(Boolean(banner));
+  const closeBanner = useCallback(() => setShowBanner(false), []);
   const [showDescImage, setShowDescImage] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [answeredQuestions, setAnsweredQuestions] = useState({}); // Track which questions are answered
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      if (showBanner) return; // banner ochiq — tugmalarni u boshqaradi
       if (event.key === "ArrowRight") {
         handleNext();
       } else if (event.key === "ArrowLeft") {
@@ -29,7 +34,7 @@ const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [activeIndex]);
+  }, [activeIndex, showBanner]);
 
   const handlePrev = () => {
     setActiveIndex((prevIndex) => {
@@ -109,6 +114,10 @@ const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
     return "#343835";
   };
 
+  if (banner && showBanner) {
+    return <LessonBanner src={media_path + banner} title={lessonTitle} onContinue={closeBanner} />;
+  }
+
   if (!data || data.length === 0 || !data[activeIndex]) return null;
 
   const currentItem = data[activeIndex];
@@ -121,6 +130,18 @@ const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
             {getTranslationValue(currentItem.lesson_name, "name")}
           </h2>
 
+          <div className="flex items-center gap-2">
+          {/* Bannerni qayta ochish */}
+          {banner && (
+            <button
+              className="btn bg-blue-900/70 text-white flex items-center justify-center border border-blue-700 cursor-pointer hover:bg-blue-800"
+              onClick={() => setShowBanner(true)}
+              title={getTranslation("showBanner")}
+              style={{ minWidth: "40px", height: "32px" }}
+            >
+              🖼️
+            </button>
+          )}
           {/* Izoh button - always visible if description_image exists */}
           {currentItem.description_image && (
             <button
@@ -132,6 +153,7 @@ const OraliqLessonDetailComponent = ({ oraliqLessontest }) => {
               <FaInfoCircle size={20} />
             </button>
           )}
+          </div>
         </div>
         <h2
           className="font-bold text-white bg-blue-900/30 flex justify-center items-center"

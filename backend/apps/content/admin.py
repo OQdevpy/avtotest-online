@@ -33,13 +33,18 @@ class SectionAdmin(admin.ModelAdmin):
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ("order", "name_uz", "section", "question_count")
+    list_display = ("order", "name_uz", "section", "question_count", "has_banner")
+    readonly_fields = ("banner",)
     list_filter = ("section",)
     search_fields = ("name_uz", "name_ru", "name_cry")
 
     @admin.display(description="Savollar")
     def question_count(self, obj):
         return obj.questions.count()
+
+    @admin.display(description="Banner", boolean=True)
+    def has_banner(self, obj):
+        return bool(obj.banner)
 
 
 class AnswerInline(admin.TabularInline):
