@@ -4,9 +4,10 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useData } from '../context/DataContext';
+import { mediaUrl } from '../services/api';
 
 // Sudrab tartiblash uchun dars elementi
-function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang, getVal, onStartEdit, onSaveEdit, onDelete, onNavigate, onMove }) {
+function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang, getVal, onStartEdit, onSaveEdit, onDelete, onNavigate, onMove, onBanner }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: lesson.id });
 
   const style = {
@@ -72,6 +73,19 @@ function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang
             {getVal(lesson, 'name')}
           </span>
           <span
+            className="relative cursor-pointer text-base"
+            title={lesson.banner ? "Banner (bor)" : "Banner qo'shish"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBanner();
+            }}
+          >
+            🖼️
+            {lesson.banner && (
+              <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-green-400" />
+            )}
+          </span>
+          <span
             className="text-orange-300 cursor-pointer text-base"
             title="Boshqa bo'limga ko'chirish"
             onClick={(e) => {
@@ -99,13 +113,17 @@ function SortableLessonItem({ lesson, isEditing, editValues, setEditValues, lang
 export default function Lessons() {
   const { sectionId } = useParams();
   const sid = Number(sectionId);
-  const { sections, getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons, moveLesson, getVal, t, lang } = useData();
+  const { sections, getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons, moveLesson, uploadLessonBanner, removeLessonBanner, getVal, t, lang } = useData();
   const navigate = useNavigate();
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({});
   // Boshqa bo'limga ko'chirilayotgan mavzu (oyna ochiq bo'lsa)
   const [movingLesson, setMovingLesson] = useState(null);
   const [moving, setMoving] = useState(false);
+  // Banner oynasi ochiq bo'lgan dars (id) va yuklash holati
+  const [bannerLessonId, setBannerLessonId] = useState(null);
+  const [bannerBusy, setBannerBusy] = useState(false);
+  const [bannerError, setBannerError] = useState('');
 
   const section = sections.find((s) => s.id === sid);
   const lessons = getLessonsBySection(sid);
@@ -138,6 +156,36 @@ export default function Lessons() {
       alert("Ko'chirishda xatolik yuz berdi. Qayta urinib ko'ring.");
     } finally {
       setMoving(false);
+    }
+  };
+
+  const bannerLesson = bannerLessonId ? lessons.find((l) => l.id === bannerLessonId) : null;
+
+  const handleBannerFile = async (file) => {
+    if (!file || !bannerLesson) return;
+    setBannerBusy(true);
+    setBannerError('');
+    try {
+      await uploadLessonBanner(bannerLesson.id, file);
+    } catch (err) {
+      console.error('Banner upload error:', err);
+      setBannerError("Yuklashda xatolik. Rasm faylini (JPG, PNG, WebP) tanlang.");
+    } finally {
+      setBannerBusy(false);
+    }
+  };
+
+  const handleBannerRemove = async () => {
+    if (!bannerLesson || !confirm("Bannerni o'chirish?")) return;
+    setBannerBusy(true);
+    setBannerError('');
+    try {
+      await removeLessonBanner(bannerLesson.id);
+    } catch (err) {
+      console.error('Banner remove error:', err);
+      setBannerError("O'chirishda xatolik yuz berdi.");
+    } finally {
+      setBannerBusy(false);
     }
   };
 
@@ -179,6 +227,7 @@ export default function Lessons() {
                 onDelete={() => deleteLesson(lesson.id)}
                 onNavigate={() => navigate(`/sections/${sid}/lessons/${lesson.id}/questions`)}
                 onMove={() => setMovingLesson(lesson)}
+                onBanner={() => { setBannerError(''); setBannerLessonId(lesson.id); }}
               />
             ))}
           </SortableContext>
@@ -192,6 +241,72 @@ export default function Lessons() {
           ＋ {t('addLesson')}
         </button>
       </div>
+
+      {bannerLesson && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => !bannerBusy && setBannerLessonId(null)}
+        >
+          <div
+            className="bg-slate-900 rounded-lg p-4 max-w-2xl w-full max-h-[85vh] overflow-y-auto flex flex-col gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-white">🖼️ Dars banneri</h3>
+              <button
+                onClick={() => setBannerLessonId(null)}
+                disabled={bannerBusy}
+                className="text-slate-400 hover:text-white text-xl cursor-pointer"
+              >×</button>
+            </div>
+            <p className="text-sm text-slate-400">
+              {getVal(bannerLesson, 'name')} — o'qituvchi ilovasida dars ochilganda savollardan oldin
+              katta ko'rsatiladi. Keng (gorizontal) rasm yaxshi ko'rinadi.
+            </p>
+
+            {bannerLesson.banner ? (
+              <img
+                src={mediaUrl(bannerLesson.banner)}
+                alt="Banner"
+                className="w-full max-h-[50vh] object-contain rounded bg-black"
+              />
+            ) : (
+              <div className="w-full h-40 rounded border-2 border-dashed border-slate-600 flex items-center justify-center text-slate-500 text-sm">
+                Banner yo'q
+              </div>
+            )}
+
+            {bannerError && <div className="text-sm text-red-400">{bannerError}</div>}
+
+            <div className="flex gap-2 justify-end">
+              {bannerLesson.banner && (
+                <button
+                  onClick={handleBannerRemove}
+                  disabled={bannerBusy}
+                  className="px-3 py-2 rounded text-sm bg-red-900/60 text-red-200 hover:bg-red-800 cursor-pointer disabled:opacity-50"
+                >
+                  🗑️ O'chirish
+                </button>
+              )}
+              <label
+                className={`px-3 py-2 rounded text-sm bg-blue-700 text-white hover:bg-blue-600 cursor-pointer ${bannerBusy ? 'opacity-50 pointer-events-none' : ''}`}
+              >
+                {bannerBusy ? 'Yuklanmoqda…' : bannerLesson.banner ? 'Almashtirish' : 'Rasm yuklash'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleBannerFile(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
 
       {movingLesson && (
         <div

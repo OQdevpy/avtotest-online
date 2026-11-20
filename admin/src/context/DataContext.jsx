@@ -197,6 +197,19 @@ export function DataProvider({ children }) {
     return updated;
   }, [lessons]);
 
+  // Dars banneri (o'qituvchi ilovasida savollardan oldin katta ko'rsatiladi).
+  // Xato yutilmaydi — oyna uni ko'rsatadi.
+  const uploadLessonBanner = useCallback(async (id, file) => {
+    const result = await uploadFile(`/manage/lessons/${id}/banner/`, file, 'file');
+    setLessons(prev => prev.map(l => l.id === id ? { ...l, banner: result.banner } : l));
+    return result.banner;
+  }, []);
+
+  const removeLessonBanner = useCallback(async (id) => {
+    await deleteResource(`/manage/lessons/${id}/banner/`);
+    setLessons(prev => prev.map(l => l.id === id ? { ...l, banner: '' } : l));
+  }, []);
+
   const deleteLesson = useCallback(async (id) => {
     try {
       await deleteResource(`/manage/lessons/${id}/`);
@@ -542,6 +555,7 @@ export function DataProvider({ children }) {
     loadData,
     updateSection, addSection, deleteSection,
     getLessonsBySection, updateLesson, addLesson, deleteLesson, reorderLessons, moveLesson,
+    uploadLessonBanner, removeLessonBanner,
     getQuestionsByLesson, getQuestionById, updateQuestion, addQuestion, deleteQuestion, reorderQuestions,
     getAnswersByQuestion, updateAnswer, addAnswer, deleteAnswer,
     updateBlits, addBlits, deleteBlits, addQuestionToBlits, removeQuestionFromBlits,

@@ -95,7 +95,8 @@ class LessonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Lesson
-        fields = ("id", "section_id", "name", "order", "question_count", "best_score", "is_done")
+        fields = ("id", "section_id", "name", "order", "question_count", "best_score", "is_done",
+                  "banner")
 
     def get_is_done(self, obj) -> bool:
         total = getattr(obj, "question_count", 0) or 0

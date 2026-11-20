@@ -5,11 +5,14 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { useCustomContext } from '../context/TestContext'
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
+import { oraliqdarslar_db } from '../utils/dataLoader';
 
 
 function OraliqLessonDetail() {
-    const { oraliqLessontest, fetchOraliqLessonTest,Background } = useCustomContext();
+    const { oraliqLessontest, fetchOraliqLessonTest, Background, getTranslationValue } = useCustomContext();
     const params = useParams();
+    // Dars banneri (admin'da yuklanadi) — savollardan oldin katta ko'rsatiladi
+    const lesson = oraliqdarslar_db.find((item) => item.id == params.id);
 
     useEffect(() => {
         fetchOraliqLessonTest(params.id);
@@ -33,7 +36,12 @@ function OraliqLessonDetail() {
                     // minHeight:'84vh'
                 }}
             >
-                <OraliqLessonDetailComponent oraliqLessontest={{ oraliqLessontest }} />
+                <OraliqLessonDetailComponent
+                    key={params.id}
+                    oraliqLessontest={{ oraliqLessontest }}
+                    banner={lesson?.banner || ''}
+                    lessonTitle={lesson ? getTranslationValue(lesson, 'name') : ''}
+                />
                 <Outlet />
             </div>
         </div>

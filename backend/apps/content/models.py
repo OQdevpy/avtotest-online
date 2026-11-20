@@ -43,6 +43,9 @@ class Lesson(models.Model):
     name_ru = models.CharField(max_length=255, blank=True)
     name_cry = models.CharField(max_length=255, blank=True)
     order = models.PositiveIntegerField(default=0, db_index=True)
+    # Dars ochilganda savollardan oldin katta ko'rsatiladigan rasm (o'qituvchi
+    # ilovasi). Nisbiy yo'l, masalan "images/lesson5_banner_ab12cd.webp".
+    banner = models.CharField("Banner rasmi", max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -262,6 +262,16 @@ const ContextProvider = ({ children }) => {
             "uz": "Ortga",
             "cry": "Ортга"
         },
+        "toQuestions": {
+            "ru": "К вопросам",
+            "uz": "Savollarga o'tish",
+            "cry": "Саволларга ўтиш"
+        },
+        "showBanner": {
+            "ru": "Баннер",
+            "uz": "Banner",
+            "cry": "Баннер"
+        },
         "login": {
             "ru": "Вход",
             "uz": "Kirish",

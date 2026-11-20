@@ -137,6 +137,7 @@ async function loadAll() {
   replaceAll(oraliqdarslar_db, lessons.map((l) => ({
     id: l.id, oraliq: l.section_id,
     name_uz: l.name_uz, name_ru: l.name_ru, name_cry: l.name_cry, tartib: l.order,
+    banner: l.banner || '',
   })));
 
   const questionRows = questions.map((q) => ({

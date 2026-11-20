@@ -29,6 +29,8 @@ class ManageLessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = "__all__"
+        # Banner faqat `manage/lessons/{id}/banner/` orqali (WebP'ga o'giriladi)
+        read_only_fields = ("banner",)
 
 
 class ManageAnswerSerializer(serializers.ModelSerializer):
