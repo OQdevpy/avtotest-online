@@ -89,10 +89,10 @@ class Question(TimeStampedModel):
     order = models.PositiveIntegerField(default=0)
     # admin-panel'dagi maydon — web versiyada ko'rsatish belgisi.
     is_in_web = models.BooleanField(default=False, verbose_name="Webda")
-    # Nashr etilmagan savol o'quvchiga hech qayerda ko'rinmaydi. Import
-    # qilinganlar True (migratsiya), API orqali yangi yaratilgani False —
-    # shef yarim yozilgan savolni tasodifan jonli qilib qo'ymasin.
-    is_published = models.BooleanField(default=False, db_index=True,
+    # Nashr etilmagan savol o'quvchiga hech qayerda ko'rinmaydi. Yangi savol
+    # (API, admin, to'g'ridan-to'g'ri SQL) darhol nashr etilgan bo'ladi — shef
+    # yashirmoqchi bo'lsa belgini o'zi olib tashlaydi.
+    is_published = models.BooleanField(default=True, db_default=True, db_index=True,
                                        verbose_name="Nashr etilgan")
 
     objects = models.Manager()
@@ -159,6 +159,10 @@ class TicketQuestion(models.Model):
     class Meta:
         ordering = ("order", "id")
         unique_together = ("ticket", "question")
+        constraints = [
+            # Har savol faqat bitta biletda (variantda) bo'ladi.
+            models.UniqueConstraint(fields=["question"], name="ticketquestion_one_ticket"),
+        ]
 
 
 class Blits(models.Model):

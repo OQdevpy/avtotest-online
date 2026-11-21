@@ -28,13 +28,13 @@ def test_admin_can_list_manage_questions(api, admin_user, auth, question):
 
 # --- Yaratish va tahrirlash -------------------------------------------------
 
-def test_admin_creates_question_unpublished_by_default(api, admin_user, auth, lesson):
+def test_admin_creates_question_published_by_default(api, admin_user, auth, lesson):
     auth(api, admin_user)
     response = api.post("/api/v1/manage/questions/",
                         {"lesson": lesson.id, "text_uz": "Yangi savol",
                          "text_ru": "", "text_cry": ""}, format="json")
     assert response.status_code == 201
-    assert response.json()["is_published"] is False
+    assert response.json()["is_published"] is True
 
 
 def test_admin_can_publish_question(api, admin_user, auth, question):
