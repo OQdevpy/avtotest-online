@@ -137,3 +137,101 @@ def test_claim_platform_web_session(api, db, fake_redis):
     device = Device.objects.get(user_id=r.data["user"]["id"])
     assert device.platform == "web"
     assert device.label == "Admin Panel"
+
+
+# --- Eski avtotest bazasidan ko'chirish (apps/telegramauth/legacy.py) -------
+
+def legacy_row(**over):
+    data = {"full_name": "Eski Foydalanuvchi", "language": "ru", "is_pro": False,
+            "pro_until": None, "is_active": True,
+            "date_joined": timezone.now() - timedelta(days=300)}
+    data.update(over)
+    return data
+
+
+def test_legacy_user_reads_student_by_phone(db, settings):
+    from apps.telegramauth import legacy
+
+    settings.LEGACY_DB_ALIAS = "default"  # testda "eski baza" — shu baza
+    until = timezone.now() + timedelta(days=30)
+    User.objects.create(phone=PHONE, full_name="Eski", language="qq", is_pro=True,
+                        pro_until=until)
+    User.objects.create(phone="+998907777777", role="teacher")
+
+    data = legacy.legacy_user(PHONE)
+    assert data["full_name"] == "Eski" and data["language"] == "uz"
+    assert data["is_pro"] is True and abs((data["pro_until"] - until).total_seconds()) < 1
+    assert legacy.pro_active(data)
+    assert legacy.legacy_user("+998907777777") is None  # faqat o'quvchilar
+    assert legacy.legacy_user("+998900000001") is None
+
+
+def test_legacy_disabled_without_alias(db):
+    from apps.telegramauth import legacy
+
+    assert legacy.legacy_user(PHONE) is None
+
+
+def test_claim_imports_legacy_account(api, db, fake_redis, monkeypatch):
+    from apps.telegramauth import legacy
+
+    until = timezone.now() + timedelta(days=100)
+    joined = timezone.now() - timedelta(days=300)
+    monkeypatch.setattr(legacy, "legacy_user", lambda phone: legacy_row(
+        is_pro=True, pro_until=until, date_joined=joined) if phone == PHONE else None)
+
+    r = claim(api, verified_token(name="Telegram Ism"))
+    assert r.status_code == 201, r.data
+    user = User.objects.get(phone=PHONE)
+    assert user.full_name == "Eski Foydalanuvchi"
+    assert user.language == "ru"
+    assert user.pro_until == until  # eski PRO sovg'adan uzunroq — saqlanadi
+    assert user.date_joined == joined
+
+
+def test_claim_legacy_expired_pro_gets_welcome(api, db, fake_redis, monkeypatch):
+    from apps.telegramauth import legacy
+
+    monkeypatch.setattr(legacy, "legacy_user", lambda phone: legacy_row(
+        is_pro=True, pro_until=timezone.now() - timedelta(days=1)))
+    assert claim(api, verified_token()).status_code == 201
+    user = User.objects.get(phone=PHONE)
+    assert user.pro_active and user.pro_until > timezone.now() + timedelta(days=11)
+
+
+def test_claim_legacy_lifetime_pro(api, db, fake_redis, monkeypatch):
+    from apps.telegramauth import legacy
+
+    monkeypatch.setattr(legacy, "legacy_user", lambda phone: legacy_row(is_pro=True))
+    assert claim(api, verified_token()).status_code == 201
+    assert User.objects.get(phone=PHONE).pro_until is None
+
+
+def test_claim_legacy_blocked_stays_blocked(api, db, fake_redis, monkeypatch):
+    from apps.telegramauth import legacy
+
+    monkeypatch.setattr(legacy, "legacy_user", lambda phone: legacy_row(is_active=False))
+    assert claim(api, verified_token()).status_code == 403
+
+
+def test_claim_existing_user_ignores_legacy(api, student, fake_redis, monkeypatch):
+    from apps.telegramauth import legacy
+
+    monkeypatch.setattr(legacy, "legacy_user", lambda phone: legacy_row())
+    r = claim(api, verified_token(student.phone))
+    assert r.status_code == 200
+    student.refresh_from_db()
+    assert student.full_name == "O'quvchi"
+
+
+def test_legacy_db_error_returns_none(settings, monkeypatch):
+    from django.db import DatabaseError
+    from apps.telegramauth import legacy
+
+    class Broken:
+        def cursor(self):
+            raise DatabaseError("ulanib bo'lmadi")
+
+    settings.LEGACY_DB_ALIAS = "default"
+    monkeypatch.setattr(legacy, "connections", {"default": Broken()})
+    assert legacy.legacy_user(PHONE) is None  # kirish to'xtamaydi

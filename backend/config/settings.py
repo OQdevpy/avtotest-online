@@ -148,6 +148,12 @@ if not env("DATABASE_URL"):
 
 DATABASES = {"default": database_from_url(env("DATABASE_URL"))}
 
+# Eski avtotest bazasi (faqat o'qish): yangi ilovada Telegram orqali kirgan raqam
+# bu bazada bo'lmasa, hisob eski bazadan ko'chiriladi (apps/telegramauth/legacy.py).
+# Bo'sh — o'chirilgan.
+if env("LEGACY_DATABASE_URL"):
+    DATABASES["legacy"] = database_from_url(env("LEGACY_DATABASE_URL"))
+
 AUTH_USER_MODEL = "accounts.User"
 
 # Ko'chirilgan bazadagi parollar MD5 bilan hash qilingan (test sozlamalarida

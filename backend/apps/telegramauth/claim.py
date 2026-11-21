@@ -15,6 +15,7 @@ from apps.accounts.models import Device, User
 from apps.accounts.serializers import guest_from_refresh
 from apps.billing.models import Student
 
+from . import legacy
 from .models import TelegramAccount
 
 # Yangi hisobga beriladigan PRO sovg'a (avvalgi ro'yxatdan o'tish qoidasi).
@@ -29,7 +30,10 @@ def is_blocked(user: User) -> bool:
 @transaction.atomic
 def user_for_phone(phone: str, full_name: str, lang: str,
                    guest_refresh: str = "") -> tuple[User, bool]:
-    """`(user, created)`. Mavjud hisobga mehmon ma'lumoti ko'chirilmaydi."""
+    """`(user, created)`. Mavjud hisobga mehmon ma'lumoti ko'chirilmaydi.
+
+    Raqam bu bazada yo'q, lekin eski avtotest bazasida bo'lsa — o'sha hisob
+    ma'lumoti bilan ochiladi (`legacy`)."""
     guest = guest_from_refresh(guest_refresh)
     existing = (User.objects.select_for_update()
                 .filter(phone=phone).exclude(role=User.Role.GUEST).first())
@@ -51,6 +55,19 @@ def user_for_phone(phone: str, full_name: str, lang: str,
     user.set_unusable_password()
     user.is_pro = True
     user.pro_until = timezone.now() + timedelta(days=WELCOME_PRO_DAYS)
+
+    # Eski avtotest ilovasidagi hisob — ism, til, PRO muddati ko'chiriladi.
+    old = legacy.legacy_user(phone)
+    if old is not None:
+        user.full_name = (old["full_name"] or full_name)[:120]
+        user.language = old["language"]
+        user.is_active = old["is_active"]
+        if old["date_joined"]:
+            user.date_joined = min(user.date_joined, old["date_joined"])
+        if legacy.pro_active(old) and (
+            old["pro_until"] is None or old["pro_until"] > user.pro_until
+        ):
+            user.pro_until = old["pro_until"]
     user.save()
     TelegramAccount.objects.filter(phone=phone, user__isnull=True).update(user=user)
     return user, True
