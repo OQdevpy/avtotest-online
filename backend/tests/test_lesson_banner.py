@@ -71,15 +71,20 @@ def test_banner_not_writable_via_patch(api, admin_user, auth, lesson):
     assert lesson.banner == ""
 
 
-def test_lessons_api_exposes_banner_and_version_changes(api, student, auth, lesson):
-    auth(api, student)
+def test_banner_visible_only_to_teacher(api, student, teacher, auth, lesson):
     before = content_version()
     Lesson.objects.filter(pk=lesson.pk).update(banner="images/lesson_banner.webp")
-    assert content_version() != before  # desktop qayta yuklaydi
+    assert content_version() != before  # o'qituvchi ilovasi qayta yuklaydi
 
-    rows = api.get("/api/v1/lessons/").json()
-    rows = rows["results"] if isinstance(rows, dict) else rows
-    assert {"id": lesson.id, "banner": "images/lesson_banner.webp"}.items() <= rows[0].items()
+    def first_row(user):
+        auth(api, user)
+        rows = api.get("/api/v1/lessons/").json()
+        return (rows["results"] if isinstance(rows, dict) else rows)[0]
+
+    assert first_row(teacher)["banner"] == "images/lesson_banner.webp"
+    assert "banner" not in first_row(student)
+    auth(api, student)
+    assert "banner" not in api.get(f"/api/v1/lessons/{lesson.id}/").json()
 
 
 def test_deleting_lesson_removes_banner_file(api, admin_user, auth, lesson, media_root):

@@ -16,7 +16,8 @@ for app in "${APPS[@]}"; do
     student|teacher) ;;
     *) echo "Noma'lum ilova: $app (student yoki teacher)" >&2; exit 1 ;;
   esac
-  target="/var/www/avtotest-web-$app"
+  # Boshqa nusxa (masalan prava777) o'z papkasiga: WEB_TARGET_PREFIX=/var/www/prava777-web-
+  target="${WEB_TARGET_PREFIX:-/var/www/avtotest-web-}$app"
   echo "==> $app: yig'ilmoqda"
   cd "$ROOT/$app"
   npm ci --no-audit --no-fund
