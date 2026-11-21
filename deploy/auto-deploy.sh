@@ -99,7 +99,7 @@ node_info() { log "node $(node -v 2>/dev/null || echo yo'q), npm $(npm -v 2>/dev
 if changed '^admin/' && [[ -d admin ]]; then
   node_info
   log "admin panel yig'ilmoqda"
-  (cd admin && npm ci --no-audit --no-fund && npm run build)
+  (cd admin && npm ci --prefer-offline --include=dev --no-audit --no-fund && npm run build)
 fi
 sync_admin
 

@@ -26,7 +26,7 @@ for app in "${APPS[@]}"; do
   fi
   echo "==> $app: yig'ilmoqda"
   cd "$ROOT/$app"
-  npm ci --no-audit --no-fund
+  npm ci --prefer-offline --include=dev --no-audit --no-fund
   npm run build
 
   echo "==> $app: $target ga joylanmoqda"
