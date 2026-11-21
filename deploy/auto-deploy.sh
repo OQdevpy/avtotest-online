@@ -10,6 +10,18 @@
 # Qo'lda ishga tushirish ham mumkin; o'zgarish bo'lmasa hech narsa qilmaydi.
 set -euo pipefail
 
+# Cron juda qisqa PATH bilan ishga tushiradi (/usr/bin:/bin) — tizimdagi eski
+# npm topilib, build yiqiladi. Terminaldagi kabi node topilsin: nvm va
+# /usr/local/bin birinchi.
+export PATH="/usr/local/bin:/usr/local/sbin:/snap/bin:$PATH"
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+  set +u
+  # shellcheck disable=SC1091
+  . "$NVM_DIR/nvm.sh" >/dev/null 2>&1 || true
+  set -u
+fi
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 BRANCH="${DEPLOY_BRANCH:-master}"
@@ -82,7 +94,10 @@ if changed '^(backend/|docker-compose)'; then
   fi
 fi
 
+node_info() { log "node $(node -v 2>/dev/null || echo yo'q), npm $(npm -v 2>/dev/null || echo yo'q) ($(command -v npm || true))"; }
+
 if changed '^admin/' && [[ -d admin ]]; then
+  node_info
   log "admin panel yig'ilmoqda"
   (cd admin && npm ci --no-audit --no-fund && npm run build)
 fi
@@ -91,6 +106,7 @@ sync_admin
 for app in student teacher; do
   if changed "^web/($app/|deploy\.sh)" && [[ -x web/deploy.sh ]]; then
     log "web/$app yig'ilmoqda"
+    node_info
     ./web/deploy.sh "$app"
   fi
 done
