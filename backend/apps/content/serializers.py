@@ -97,10 +97,13 @@ class LessonSerializer(serializers.ModelSerializer):
     def get_fields(self):
         fields = super().get_fields()
         # Banner — faqat o'qituvchi ilovasi uchun (dars ochilganda katta rasm).
-        # O'quvchi ilovalari (desktop, mobil) uni olmaydi.
+        # O'qituvchi ilovasiga shef bergan istalgan kod bilan (o'quvchi rolidagi
+        # hisob bilan ham) kiriladi, shuning uchun ilova `?banner=1` bilan
+        # so'raydi. O'quvchi ilovalari (desktop, mobil) uni so'ramaydi va olmaydi.
         request = self.context.get("request")
         user = getattr(request, "user", None)
-        if not getattr(user, "is_teacher", False):
+        asked = request is not None and request.query_params.get("banner") == "1"
+        if not (asked or getattr(user, "is_teacher", False)):
             fields.pop("banner", None)
         return fields
 
