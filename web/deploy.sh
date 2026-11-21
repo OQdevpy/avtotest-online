@@ -26,7 +26,11 @@ for app in "${APPS[@]}"; do
   fi
   echo "==> $app: yig'ilmoqda"
   cd "$ROOT/$app"
-  npm ci --prefer-offline --include=dev --no-audit --no-fund
+  if [[ -x "$ROOT/../deploy/npm-deps.sh" ]]; then
+    "$ROOT/../deploy/npm-deps.sh" "$ROOT/$app"   # lock o'zgarmasa npm ci yo'q
+  else
+    npm ci --prefer-offline --include=dev --no-audit --no-fund
+  fi
   npm run build
 
   echo "==> $app: $target ga joylanmoqda"

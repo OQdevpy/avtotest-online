@@ -2,8 +2,8 @@
 # Serverda avtomatik yangilanish: branch'ga yangi commit tushsa, shu skript
 # o'zgargan qismlarni qayta yig'adi (backend, admin panel, web saytlar).
 #
-# Bir marta o'rnatiladi (root crontab, har 5 daqiqada):
-#   ( crontab -l 2>/dev/null; echo '*/5 * * * * /root/avtotest/avtotest-online/deploy/auto-deploy.sh >> /var/log/avtotest-deploy.log 2>&1' ) | crontab -
+# Bir marta o'rnatiladi (root crontab, har daqiqada; o'zgarish bo'lmasa bir zumda chiqadi):
+#   ( crontab -l 2>/dev/null; echo '* * * * * /root/avtotest/avtotest-online/deploy/auto-deploy.sh >> /var/log/avtotest-deploy.log 2>&1' ) | crontab -
 #
 # prava777 nusxasi uchun: DEPLOY_BRANCH=prava777 COMPOSE_PROJECT=prava777
 # Admin panel boshqa papkadan ochilsa: ADMIN_TARGET=/var/www/<admin papka>
@@ -99,7 +99,7 @@ node_info() { log "node $(node -v 2>/dev/null || echo yo'q), npm $(npm -v 2>/dev
 if changed '^admin/' && [[ -d admin ]]; then
   node_info
   log "admin panel yig'ilmoqda"
-  (cd admin && npm ci --prefer-offline --include=dev --no-audit --no-fund && npm run build)
+  ./deploy/npm-deps.sh admin && (cd admin && npm run build)
 fi
 sync_admin
 
