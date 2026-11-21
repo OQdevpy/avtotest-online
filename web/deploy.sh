@@ -17,6 +17,13 @@ for app in "${APPS[@]}"; do
     *) echo "Noma'lum ilova: $app (student yoki teacher)" >&2; exit 1 ;;
   esac
   target="/var/www/avtotest-web-$app"
+  # Bir sayt bir vaqtda faqat bir marta yig'iladi (cron va qo'lda ishga
+  # tushirish to'qnashsa npm ci "ENOTEMPTY" bilan yiqilardi) — kutadi.
+  exec 8>"/tmp/web-deploy-$app.lock"
+  if ! flock -n 8; then
+    echo "==> $app: boshqa yig'ish tugashini kutyapman"
+    flock 8
+  fi
   echo "==> $app: yig'ilmoqda"
   cd "$ROOT/$app"
   npm ci --no-audit --no-fund
@@ -28,6 +35,7 @@ for app in "${APPS[@]}"; do
   cp -r dist/. "$target/"
   find "$target/assets" -type f ! -newer dist/index.html -delete 2>/dev/null || true
   cp dist/index.html "$target/index.html"
+  exec 8>&-
 done
 
 echo "Tayyor. Brauzerda sahifani yangilang (Ctrl+F5)."
