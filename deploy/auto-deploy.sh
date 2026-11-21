@@ -21,17 +21,29 @@ flock -n 9 || exit 0
 
 log() { echo "$(date '+%F %T') [$BRANCH] $*"; }
 
-git fetch -q origin "$BRANCH"
-OLD="$(git rev-parse HEAD)"
-NEW="$(git rev-parse FETCH_HEAD)"
-[[ "$OLD" == "$NEW" ]] && exit 0
+# Oxirgi muvaffaqiyatli o'rnatilgan commit .git ichida saqlanadi — kimdir
+# qo'lda `git pull` qilsa ham o'rnatish o'tkazib yuborilmaydi.
+STATE="$(git rev-parse --git-dir)/auto-deploy-$BRANCH"
+DEPLOYED="$(cat "$STATE" 2>/dev/null || true)"
 
-log "yangilanish: ${OLD:0:7} -> ${NEW:0:7}"
-if ! git merge --ff-only -q FETCH_HEAD; then
-  log "XATO: serverdagi nusxada qo'lda o'zgarish bor (git status). Yangilanmadi."
-  exit 1
+git fetch -q origin "$BRANCH"
+if [[ "$(git rev-parse HEAD)" != "$(git rev-parse FETCH_HEAD)" ]]; then
+  if ! git merge --ff-only -q FETCH_HEAD; then
+    log "XATO: serverdagi nusxada qo'lda o'zgarish bor (git status). Yangilanmadi."
+    exit 1
+  fi
 fi
-CHANGED="$(git diff --name-only "$OLD" "$NEW")"
+NEW="$(git rev-parse HEAD)"
+[[ "$DEPLOYED" == "$NEW" ]] && exit 0
+
+if [[ -n "$DEPLOYED" ]] && git cat-file -e "$DEPLOYED^{commit}" 2>/dev/null; then
+  log "yangilanish: ${DEPLOYED:0:7} -> ${NEW:0:7}"
+  CHANGED="$(git diff --name-only "$DEPLOYED" "$NEW")"
+else
+  # Birinchi ishga tushish — hammasi o'rnatiladi
+  log "birinchi o'rnatish: ${NEW:0:7} (hammasi)"
+  CHANGED=$'backend/\nadmin/\nweb/student/\nweb/teacher/'
+fi
 changed() { grep -qE "$1" <<<"$CHANGED"; }
 
 if changed '^(backend/|docker-compose)'; then
@@ -45,7 +57,11 @@ if changed '^(backend/|docker-compose)'; then
     sleep 3
   done
   log "backend javobi: ${code:-none}"
-  [[ "${code:-}" == "401" || "${code:-}" == "200" ]] || "${COMPOSE[@]}" logs --tail 40 backend
+  if [[ "${code:-}" != "401" && "${code:-}" != "200" ]]; then
+    "${COMPOSE[@]}" logs --tail 40 backend
+    log "XATO: backend javob bermadi — keyingi safar qayta uriniladi"
+    exit 1
+  fi
 fi
 
 if changed '^admin/' && [[ -d admin ]]; then
@@ -60,4 +76,5 @@ for app in student teacher; do
   fi
 done
 
+echo "$NEW" > "$STATE"
 log "tayyor"
