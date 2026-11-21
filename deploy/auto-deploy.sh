@@ -6,6 +6,7 @@
 #   ( crontab -l 2>/dev/null; echo '*/5 * * * * /root/avtotest/avtotest-online/deploy/auto-deploy.sh >> /var/log/avtotest-deploy.log 2>&1' ) | crontab -
 #
 # prava777 nusxasi uchun: DEPLOY_BRANCH=prava777 COMPOSE_PROJECT=prava777
+# Admin panel boshqa papkadan ochilsa: ADMIN_TARGET=/var/www/<admin papka>
 # Qo'lda ishga tushirish ham mumkin; o'zgarish bo'lmasa hech narsa qilmaydi.
 set -euo pipefail
 
@@ -34,7 +35,24 @@ if [[ "$(git rev-parse HEAD)" != "$(git rev-parse FETCH_HEAD)" ]]; then
   fi
 fi
 NEW="$(git rev-parse HEAD)"
-[[ "$DEPLOYED" == "$NEW" ]] && exit 0
+
+# Admin panel nginx boshqa papkadan ochilsa (ADMIN_TARGET) — yig'ilgan build
+# o'sha yerga ko'chiriladi. Farq bo'lsa har safar tekshiriladi.
+sync_admin() {
+  local dist="admin/dist"
+  [[ -n "${ADMIN_TARGET:-}" && -f "$dist/index.html" ]] || return 0
+  [[ "$(realpath -m "$ADMIN_TARGET")" == "$(realpath -m "$dist")" ]] && return 0
+  cmp -s "$dist/index.html" "$ADMIN_TARGET/index.html" 2>/dev/null && return 0
+  log "admin panel $ADMIN_TARGET ga ko'chirilmoqda"
+  mkdir -p "$ADMIN_TARGET"
+  cp -r "$dist/." "$ADMIN_TARGET/"
+  cp "$dist/index.html" "$ADMIN_TARGET/index.html"
+}
+
+if [[ "$DEPLOYED" == "$NEW" ]]; then
+  sync_admin
+  exit 0
+fi
 
 if [[ -n "$DEPLOYED" ]] && git cat-file -e "$DEPLOYED^{commit}" 2>/dev/null; then
   log "yangilanish: ${DEPLOYED:0:7} -> ${NEW:0:7}"
@@ -68,6 +86,7 @@ if changed '^admin/' && [[ -d admin ]]; then
   log "admin panel yig'ilmoqda"
   (cd admin && npm ci --no-audit --no-fund && npm run build)
 fi
+sync_admin
 
 for app in student teacher; do
   if changed "^web/($app/|deploy\.sh)" && [[ -x web/deploy.sh ]]; then

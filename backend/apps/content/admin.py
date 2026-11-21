@@ -55,7 +55,7 @@ class AnswerInline(admin.TabularInline):
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ("id", "short_text", "lesson", "is_published", "is_in_web",
+    list_display = ("id", "short_text", "lesson", "ticket_number", "is_published", "is_in_web",
                     "has_image", "answer_count")
     list_filter = ("is_published", "is_in_web", "lesson__section", "lesson")
     search_fields = ("text_uz", "text_ru", "text_cry")
@@ -78,6 +78,14 @@ class QuestionAdmin(admin.ModelAdmin):
     def unpublish(self, request, queryset):
         count = queryset.update(is_published=False)
         self.message_user(request, f"{count} ta savol nashrdan olindi.")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("tickets")
+
+    @admin.display(description="Bilet (variant)")
+    def ticket_number(self, obj):
+        # Variantlar ro'yxatida N-bilet "N-variant" bo'lib ko'rinadi.
+        return ", ".join(str(t.number) for t in obj.tickets.all()) or "—"
 
     @admin.display(description="Savol")
     def short_text(self, obj):
