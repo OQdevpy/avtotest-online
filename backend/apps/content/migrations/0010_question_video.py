@@ -5,8 +5,11 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    # Nomi tarixiy (prava777 bazasida shu nom bilan qo'llangan), lekin tartibda
+    # master'ning 0011–0013 migratsiyalaridan keyin turadi — shunda
+    # avtotest-tayyorlov.uz bazasi ham xatosiz migratsiya qilinadi.
     dependencies = [
-        ('content', '0009_answer_text_uz_blank'),
+        ('content', '0013_ticketquestion_one_ticket'),
     ]
 
     operations = [

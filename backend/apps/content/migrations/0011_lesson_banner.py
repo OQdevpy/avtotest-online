@@ -6,7 +6,9 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("content", "0010_question_video"),
+        # master bilan bir xil: avtotest-tayyorlov.uz bazasida 0011 allaqachon
+        # 0009 dan keyin qo'llangan. 0010_question_video endi 0013 dan keyin.
+        ("content", "0009_answer_text_uz_blank"),
     ]
 
     operations = [
