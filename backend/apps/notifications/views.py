@@ -10,10 +10,10 @@ from .serializers import NotificationSerializer, UnreadCountSerializer
 
 
 def visible_to(user):
-    """Broadcast notifications plus the ones targeted at this user."""
+    """Hammaga yuborilganlar va shu foydalanuvchi tanlanganlar ichida bo'lganlari."""
     return Notification.objects.filter(is_active=True).filter(
-        Q(user__isnull=True) | Q(user=user)
-    )
+        Q(audience=Notification.Audience.ALL) | Q(recipients=user)
+    ).distinct()
 
 
 def with_read_flag(qs, user):
