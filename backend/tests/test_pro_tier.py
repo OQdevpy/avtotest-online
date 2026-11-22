@@ -63,3 +63,54 @@ def test_forever_pro_is_top(api, auth, student):
     student.is_pro, student.pro_until = True, None
     student.save()
     assert tier(api, auth, student) == 3
+
+
+# --- rang adminkada (ProPlan.color) ---------------------------------------
+
+def color(api, auth, user):
+    auth(api, user)
+    return api.get(ME).json()["pro_color"]
+
+
+def test_no_pro_no_color(api, auth, student):
+    assert color(api, auth, student) is None
+
+
+def test_color_from_paid_plan(api, auth, student):
+    order = paid(student, 30)
+    order.plan.color = "#123ABC"
+    order.plan.save()
+    make_pro(student, 20)
+    assert color(api, auth, student) == "#123ABC"
+
+
+def test_admin_granted_color_from_closest_plan(api, auth, student):
+    ProPlan.objects.create(title_uz="15 kun", days=15, price=1, color="#111111")
+    ProPlan.objects.create(title_uz="1 oy", days=30, price=1, color="#222222")
+    ProPlan.objects.create(title_uz="3 oy", days=90, price=1, color="#333333")
+    make_pro(student, 20)      # 20 kun qoldi → 1 oylik tarif rangi
+    assert color(api, auth, student) == "#222222"
+    make_pro(student, 400)     # eng uzun tarifdan ham ko'p → eng uzun tarif
+    assert color(api, auth, student) == "#333333"
+
+
+def test_color_validation():
+    from django.core.exceptions import ValidationError
+
+    with pytest.raises(ValidationError):
+        ProPlan(title_uz="x", days=1, price=1, color="qizil").full_clean()
+
+
+def test_admin_changes_color(client, django_user_model, settings):
+    settings.STORAGES = {
+        **settings.STORAGES,
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
+    client.force_login(django_user_model.objects.create_superuser("+998901119999", "Admin12345"))
+    plan = ProPlan.objects.create(title_uz="1 oy", days=30, price=25000)
+    r = client.post(f"/admin/payments/proplan/{plan.pk}/change/", {
+        "title_uz": "1 oy", "title_ru": "", "title_cry": "", "days": 30, "price": 25000,
+        "order": 2, "is_active": "on", "color": "#ff0066"})
+    assert r.status_code == 302, r.context["adminform"].form.errors
+    plan.refresh_from_db()
+    assert plan.color == "#FF0066"

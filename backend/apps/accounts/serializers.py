@@ -86,23 +86,54 @@ def pro_tier(user) -> int | None:
     return 1 if days <= 15 else 2 if days <= 31 else 3
 
 
+DEFAULT_TIER_COLORS = {1: "#2F80ED", 2: "#8E44AD", 3: "#E0A100"}
+
+
+def pro_color(user) -> str | None:
+    """Profil halqasi rangi — tarifning admin'da tanlangan rangi (PRO'siz — None).
+
+    Oxirgi to'langan buyurtma tarifidan; admin bergan PRO uchun qolgan kunlarga
+    eng yaqin tarifdan (eng kichik `days >= qolgan`, bo'lmasa eng uzun tarif).
+    """
+    if not user.pro_active:
+        return None
+    from apps.payments.models import ProOrder, ProPlan
+
+    order = (ProOrder.objects.filter(user=user, status=ProOrder.Status.PAID, plan__isnull=False)
+             .select_related("plan").order_by("-paid_at", "-pk").first())
+    if order is not None:
+        return order.plan.color
+    plans = ProPlan.objects.filter(is_active=True).order_by("days")
+    if not plans:
+        return DEFAULT_TIER_COLORS[pro_tier(user)]
+    if user.pro_until is None:
+        return plans.last().color
+    left = (user.pro_until - timezone.now()).days + 1
+    plan = plans.filter(days__gte=left).first() or plans.last()
+    return plan.color
+
+
 class UserSerializer(serializers.ModelSerializer):
     language = LanguageField(required=False)
     initials = serializers.CharField(read_only=True)
     pro_active = serializers.BooleanField(read_only=True)
     pro_tier = serializers.SerializerMethodField()
+    pro_color = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
             "id", "phone", "full_name", "role", "language", "dark_theme",
-            "is_pro", "pro_until", "pro_active", "pro_tier", "initials", "date_joined",
+            "is_pro", "pro_until", "pro_active", "pro_tier", "pro_color", "initials", "date_joined",
         )
         # Rolni foydalanuvchi o'zi o'zgartira olmaydi — faqat shef (manage/users/).
         read_only_fields = ("id", "phone", "role", "is_pro", "pro_until", "date_joined")
 
     def get_pro_tier(self, obj) -> int | None:
         return pro_tier(obj)
+
+    def get_pro_color(self, obj) -> str | None:
+        return pro_color(obj)
 
 
 def guest_from_refresh(raw: str) -> User | None:

@@ -7,7 +7,7 @@ ilovada ham yo'q. Pul butun so'mda; Payme bilan tiyin faqat webhook chegarasida.
 import re
 
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 from . import crypto
@@ -26,6 +26,11 @@ class ProPlan(models.Model):
     price = models.PositiveIntegerField("Narx (so'm)", validators=[MinValueValidator(1)])
     order = models.PositiveIntegerField("Tartib", default=0, db_index=True)
     is_active = models.BooleanField("Faol", default=True)
+    color = models.CharField(
+        "Rang", max_length=7, default="#E0A100",
+        validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Rang #RRGGBB ko'rinishida bo'lsin.")],
+        help_text="Ilovada shu tarif egasining profil halqasi rangi.",
+    )
 
     class Meta:
         ordering = ("order", "id")
@@ -34,6 +39,10 @@ class ProPlan(models.Model):
 
     def __str__(self) -> str:
         return f"{self.title_uz} — {self.days} kun, {self.price} so'm"
+
+    def save(self, *args, **kwargs):
+        self.color = (self.color or "").upper()
+        super().save(*args, **kwargs)
 
 
 def _secret(field: str):

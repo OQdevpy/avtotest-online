@@ -5,6 +5,7 @@ sahifaga hech qachon qaytarib chiqarilmaydi: bo'sh qoldirilsa eski qiymat saqlan
 Buyurtma va tranzaksiyalar faqat o'qish uchun — ularni webhook'lar o'zgartiradi.
 """
 
+from django.utils.html import format_html
 from django import forms
 from django.contrib import admin
 from django.shortcuts import redirect
@@ -19,11 +20,25 @@ SECRET_FIELDS = (
 )
 
 
+class ProPlanForm(forms.ModelForm):
+    class Meta:
+        model = ProPlan
+        fields = "__all__"
+        widgets = {"color": forms.TextInput(attrs={"type": "color", "style": "width:80px;height:36px"})}
+
+
 @admin.register(ProPlan)
 class ProPlanAdmin(admin.ModelAdmin):
-    list_display = ("title_uz", "days", "price", "order", "is_active")
+    form = ProPlanForm
+    list_display = ("title_uz", "days", "price", "swatch", "order", "is_active")
     list_editable = ("days", "price", "order", "is_active")
     list_display_links = ("title_uz",)
+
+    @admin.display(description="Rang")
+    def swatch(self, obj):
+        return format_html(
+            '<span style="display:inline-block;width:22px;height:22px;border-radius:50%;'
+            'border:3px solid {};vertical-align:middle"></span> {}', obj.color, obj.color)
 
 
 class PaymentConfigForm(forms.ModelForm):
