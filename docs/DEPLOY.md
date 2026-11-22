@@ -238,3 +238,26 @@ Diqqat:
   Payme va Click kalitlarini admin'da qayta kiriting.
 - iOS'da sotish standart holatda o'chiq (`sell_ios`) — Apple App Store qoidalari
   (3.1.1) ilova ichida tashqi to'lovni cheklaydi.
+
+## 11. Push bildirishnomalar (FCM)
+
+Admin → Foydalanuvchilar: filtrlab (rol — mehmon ham, filial, PRO, til, «push
+qurilma: Bor») belgilang → amal **«Bildirishnoma yuborish (push)»** → matn
+(o'zbekcha majburiy, kirill/rus ixtiyoriy) → Yuborish. Har kimga ilovada
+tanlagan tilida boradi; bo'sh tilga o'zbekchasi. Hammaga yuborish —
+Bildirishnomalar → Qo'shish, «Kimga: Hammaga», «Push ham yuborilsin».
+Natija (yetkazildi / xato) Bildirishnomalar ro'yxatida.
+
+Yuborishni `push-worker` servisi qiladi (`manage.py push_worker`, har 3 s
+navbatni tekshiradi). Yaroqsiz tokenlar (ilova o'chirilgan) avtomatik nofaol.
+
+Bir martalik sozlash:
+1. Firebase service account JSON → serverda `<loyiha>/firebase/service-account.json`
+   (`chmod 600`). Boshqa joyda bo'lsa compose uchun `FIREBASE_DIR=/yo'l`.
+2. `backend/.env`: `FIREBASE_CREDENTIALS_FILE=/run/secrets/firebase/service-account.json`
+3. `docker compose up -d --build backend push-worker`;
+   `docker compose logs -f push-worker` — «push_worker ishga tushdi» (oxirida
+   «Firebase sozlanmagan!» bo'lmasligi kerak).
+4. APNs kaliti (.p8) Firebase → Cloud Messaging → Apple app configuration'da
+   bo'lishi shart, aks holda iOS'ga yetmaydi (Android ishlayveradi).
+

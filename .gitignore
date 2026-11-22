@@ -31,3 +31,6 @@ release/
 
 # Maxfiy ma'lumotlar (kirish kodlari eksporti)
 kirish_kodlari*.xlsx
+
+# Firebase service account (push) — maxfiy, faqat serverda
+/firebase/

@@ -36,6 +36,8 @@ services:
     volumes:
       - ./backend/media:/app/media
       - static_files:/app/staticfiles
+      # Firebase service account (push). Fayl git'da yo'q — serverga qo'lda qo'yiladi.
+      - ${FIREBASE_DIR:-./firebase}:/run/secrets/firebase:ro
     depends_on:
       db:
         condition: service_healthy
@@ -69,6 +71,25 @@ services:
       db:
         condition: service_healthy
       redis:
+        condition: service_started
+    restart: unless-stopped
+
+  # Push bildirishnomalar (FCM): admin navbatga qo'ygan xabarlarni yuboradi.
+  push-worker:
+    build: ./backend
+    container_name: avtotest_push_worker
+    command: python manage.py push_worker
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-avtotest}
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ${FIREBASE_DIR:-./firebase}:/run/secrets/firebase:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      backend:
         condition: service_started
     restart: unless-stopped
 
