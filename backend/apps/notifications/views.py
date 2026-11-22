@@ -5,8 +5,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.lang import LangSerializerContextMixin
-from .models import Notification, NotificationRead
-from .serializers import NotificationSerializer, UnreadCountSerializer
+from .models import Notification, NotificationRead, PushDevice
+from .serializers import (
+    NotificationSerializer,
+    PushDeviceSerializer,
+    PushTokenSerializer,
+    UnreadCountSerializer,
+)
 
 
 def visible_to(user):
@@ -68,3 +73,40 @@ class MarkAllReadView(APIView):
             ignore_conflicts=True,
         )
         return Response({"detail": "Barchasi o'qildi deb belgilandi.", "marked": len(unread)})
+
+
+@extend_schema(
+    tags=["notifications"],
+    request=PushDeviceSerializer,
+    description="Telefonning FCM tokenini ro'yxatdan o'tkazish (mehmon ham). "
+    "Token boshqa hisobda bo'lsa joriy foydalanuvchiga o'tadi.",
+)
+class PushDeviceRegisterView(APIView):
+    def post(self, request):
+        serializer = PushDeviceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        PushDevice.objects.update_or_create(
+            token=data["token"],
+            defaults={
+                "user": request.user,
+                "platform": data["platform"],
+                "app_version": data["app_version"],
+                "is_active": True,
+                "last_error": "",
+            },
+        )
+        return Response({"detail": "Qurilma ro'yxatdan o'tdi."})
+
+
+@extend_schema(
+    tags=["notifications"],
+    request=PushTokenSerializer,
+    description="Chiqishdan oldin: shu telefonga bu hisob xabarlari kelmasin.",
+)
+class PushDeviceRemoveView(APIView):
+    def post(self, request):
+        serializer = PushTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        PushDevice.objects.filter(user=request.user, token=serializer.validated_data["token"]).delete()
+        return Response({"detail": "Qurilma o'chirildi."})

@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from common.lang import TranslatedField
-from .models import Notification
+from .models import Notification, PushDevice
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -17,3 +17,13 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 class UnreadCountSerializer(serializers.Serializer):
     unread = serializers.IntegerField()
+
+
+class PushDeviceSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=255)
+    platform = serializers.ChoiceField(choices=PushDevice.Platform.choices)
+    app_version = serializers.CharField(max_length=32, required=False, allow_blank=True, default="")
+
+
+class PushTokenSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=255)

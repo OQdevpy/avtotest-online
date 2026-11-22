@@ -86,3 +86,30 @@ class NotificationRead(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user_id} read {self.notification_id}"
+
+
+class PushDevice(models.Model):
+    """Telefonning FCM tokeni. Bitta token — bitta egasi (oxirgi kirgan foydalanuvchi)."""
+
+    class Platform(models.TextChoices):
+        ANDROID = "android", "Android"
+        IOS = "ios", "iOS"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="push_devices"
+    )
+    token = models.CharField(max_length=255, unique=True)
+    platform = models.CharField(max_length=16, choices=Platform.choices)
+    app_version = models.CharField(max_length=32, blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    last_error = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Push qurilma"
+        verbose_name_plural = "Push qurilmalar"
+        indexes = [models.Index(fields=["user", "is_active"])]
+
+    def __str__(self) -> str:
+        return f"{self.user} · {self.get_platform_display()}"
