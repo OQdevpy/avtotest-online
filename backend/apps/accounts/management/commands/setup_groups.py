@@ -38,6 +38,7 @@ ADMIN_FULL_MODELS = [
     ("accounts", "accesscode"),
     ("notifications", "notification"),
     ("notifications", "pushdevice"),
+    ("promo", "slide"),
 ]
 
 # Foydalanuvchini shef ko'radi va tahrirlaydi, lekin o'chirmaydi —

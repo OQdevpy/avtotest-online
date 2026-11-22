@@ -7,7 +7,7 @@ from django.core.management import call_command
 pytestmark = pytest.mark.django_db
 
 OUR_APPS = ("accounts", "content", "exams", "progress", "billing", "payments",
-            "notifications", "telegramauth")
+            "notifications", "telegramauth", "promo")
 
 # Faqat inline orqali boshqariladigan bog'lovchi modellar — ularga alohida
 # admin sahifasi kerak emas (tartib ota yozuv ichida tahrirlanadi).

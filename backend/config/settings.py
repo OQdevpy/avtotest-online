@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "apps.telegramauth",
     "apps.payments",
     "apps.releases",
+    "apps.promo",
 ]
 
 MIDDLEWARE = [
