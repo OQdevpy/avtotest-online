@@ -51,7 +51,7 @@ def _send_multicast(tokens, title, body, data) -> list[tuple[bool, Exception | N
     from firebase_admin import messaging
 
     message = messaging.MulticastMessage(
-        tokens=list(tokens),
+        fids=list(tokens),  # 7.8+: `tokens` o'rniga `fids` (FCM registration token)
         notification=messaging.Notification(title=title, body=body or None),
         data=data,
         android=messaging.AndroidConfig(
