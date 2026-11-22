@@ -29,6 +29,16 @@ class Notification(models.Model):
         ALL = "all", "Hammaga"
         SELECTED = "selected", "Tanlanganlarga"
 
+    class Target(models.TextChoices):
+        """Bildirishnoma bosilganda ilovada ochiladigan joy."""
+        NOTIFICATIONS = "notifications", "Bildirishnomalar ro'yxati"
+        HOME = "home", "Bosh sahifa"
+        PRO = "pro", "PRO sahifasi"
+        LESSONS = "lessons", "Darslar"
+        BILETLAR = "biletlar", "Biletlar"
+        EXAM = "exam", "Imtihon"
+        URL = "url", "Havola (sayt / Telegram)"
+
     class PushStatus(models.TextChoices):
         NONE = "none", "Yuborilmaydi"
         PENDING = "pending", "Navbatda"
@@ -45,6 +55,10 @@ class Notification(models.Model):
         blank=True,
         verbose_name="Qabul qiluvchilar",
     )
+    target = models.CharField(
+        "Bosilganda", max_length=16, choices=Target.choices, default=Target.NOTIFICATIONS
+    )
+    url = models.URLField("Havola", blank=True, help_text="Faqat «Havola» tanlanganda.")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -65,6 +79,12 @@ class Notification(models.Model):
 
     def __str__(self) -> str:
         return self.title_uz
+
+    def clean(self):
+        if self.target == self.Target.URL and not self.url:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError({"url": "«Havola» uchun manzil kiriting."})
 
     @property
     def is_broadcast(self) -> bool:

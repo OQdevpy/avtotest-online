@@ -120,7 +120,7 @@ def deliver(notification: Notification) -> tuple[int, int]:
         by_lang[CLIENT_TO_DB.get(lang, DEFAULT_LANG)].append(token)
 
     data = {"notification_id": str(notification.pk), "kind": notification.kind,
-            "screen": "notifications"}
+            "screen": notification.target, "url": notification.url}
     for lang, tokens in by_lang.items():
         title = pick(notification, "title", lang)
         body = pick(notification, "body", lang)

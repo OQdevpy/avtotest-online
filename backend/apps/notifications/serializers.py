@@ -12,7 +12,7 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Notification
-        fields = ("id", "kind", "title", "body", "is_read", "created_at")
+        fields = ("id", "kind", "title", "body", "target", "url", "is_read", "created_at")
 
 
 class UnreadCountSerializer(serializers.Serializer):

@@ -73,6 +73,7 @@ class NotificationAdmin(admin.ModelAdmin):
     autocomplete_fields = ("recipients",)
     fieldsets = (
         (None, {"fields": ("kind", "is_active", "audience", "recipients", "send_push")}),
+        ("Bosilganda", {"fields": ("target", "url")}),
         ("Sarlavha", {"fields": ("title_uz", "title_ru", "title_cry")}),
         ("Matn", {"fields": ("body_uz", "body_ru", "body_cry"),
                   "description": "Har kimga o'z tilida boradi; bo'sh tillarga o'zbekchasi."}),

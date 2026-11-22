@@ -63,7 +63,7 @@ def test_language_per_user(sent, django_user_model):
     assert by_token["t-kr"]["title"] == "Салом" and by_token["t-kr"]["body"] == "Матн"
     assert by_token["t-ru"]["title"] == "Salom"  # ru bo'sh → uz
     assert by_token["t-uz"]["data"] == {
-        "notification_id": str(n.id), "kind": "info", "screen": "notifications"}
+        "notification_id": str(n.id), "kind": "info", "screen": "notifications", "url": ""}
     n.refresh_from_db()
     assert (n.push_status, n.push_sent, n.push_failed) == (S.DONE, 3, 0)
     assert n.pushed_at is not None
