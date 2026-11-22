@@ -160,3 +160,22 @@ def test_worker_resets_stuck_sending(sent):
     call_command("push_worker", "--once")
     n.refresh_from_db()
     assert n.push_status == S.DONE
+
+
+def test_multicast_uses_registration_tokens(monkeypatch, settings):
+    """`fids` — Firebase Installation ID, qurilma tokeni emas: FCM NotRegistered qaytaradi."""
+    captured = {}
+
+    def fake_send(message, app=None):
+        captured["message"] = message
+
+        class R:
+            responses = [type("X", (), {"success": True, "exception": None})()]
+        return R()
+
+    monkeypatch.setattr(messaging, "send_each_for_multicast", fake_send)
+    monkeypatch.setattr(push, "_firebase", lambda: None)
+    push._send_multicast(["reg-token-1"], "t", "b", {"k": "v"})
+    m = captured["message"]
+    assert m.tokens == ["reg-token-1"]
+    assert not getattr(m, "fids", None)

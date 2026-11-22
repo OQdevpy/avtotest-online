@@ -48,10 +48,21 @@ def _firebase():
 
 def _send_multicast(tokens, title, body, data) -> list[tuple[bool, Exception | None]]:
     """Yagona tashqi chaqiruv — testlarda almashtiriladi."""
+    import warnings
+
     from firebase_admin import messaging
 
+    # `tokens` 7.8 da "deprecated" deb ogohlantiradi, lekin aynan qurilma
+    # (registration) tokenlari shu yerga beriladi. `fids` — Firebase Installation
+    # ID, unga berilsa FCM har tokenni NotRegistered deb qaytaradi.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        return _send(messaging, tokens, title, body, data)
+
+
+def _send(messaging, tokens, title, body, data):
     message = messaging.MulticastMessage(
-        fids=list(tokens),  # 7.8+: `tokens` o'rniga `fids` (FCM registration token)
+        tokens=list(tokens),
         notification=messaging.Notification(title=title, body=body or None),
         data=data,
         android=messaging.AndroidConfig(
