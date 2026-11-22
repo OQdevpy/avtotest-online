@@ -87,6 +87,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     dark_theme = models.BooleanField(default=False)
 
     # PRO subscription (the mobile Home screen shows a PRO banner)
+    # App Store / Google Play tekshiruvchisi uchun test hisob: faqat shu hisob
+    # telefon + parol bilan kira oladi (qolganlar — faqat Telegram).
+    review_account = models.BooleanField(
+        "Do'kon tekshiruvi hisobi", default=False,
+        help_text="Faqat Apple/Google tekshiruvchisiga beriladigan test hisob uchun yoqing.",
+    )
     is_pro = models.BooleanField(default=False)
     pro_until = models.DateTimeField(null=True, blank=True)
 

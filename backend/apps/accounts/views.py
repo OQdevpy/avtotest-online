@@ -54,6 +54,39 @@ class UpdateRequiredView(APIView):
 
 
 @extend_schema(tags=["auth"])
+class ReviewLoginView(APIView):
+    """Do'kon tekshiruvchisi uchun telefon + parol bilan kirish.
+
+    Faqat `review_account=True` hisob kiradi. Boshqa har qanday holatda (oddiy
+    foydalanuvchi, noto'g'ri parol) eski ilovaga ham tanish `update_required`
+    qaytadi — kirish faqat Telegram orqali, test hisobi borligi sezilmaydi.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = ()
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "review_login"
+
+    def post(self, request):
+        from django.contrib.auth import authenticate
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        from .serializers import issue_tokens, normalize_phone
+
+        try:
+            phone = normalize_phone(str(request.data.get("phone", "")))
+        except DjangoValidationError:
+            phone = ""
+        password = str(request.data.get("password", ""))
+        user = authenticate(request, username=phone, password=password) if phone and password else None
+        if user is None or not user.is_active or not user.review_account:
+            return Response(UPDATE_REQUIRED, status=status.HTTP_400_BAD_REQUEST)
+        tokens = issue_tokens(user, platform=str(request.data.get("platform", "")),
+                              label="App Review")
+        return Response({"user": UserSerializer(user).data, "tokens": tokens})
+
+
+@extend_schema(tags=["auth"])
 class GuestView(generics.GenericAPIView):
     """Mehmon sessiyasi — ilova birinchi ochilganda, ro'yxatdan o'tmasdan.
 

@@ -211,7 +211,8 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     # Faqat `throttle_scope` belgilangan view'larga qo'llanadi. Mobil operatorlarda
     # ko'p foydalanuvchi bitta IP ortida — asosiy cheklov nginx `limit_req` da.
-    "DEFAULT_THROTTLE_RATES": {"guest": "300/hour", "payments_checkout": "20/hour"},
+    "DEFAULT_THROTTLE_RATES": {"guest": "300/hour", "payments_checkout": "20/hour",
+                               "review_login": "20/hour"},
 }
 
 SIMPLE_JWT = {

@@ -5,7 +5,8 @@ from . import views
 
 urlpatterns = [
     path("register/", views.UpdateRequiredView.as_view(), name="register"),
-    path("login/", views.UpdateRequiredView.as_view(), name="login"),
+    # Faqat do'kon tekshiruvi hisobi; qolganlarga update_required (views.ReviewLoginView)
+    path("login/", views.ReviewLoginView.as_view(), name="login"),
     path("guest/", views.GuestView.as_view(), name="guest"),
     path("login-code/", views.AccessCodeLoginView.as_view(), name="login-code"),
     path("social/", views.UpdateRequiredView.as_view(), name="social-login"),

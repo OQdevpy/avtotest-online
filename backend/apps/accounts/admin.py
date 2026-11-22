@@ -29,6 +29,9 @@ class UserAdmin(BaseUserAdmin):
         # Rol biznes huquqini belgilaydi; `is_staff` faqat admin paneliga kirishni.
         ("Rol va filial", {"fields": ("role", "branch", "hujjat")}),
         ("PRO", {"fields": ("is_pro", "pro_until")}),
+        ("Do'kon tekshiruvi", {"fields": ("review_account",),
+                               "description": "Faqat Apple/Google tekshiruvchisi uchun test hisob: "
+                                              "telefon + parol bilan kira oladi."}),
         ("Sessiya", {"fields": ("max_devices",),
                      "description": "Bo'sh qoldirilsa platforma bo'yicha "
                                     "standart limit amal qiladi."}),
