@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -66,19 +67,42 @@ class DeviceSerializer(serializers.ModelSerializer):
         fields = ("id", "platform", "label", "created_at", "last_seen", "expires_at")
 
 
+def pro_tier(user) -> int | None:
+    """Profil rangi uchun PRO darajasi: 1 — 15 kun, 2 — 1 oy, 3 — 3 oy (PRO'siz — None).
+
+    Oxirgi to'langan buyurtma tarifidan; admin bergan PRO uchun qolgan kunlardan,
+    muddatsiz PRO — eng yuqori daraja.
+    """
+    if not user.pro_active:
+        return None
+    from apps.payments.models import ProOrder
+
+    days = (ProOrder.objects.filter(user=user, status=ProOrder.Status.PAID)
+            .order_by("-paid_at", "-pk").values_list("days", flat=True).first())
+    if days is None:
+        if user.pro_until is None:
+            return 3
+        days = (user.pro_until - timezone.now()).days + 1
+    return 1 if days <= 15 else 2 if days <= 31 else 3
+
+
 class UserSerializer(serializers.ModelSerializer):
     language = LanguageField(required=False)
     initials = serializers.CharField(read_only=True)
     pro_active = serializers.BooleanField(read_only=True)
+    pro_tier = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = (
             "id", "phone", "full_name", "role", "language", "dark_theme",
-            "is_pro", "pro_until", "pro_active", "initials", "date_joined",
+            "is_pro", "pro_until", "pro_active", "pro_tier", "initials", "date_joined",
         )
         # Rolni foydalanuvchi o'zi o'zgartira olmaydi — faqat shef (manage/users/).
         read_only_fields = ("id", "phone", "role", "is_pro", "pro_until", "date_joined")
+
+    def get_pro_tier(self, obj) -> int | None:
+        return pro_tier(obj)
 
 
 def guest_from_refresh(raw: str) -> User | None:
