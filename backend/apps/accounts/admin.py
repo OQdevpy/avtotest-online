@@ -1,6 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
+from apps.notifications.admin import (
+    HasPushDeviceFilter,
+    can_send,
+    send_notification,
+)
+
 from .models import AccessCode, Device, SocialAccount, User
 
 
@@ -9,9 +15,14 @@ class UserAdmin(BaseUserAdmin):
     ordering = ("-date_joined",)
     list_display = ("phone", "full_name", "role", "branch", "hujjat",
                     "is_pro", "is_active", "date_joined", "guest_until")
-    list_filter = ("role", "branch", "is_active", "is_staff", "is_pro", "hujjat", "language")
+    list_filter = ("role", "branch", "is_active", "is_staff", "is_pro", "hujjat", "language",
+                   HasPushDeviceFilter)
     search_fields = ("phone", "full_name")
     list_select_related = ("branch",)
+    actions = (send_notification,)
+
+    def has_notify_permission(self, request):
+        return can_send(request)
     fieldsets = (
         (None, {"fields": ("phone", "password")}),
         ("Profil", {"fields": ("full_name", "language", "dark_theme")}),

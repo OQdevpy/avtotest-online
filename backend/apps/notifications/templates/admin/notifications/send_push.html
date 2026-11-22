@@ -1,0 +1,47 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_user_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; Bildirishnoma yuborish
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Bildirishnoma yuborish</h1>
+<p>
+  Tanlangan: <strong>{{ selected_count }}</strong> kishi,
+  shundan telefonida ilova (push) borlar: <strong>{{ with_device }}</strong>.
+  Qolganlari xabarni ilovani ochganda Bildirishnomalar bo'limida ko'radi.
+</p>
+<p>Har kimga o'z tilida boradi. Ruscha yoki kirill matn bo'sh bo'lsa o'zbekchasi yuboriladi.</p>
+{% if not firebase_ready %}
+<p class="errornote">Serverda Firebase sozlanmagan (FIREBASE_CREDENTIALS_FILE) — push ketmaydi, xabar faqat ilova ichida ko'rinadi.</p>
+{% endif %}
+
+<form method="post">{% csrf_token %}
+  {% if select_across %}
+  {# Filtrdagi hammasi tanlangan — ro'yxat URL'dagi filtrlar bo'yicha qayta olinadi #}
+  <input type="hidden" name="select_across" value="1">
+  <input type="hidden" name="_selected_action" value="{{ first_pk }}">
+  {% else %}
+  {% for pk in selected_pks %}<input type="hidden" name="_selected_action" value="{{ pk }}">{% endfor %}
+  {% endif %}
+  <input type="hidden" name="action" value="send_notification">
+  <input type="hidden" name="apply" value="1">
+  <fieldset class="module aligned">
+    {% for field in form %}
+    <div class="form-row">
+      {{ field.errors }}
+      <div class="flex-container">{{ field.label_tag }} {{ field }}</div>
+    </div>
+    {% endfor %}
+  </fieldset>
+  <div class="submit-row">
+    <input type="submit" class="default" value="Yuborish ({{ selected_count }} kishi)">
+    <a href="{% url 'admin:accounts_user_changelist' %}" class="button cancel-link">Bekor qilish</a>
+  </div>
+</form>
+{% endblock %}

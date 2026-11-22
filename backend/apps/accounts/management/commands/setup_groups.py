@@ -37,6 +37,7 @@ ADMIN_FULL_MODELS = [
     ("billing", "paymentreport"),
     ("accounts", "accesscode"),
     ("notifications", "notification"),
+    ("notifications", "pushdevice"),
 ]
 
 # Foydalanuvchini shef ko'radi va tahrirlaydi, lekin o'chirmaydi —
