@@ -56,11 +56,11 @@ def test_unpublished_hidden_from_topic_detail(api, student, auth, lesson, make_q
     assert "Yashirin mavzu savoli" not in _texts(body["questions"])
 
 
-def test_new_question_defaults_to_unpublished(lesson):
+def test_new_question_defaults_to_published(lesson):
     from apps.content.models import Question
 
     question = Question.objects.create(lesson=lesson, text_uz="Yangi")
-    assert question.is_published is False
+    assert question.is_published is True
 
 
 def test_is_in_web_defaults_to_false(lesson):

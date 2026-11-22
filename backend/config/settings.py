@@ -240,7 +240,12 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"common.tunnel": {"handlers": ["console"], "level": "INFO"}},
+    "loggers": {
+        "common.tunnel": {"handlers": ["console"], "level": "INFO"},
+        # 500 xatolarning traceback'i `docker compose logs backend` da ko'rinsin
+        # (DEBUG=False da Django uni aks holda hech qayerga yozmaydi).
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
 }
 
 # --- CORS -------------------------------------------------------------------
@@ -280,7 +285,7 @@ ACCESS_CODE_DAYS = 12
 # Token faqat .env'da saqlanadi (hech qachon kodga yozilmaydi).
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
 # Token qaysi botniki bo'lsa, o'sha botning @nomi (ilova ochadigan t.me havolasi uchun).
-TELEGRAM_BOT_USERNAME = env("TELEGRAM_BOT_USERNAME", "prava777Robot")
+TELEGRAM_BOT_USERNAME = (env("TELEGRAM_BOT_USERNAME") or "prava777Robot").lstrip("@")
 # Botdagi «Ilovaga qaytish» tugmasi shu https sahifani ochadi (Telegram tugmalari
 # `prava777://` kabi ilova sxemasini qabul qilmaydi). Bo'sh bo'lsa tugma chiqmaydi.
 # Masalan: https://mobile.prava777.uz/api/v1/auth/telegram/return/

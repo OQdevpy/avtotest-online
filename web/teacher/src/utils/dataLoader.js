@@ -37,9 +37,9 @@ function replaceAll(target, items) {
 
 // Faqat tanlangan tilda `name` qaytaradigan ro'yxatni uch tilda olib,
 // `name_uz/name_ru/name_cry` ga birlashtiradi.
-async function fetchNamedList(path) {
+async function fetchNamedList(path, query = {}) {
   const lists = await Promise.all(
-    LANGS.map((lang) => fetchAllPages(path, { lang: API_LANG[lang] })),
+    LANGS.map((lang) => fetchAllPages(path, { ...query, lang: API_LANG[lang] })),
   );
   const [base, ...others] = lists;
   return base.map((item) => {
@@ -125,7 +125,8 @@ async function loadAll() {
   // O'qituvchi ilovasi: biletlar (variantlar) kerak emas — faqat darslar va blits
   const [sections, lessons, questions, blits] = await Promise.all([
     fetchNamedList('/sections/'),
-    fetchNamedList('/lessons/'),
+    // banner=1 — dars banneri faqat o'qituvchi ilovasiga beriladi
+    fetchNamedList('/lessons/', { banner: 1 }),
     fetchAllPages('/questions/', { mode: 'study' }),
     fetchNamedList('/blits/'),
   ]);

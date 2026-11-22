@@ -83,6 +83,12 @@ def test_banner_visible_only_to_teacher(api, student, teacher, auth, lesson):
 
     assert first_row(teacher)["banner"] == "images/lesson_banner.webp"
     assert "banner" not in first_row(student)
+
+    # O'qituvchi ilovasiga o'quvchi hisobi kodi bilan ham kiriladi — ilova so'raydi
+    auth(api, student)
+    rows = api.get("/api/v1/lessons/", {"banner": "1"}).json()
+    rows = rows["results"] if isinstance(rows, dict) else rows
+    assert rows[0]["banner"] == "images/lesson_banner.webp"
     auth(api, student)
     assert "banner" not in api.get(f"/api/v1/lessons/{lesson.id}/").json()
 

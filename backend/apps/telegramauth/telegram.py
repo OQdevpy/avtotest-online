@@ -16,6 +16,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
+# settings.TELEGRAM_BOT_USERNAME (.env) — dev/testda sinov boti nomi
 BOT_USERNAME = settings.TELEGRAM_BOT_USERNAME
 BOT_LINK = f"https://t.me/{BOT_USERNAME}"
 
