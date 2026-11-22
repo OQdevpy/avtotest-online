@@ -12,7 +12,9 @@ ACTIVE_DAYS = 30
 
 @admin.register(AppRelease)
 class AppReleaseAdmin(admin.ModelAdmin):
-    list_display = ("platform", "min_version", "latest_version", "store_url", "updated_at")
+    list_display = ("platform", "min_version", "latest_version", "review_mode", "store_url", "updated_at")
+    # Tekshiruv rejimini ro'yxatning o'zidan bir bosishda yoqish/o'chirish
+    list_editable = ("review_mode",)
 
 
 @admin.register(UserAppVersion)

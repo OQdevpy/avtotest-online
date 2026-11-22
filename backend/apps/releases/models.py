@@ -44,6 +44,11 @@ class AppRelease(models.Model):
         "Do'kon havolasi", blank=True,
         help_text="Bo'sh — standart Google Play / App Store sahifasi.",
     )
+    review_mode = models.BooleanField(
+        "Do'kon tekshiruvi rejimi", default=False,
+        help_text="Yoqilsa kirish ekranida «Test hisob bilan kirish» chiqadi (Apple/Google "
+                  "tekshiruvchisi uchun). Ilova tasdiqlangach o'chiring — faqat Telegram qoladi.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -63,6 +68,10 @@ class AppRelease(models.Model):
                 errors[field] = "Versiya 1.2.0 ko'rinishida bo'lishi kerak."
         if errors:
             raise ValidationError(errors)
+
+    @classmethod
+    def review_mode_on(cls, platform: str) -> bool:
+        return cls.objects.filter(platform=(platform or "").lower(), review_mode=True).exists()
 
     @property
     def resolved_store_url(self) -> str:

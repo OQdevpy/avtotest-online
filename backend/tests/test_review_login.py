@@ -6,8 +6,17 @@ Faqat admin `review_account` belgilagan hisob kira oladi. Qolganlar uchun
 
 import pytest
 
+from apps.releases.models import AppRelease
+
 pytestmark = pytest.mark.django_db
 URL = "/api/v1/auth/login/"
+OPTIONS = "/api/v1/app/login-options/"
+
+
+@pytest.fixture(autouse=True)
+def review_mode_on():
+    """Ko'p testlar uchun iOS'da tekshiruv rejimi yoqilgan."""
+    return AppRelease.objects.create(platform="ios", review_mode=True)
 
 
 @pytest.fixture
@@ -18,8 +27,8 @@ def reviewer(django_user_model):
     return u
 
 
-def login(api, phone, password):
-    return api.post(URL, {"phone": phone, "password": password}, format="json")
+def login(api, phone, password, platform="ios"):
+    return api.post(URL, {"phone": phone, "password": password, "platform": platform}, format="json")
 
 
 def test_review_account_logs_in(api, reviewer):
@@ -54,3 +63,24 @@ def test_register_still_closed(api):
 def test_garbage_phone_is_400_not_500(api, phone):
     r = login(api, phone, "x")
     assert r.status_code == 400 and r.data["code"] == "update_required"
+
+
+def test_review_mode_off_closes_login(api, reviewer, review_mode_on):
+    review_mode_on.review_mode = False
+    review_mode_on.save()
+    assert login(api, "900000099", "Review2026!").data["code"] == "update_required"
+
+
+def test_review_mode_is_per_platform(api, reviewer):
+    # Android uchun rejim yoqilmagan
+    assert login(api, "900000099", "Review2026!", platform="android").data["code"] == "update_required"
+    assert login(api, "900000099", "Review2026!", platform="").data["code"] == "update_required"
+
+
+def test_login_options(api, review_mode_on):
+    assert api.get(OPTIONS, {"platform": "ios"}).json() == {"review_login": True}
+    assert api.get(OPTIONS, {"platform": "android"}).json() == {"review_login": False}
+    review_mode_on.review_mode = False
+    review_mode_on.save()
+    assert api.get(OPTIONS, {"platform": "ios"}).json() == {"review_login": False}
+    assert api.get(OPTIONS).json() == {"review_login": False}

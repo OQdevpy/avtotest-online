@@ -79,10 +79,13 @@ class ReviewLoginView(APIView):
             phone = ""
         password = str(request.data.get("password", ""))
         user = authenticate(request, username=phone, password=password) if phone and password else None
-        if user is None or not user.is_active or not user.review_account:
+        from apps.releases.models import AppRelease
+
+        platform = str(request.data.get("platform", ""))
+        if (user is None or not user.is_active or not user.review_account
+                or not AppRelease.review_mode_on(platform)):
             return Response(UPDATE_REQUIRED, status=status.HTTP_400_BAD_REQUEST)
-        tokens = issue_tokens(user, platform=str(request.data.get("platform", "")),
-                              label="App Review")
+        tokens = issue_tokens(user, platform=platform, label="App Review")
         return Response({"user": UserSerializer(user).data, "tokens": tokens})
 
 

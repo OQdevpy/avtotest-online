@@ -58,3 +58,14 @@ class AppVersionView(APIView):
             "update_required": bool(current and minimum and current < minimum),
             "update_available": bool(current and latest and current < latest),
         })
+
+
+class LoginOptionsView(APIView):
+    """Kirish ekrani sozlamasi: «Test hisob bilan kirish» ko'rinsinmi (tekshiruv rejimi)."""
+
+    permission_classes = (AllowAny,)
+    authentication_classes = ()
+
+    def get(self, request):
+        platform = request.query_params.get("platform") or ""
+        return Response({"review_login": AppRelease.review_mode_on(platform)})
