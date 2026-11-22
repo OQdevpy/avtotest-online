@@ -290,6 +290,10 @@ TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
 # Firebase service account JSON fayli yo'li. Bo'sh bo'lsa push yuborilmaydi
 # (xabar ilova ichida ko'rinaveradi). Fayl git'ga hech qachon kirmaydi.
 FIREBASE_CREDENTIALS_FILE = env("FIREBASE_CREDENTIALS_FILE")
+# Android bildirishnomasida o'ngda chiqadigan rangli logo (to'liq https manzil).
+# Bo'sh — faqat oq siluet ikonka. Masalan:
+# https://mobile.prava777.uz/static/notifications/push-logo.png
+PUSH_IMAGE_URL = env("PUSH_IMAGE_URL")
 # Token qaysi botniki bo'lsa, o'sha botning @nomi (ilova ochadigan t.me havolasi uchun).
 TELEGRAM_BOT_USERNAME = (env("TELEGRAM_BOT_USERNAME") or "prava777Robot").lstrip("@")
 # Botdagi «Ilovaga qaytish» tugmasi shu https sahifani ochadi (Telegram tugmalari

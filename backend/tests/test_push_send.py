@@ -179,3 +179,29 @@ def test_multicast_uses_registration_tokens(monkeypatch, settings):
     m = captured["message"]
     assert m.tokens == ["reg-token-1"]
     assert not getattr(m, "fids", None)
+
+
+def _capture_android(monkeypatch):
+    captured = {}
+
+    def fake_send(message, app=None):
+        captured["message"] = message
+
+        class R:
+            responses = [type("X", (), {"success": True, "exception": None})()]
+        return R()
+
+    monkeypatch.setattr(messaging, "send_each_for_multicast", fake_send)
+    monkeypatch.setattr(push, "_firebase", lambda: None)
+    push._send_multicast(["t"], "title", "body", {})
+    return captured["message"].android.notification
+
+
+def test_android_shows_color_logo_when_configured(monkeypatch, settings):
+    settings.PUSH_IMAGE_URL = "https://mobile.prava777.uz/static/notifications/push-logo.png"
+    assert _capture_android(monkeypatch).image == settings.PUSH_IMAGE_URL
+
+
+def test_no_logo_when_not_configured(monkeypatch, settings):
+    settings.PUSH_IMAGE_URL = ""
+    assert _capture_android(monkeypatch).image is None

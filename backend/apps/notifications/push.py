@@ -67,7 +67,11 @@ def _send(messaging, tokens, title, body, data):
         data=data,
         android=messaging.AndroidConfig(
             priority="high",
-            notification=messaging.AndroidNotification(channel_id=CHANNEL, color=COLOR),
+            notification=messaging.AndroidNotification(
+                channel_id=CHANNEL, color=COLOR,
+                # Rangli logo: yopiq holatda o'ngda kichik rasm, ochilganda katta.
+                image=settings.PUSH_IMAGE_URL or None,
+            ),
         ),
         apns=messaging.APNSConfig(payload=messaging.APNSPayload(aps=messaging.Aps(sound="default"))),
     )
