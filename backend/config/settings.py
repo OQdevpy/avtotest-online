@@ -284,6 +284,11 @@ ACCESS_CODE_DAYS = 12
 # Tasdiqlash kodlari SMS o'rniga Telegram bot orqali yuboriladi.
 # Token faqat .env'da saqlanadi (hech qachon kodga yozilmaydi).
 TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN")
+
+# --- Push bildirishnomalar (FCM) ---------------------------------------------
+# Firebase service account JSON fayli yo'li. Bo'sh bo'lsa push yuborilmaydi
+# (xabar ilova ichida ko'rinaveradi). Fayl git'ga hech qachon kirmaydi.
+FIREBASE_CREDENTIALS_FILE = env("FIREBASE_CREDENTIALS_FILE")
 # Token qaysi botniki bo'lsa, o'sha botning @nomi (ilova ochadigan t.me havolasi uchun).
 TELEGRAM_BOT_USERNAME = (env("TELEGRAM_BOT_USERNAME") or "prava777Robot").lstrip("@")
 # Botdagi «Ilovaga qaytish» tugmasi shu https sahifani ochadi (Telegram tugmalari
