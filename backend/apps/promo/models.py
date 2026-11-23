@@ -77,7 +77,8 @@ class Slide(models.Model):
     def visible_to(cls, user):
         now = timezone.now()
         audiences = [cls.Audience.ALL]
-        if getattr(user, "pro_active", False):
+        # Mehmon sinovda hamma narsani ko'radi, lekin to'lagan PRO emas — "PRO'siz" slaydlar
+        if getattr(user, "pro_active", False) and not getattr(user, "is_guest", False):
             audiences.append(cls.Audience.PRO)
         else:
             audiences.append(cls.Audience.FREE)

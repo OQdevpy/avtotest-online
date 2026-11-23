@@ -50,9 +50,10 @@ def test_guest_reads_content(api, db, ticket):
     assert api.get("/api/v1/tickets/").status_code == 200
 
 
-def test_guest_is_not_pro(api, db):
+def test_guest_has_full_access_during_trial(api, db):
+    # 2026-11-24: mehmon 3 kunlik sinovda hamma narsadan foydalanadi (PRO kabi)
     use(api, make_guest(api))
-    assert api.get("/api/v1/auth/me/").data["pro_active"] is False
+    assert api.get("/api/v1/auth/me/").data["pro_active"] is True
 
 
 def test_expired_guest_gets_guest_expired(api, db):

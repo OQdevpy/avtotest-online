@@ -135,9 +135,21 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     @property
     def pro_active(self) -> bool:
+        # Mehmon 3 kunlik sinovda hamma narsadan foydalanadi. Muddat sessiya
+        # (Device.expires_at) bilan cheklangan: tugagach har so'rov guest_expired.
+        if self.role == self.Role.GUEST:
+            return True
         if not self.is_pro:
             return False
         return self.pro_until is None or self.pro_until > timezone.now()
+
+    @property
+    def guest_until(self):
+        """Mehmon sinovi qachon tugaydi (mehmon bo'lmasa — None)."""
+        if self.role != self.Role.GUEST:
+            return None
+        device = self.devices.order_by("-expires_at").first()
+        return device.expires_at if device else None
 
     @property
     def initials(self) -> str:

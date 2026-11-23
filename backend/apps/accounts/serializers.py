@@ -71,9 +71,9 @@ def pro_tier(user) -> int | None:
     """Profil rangi uchun PRO darajasi: 1 — 15 kun, 2 — 1 oy, 3 — 3 oy (PRO'siz — None).
 
     Oxirgi to'langan buyurtma tarifidan; admin bergan PRO uchun qolgan kunlardan,
-    muddatsiz PRO — eng yuqori daraja.
+    muddatsiz PRO — eng yuqori daraja. Mehmon sinovi obuna emas — None.
     """
-    if not user.pro_active:
+    if not user.pro_active or user.is_guest:
         return None
     from apps.payments.models import ProOrder
 
@@ -94,8 +94,9 @@ def pro_color(user) -> str | None:
 
     Oxirgi to'langan buyurtma tarifidan; admin bergan PRO uchun qolgan kunlarga
     eng yaqin tarifdan (eng kichik `days >= qolgan`, bo'lmasa eng uzun tarif).
+    Mehmon sinovi obuna emas — None.
     """
-    if not user.pro_active:
+    if not user.pro_active or user.is_guest:
         return None
     from apps.payments.models import ProOrder, ProPlan
 
@@ -119,6 +120,8 @@ class UserSerializer(serializers.ModelSerializer):
     pro_active = serializers.BooleanField(read_only=True)
     pro_tier = serializers.SerializerMethodField()
     pro_color = serializers.SerializerMethodField()
+    # Mehmonga — sinov tugash vaqti (ilova "… gacha" deb ko'rsatadi, "muddatsiz" emas)
+    pro_until = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -134,6 +137,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_pro_color(self, obj) -> str | None:
         return pro_color(obj)
+
+    def get_pro_until(self, obj):
+        until = obj.guest_until if obj.is_guest else obj.pro_until
+        return serializers.DateTimeField().to_representation(until) if until else None
 
 
 def guest_from_refresh(raw: str) -> User | None:
