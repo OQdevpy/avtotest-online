@@ -91,6 +91,12 @@ class Command(BaseCommand):
                             help="Eski baza nomi (shu Postgres serverida)")
         parser.add_argument("--dry-run", action="store_true",
                             help="Faqat hisoblaydi, hech narsa yozilmaydi")
+        parser.add_argument("--sync-content", action="store_true",
+                            help="Ikkala bazada bir xil id va matnli mavzu/savol/javob — eski bazadagi "
+                                 "tahrir olinadi (matn, tartib, rasm); savolning ortiqcha javobi o'chiriladi")
+        parser.add_argument("--keep-existing-users", action="store_true",
+                            help="Faqat yangi foydalanuvchi qo'shiladi; mavjudlarining roli, PRO muddati "
+                                 "va boshqa maydonlari o'zgartirilmaydi")
 
     # --- yordamchilar ----------------------------------------------------
 
@@ -125,7 +131,9 @@ class Command(BaseCommand):
 
     # --- asosiy ----------------------------------------------------------
 
-    def handle(self, *args, legacy_db="", dry_run=False, **options):
+    def handle(self, *args, legacy_db="", dry_run=False, sync_content=False,
+               keep_existing_users=False, **options):
+        self.keep_existing_users = keep_existing_users
         if legacy_db:
             settings.DATABASES[LEGACY] = {**settings.DATABASES["default"], "NAME": legacy_db}
         if LEGACY not in settings.DATABASES:
@@ -141,6 +149,8 @@ class Command(BaseCommand):
                 LessonResult, TicketResult, BlitsResult, ExamAttempt, QuestionAttempt,
                 SavedQuestion, Mistake, ExamSession,
             ):
+                if sync_content:
+                    self.sync_content()
                 self.merge_content()
                 self.merge_users()
                 self.merge_billing()
@@ -161,6 +171,66 @@ class Command(BaseCommand):
             self.stdout.write(f"  {key}: {self.stats[key]}")
 
     # --- kontent ---------------------------------------------------------
+
+    def sync_content(self):
+        """Bir xil id'li mavzu, savol va javoblarni eski bazadagidek qiladi.
+
+        Savol bir xil hisoblanadi: id ham, matni ham (`norm`) mos. Mavzu — id va
+        bo'limi mos. Javoblar shu savol ichida id bo'yicha; eski bazada shu savolda
+        bo'lmagan javob o'chiriladi (natijalardagi havola NULL bo'ladi), eski bazada
+        bor-u bu yerda yo'q javob qo'shiladi. Qolgan narsa `merge_content` da.
+        """
+        def copy(obj, row, skip):
+            changed = [f.attname for f in obj._meta.concrete_fields
+                       if f.attname in row and f.attname not in skip
+                       and getattr(obj, f.attname) != row[f.attname]]
+            for name in changed:
+                setattr(obj, name, row[name])
+            if changed:
+                obj.save(update_fields=changed)
+            return bool(changed)
+
+        lessons = {lsn.pk: lsn for lsn in Lesson.objects.all()}
+        count = 0
+        for row in self.rows(Lesson):
+            obj = lessons.get(row["id"])
+            if obj is not None and obj.section_id == row["section_id"]:
+                count += copy(obj, row, {"id", "section_id"})
+        self.done("dars (eski bazadan tahrir)", count)
+
+        questions = {q.pk: q for q in Question.objects.all()}
+        same = set()
+        count = 0
+        for row in self.rows(Question):
+            obj = questions.get(row["id"])
+            if obj is None or norm(obj.text_uz) != norm(row["text_uz"]):
+                continue
+            if row["lesson_id"] is not None and row["lesson_id"] not in lessons:
+                continue
+            same.add(obj.pk)
+            count += copy(obj, row, {"id", "created_at"})
+        self.done("savol (eski bazadan tahrir)", count)
+
+        legacy_answers = defaultdict(dict)
+        for row in self.rows(Answer):
+            if row["question_id"] in same:
+                legacy_answers[row["question_id"]][row["id"]] = row
+        updated = created = deleted = 0
+        for a in Answer.objects.filter(question_id__in=same):
+            row = legacy_answers[a.question_id].pop(a.pk, None)
+            if row is None:
+                a.delete()
+                deleted += 1
+            else:
+                updated += copy(a, row, {"id", "question_id", "created_at"})
+        for rows in legacy_answers.values():
+            for row in rows.values():
+                obj = self.build(Answer, row)
+                obj.save()
+                created += 1
+        self.done("javob (eski bazadan tahrir)", updated)
+        self.done("javob (eski bazadan qo'shildi)", created)
+        self.done("javob (eski bazada yo'q — o'chirildi)", deleted)
 
     def merge_content(self):
         self.section = {}
@@ -288,7 +358,7 @@ class Command(BaseCommand):
                 user.save()
                 existing[user.phone] = user
                 created += 1
-            else:
+            elif not self.keep_existing_users:
                 changed = self.merge_user(user, row, branch_id)
                 merged += int(changed)
             self.user[row["id"]] = user.pk
