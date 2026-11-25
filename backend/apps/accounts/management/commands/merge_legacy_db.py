@@ -257,19 +257,22 @@ class Command(BaseCommand):
                 self.done("dars (yangi)", 1)
             self.lesson[row["id"]] = pk
 
-        # Savollar: avval bir xil id va matn, keyin matn bo'yicha, bo'lmasa yangi
+        # Savollar: avval bir xil id va matn, keyin matn + rasm bo'yicha, bo'lmasa yangi.
+        # Matn bir xil, rasmi boshqa savollar bor ("Qaysi belgilar ...?") — ular boshqa savol.
         self.question = {}
-        existing = {q.pk: norm(q.text_uz) for q in Question.objects.only("id", "text_uz")}
+        existing = {}
         by_text = defaultdict(list)
-        for pk, text in existing.items():
-            by_text[text].append(pk)
+        for q in Question.objects.only("id", "text_uz", "image"):
+            existing[q.pk] = norm(q.text_uz)
+            by_text[(existing[q.pk], q.image.name or "")].append(q.pk)
         created = []
         for row in self.rows(Question):
             text = norm(row["text_uz"])
+            same_text = by_text.get((text, row.get("image") or ""))
             if existing.get(row["id"]) == text:
                 self.question[row["id"]] = row["id"]
-            elif by_text.get(text):
-                self.question[row["id"]] = by_text[text][0]
+            elif same_text:
+                self.question[row["id"]] = same_text[0]
             else:
                 obj = self.build(Question, row, lesson_id=self.lesson.get(row["lesson_id"]))
                 obj.save()
