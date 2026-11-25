@@ -193,6 +193,13 @@ class DeviceAwareTokenRefreshView(TokenRefreshView):
             return Response({"detail": "Token yaroqsiz."},
                             status=status.HTTP_401_UNAUTHORIZED)
 
+        from common.authentication import issued_before_cutoff
+
+        owner = User.objects.filter(pk=incoming.get("user_id")).first()
+        if owner is not None and issued_before_cutoff(owner, incoming):
+            return Response({"detail": "Sessiya tugagan yoki uzilgan."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
         device, reason = device_for_refresh(incoming["jti"])
         if device is None and reason == "unknown":
             # Bu sessiya `Device` jadvalidan oldin ochilgan (baza eski mobil

@@ -94,6 +94,9 @@ class Command(BaseCommand):
         parser.add_argument("--sync-content", action="store_true",
                             help="Ikkala bazada bir xil id va matnli mavzu/savol/javob — eski bazadagi "
                                  "tahrir olinadi (matn, tartib, rasm); savolning ortiqcha javobi o'chiriladi")
+        parser.add_argument("--revoke-mismatched-tokens", action="store_true",
+                            help="Eski bazada shu id boshqa telefonga tegishli bo'lgan hisoblarning "
+                                 "hozirgacha chiqarilgan tokenlari bekor qilinadi (qayta kiradi)")
         parser.add_argument("--keep-existing-users", action="store_true",
                             help="Faqat yangi foydalanuvchi qo'shiladi; mavjudlarining roli, PRO muddati "
                                  "va boshqa maydonlari o'zgartirilmaydi")
@@ -132,7 +135,7 @@ class Command(BaseCommand):
     # --- asosiy ----------------------------------------------------------
 
     def handle(self, *args, legacy_db="", dry_run=False, sync_content=False,
-               keep_existing_users=False, **options):
+               keep_existing_users=False, revoke_mismatched_tokens=False, **options):
         self.keep_existing_users = keep_existing_users
         if legacy_db:
             settings.DATABASES[LEGACY] = {**settings.DATABASES["default"], "NAME": legacy_db}
@@ -157,6 +160,8 @@ class Command(BaseCommand):
                 self.merge_codes()
                 self.merge_progress()
                 self.merge_exams()
+                if revoke_mismatched_tokens:
+                    self.revoke_mismatched_tokens()
                 self.report(dry_run)
                 if dry_run:
                     raise DryRun
@@ -399,6 +404,16 @@ class Command(BaseCommand):
         if changed:
             user.save(update_fields=sorted(set(changed)))
         return bool(changed)
+
+    def revoke_mismatched_tokens(self):
+        """SECRET_KEY bir xil: eski backend tokenidagi `user_id` bu yerda boshqa odam
+        bo'lsa, o'sha odamning hisobini ochardi. Bunday id'li hisoblarning hozirgi
+        tokenlari bekor qilinadi — egasi bir marta qayta kiradi."""
+        legacy_phone = {r["id"]: r["phone"] for r in self.rows(User)}
+        ids = [pk for pk, phone in User.objects.filter(pk__in=legacy_phone).values_list("pk", "phone")
+               if legacy_phone[pk] != phone]
+        count = User.objects.filter(pk__in=ids).update(tokens_valid_after=timezone.now())
+        self.done("token bekor qilindi (id boshqa odamda)", count)
 
     # --- avtomaktab va to'lovlar -----------------------------------------
 

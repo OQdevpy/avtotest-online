@@ -95,6 +95,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     is_pro = models.BooleanField(default=False)
     pro_until = models.DateTimeField(null=True, blank=True)
+    # Shu vaqtdan oldin chiqarilgan JWT'lar qabul qilinmaydi (common.authentication).
+    # Eski avtotest bazasi qo'shilganda: bir xil id boshqa odamda bo'lgan hisoblar uchun.
+    tokens_valid_after = models.DateTimeField(null=True, blank=True, editable=False)
 
     # Null bo'lsa settings.MAX_DEVICES_PER_PLATFORM amal qiladi; to'ldirilgan
     # bo'lsa barcha platformalar uchun shu son ustun turadi.
