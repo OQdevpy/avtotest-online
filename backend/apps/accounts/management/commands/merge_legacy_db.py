@@ -264,7 +264,7 @@ class Command(BaseCommand):
         by_text = defaultdict(list)
         for q in Question.objects.only("id", "text_uz", "image"):
             existing[q.pk] = norm(q.text_uz)
-            by_text[(existing[q.pk], q.image.name or "")].append(q.pk)
+            by_text[(existing[q.pk], str(q.image or ""))].append(q.pk)
         created = []
         for row in self.rows(Question):
             text = norm(row["text_uz"])
