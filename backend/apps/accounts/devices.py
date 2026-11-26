@@ -81,15 +81,22 @@ def register_device(user, platform: str, label: str, refresh, not_after=None,
     )
 
 
+def guest_days() -> int:
+    """Mehmon sinovi kunlari — admin'dagi «Ilova sozlamalari»dan."""
+    from apps.releases.models import AppSettings
+
+    return AppSettings.current().guest_days
+
+
 def register_guest_device(user, refresh, label: str, machine_id: str) -> Device:
-    """Mehmon sessiyasi — limitsiz, `settings.GUEST_DAYS` kundan keyin tugaydi."""
+    """Mehmon sessiyasi — limitsiz, admin'da belgilangan kundan keyin tugaydi."""
     return Device.objects.create(
         user=user,
         platform=Device.Platform.MOBILE,
         refresh_jti=refresh["jti"],
         label=label or "",
         machine_id=machine_id,
-        expires_at=timezone.now() + timedelta(days=settings.GUEST_DAYS),
+        expires_at=timezone.now() + timedelta(days=guest_days()),
     )
 
 

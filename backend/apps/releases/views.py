@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import AppRelease, Platform, UserAppVersion, parse_version
+from .models import AppSettings, AppRelease, Platform, UserAppVersion, parse_version
 
 
 def _current_user(request):
@@ -69,3 +69,21 @@ class LoginOptionsView(APIView):
     def get(self, request):
         platform = request.query_params.get("platform") or ""
         return Response({"review_login": AppRelease.review_mode_on(platform)})
+
+
+class AppConfigView(APIView):
+    """Ilova sozlamalari: mehmon kunlari, bepul PRO, to'lov oynasi, yopiq bo'limlar."""
+
+    permission_classes = (AllowAny,)
+    authentication_classes = ()
+
+    def get(self, request):
+        cfg = AppSettings.current()
+        platform = request.query_params.get("platform") or ""
+        return Response({
+            "guest_days": cfg.guest_days,
+            "welcome_pro_days": cfg.welcome_pro_days,
+            "paywall_after_signup": cfg.paywall_after_signup,
+            "locked_sections": list(cfg.locked_sections or []),
+            "review_login": AppRelease.review_mode_on(platform),
+        })

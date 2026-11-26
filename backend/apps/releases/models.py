@@ -96,3 +96,69 @@ class UserAppVersion(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user} — {self.platform} {self.version}"
+
+
+class Section(models.TextChoices):
+    """Ilovadagi bo'limlar — PRO'siz foydalanuvchiga yopiladiganlari admin'da tanlanadi."""
+    TOPICS = "topics", "Mavzular va darslar"
+    EXAM = "exam", "Imtihon simulyatori"
+    HARD = "hard", "Qiyin savollar"
+    TICKETS = "tickets", "Biletlar"
+    MISTAKES = "mistakes", "Xatolar"
+    SAVED = "saved", "Saqlanganlar"
+    OCTAGON = "octagon", "Oktagon"
+    STATS = "stats", "Statistika"
+
+
+DEFAULT_LOCKED = [Section.TOPICS, Section.EXAM, Section.HARD]
+
+
+def default_locked():
+    return [str(s) for s in DEFAULT_LOCKED]
+
+
+class AppSettings(models.Model):
+    """Ilovaning sotuv sozlamalari (bitta yozuv). Ilova `app/config/` dan o'qiydi.
+
+    Standart qiymatlar hozirgi xatti-harakat bilan bir xil — admin o'zgartirmaguncha
+    hech narsa o'zgarmaydi.
+    """
+
+    guest_days = models.PositiveSmallIntegerField(
+        "Mehmon sinovi (kun)", default=3,
+        help_text="Ro'yxatdan o'tmagan foydalanuvchi necha kun hamma narsadan foydalanadi. "
+                  "Yangi mehmonlarga qo'llanadi.",
+    )
+    welcome_pro_days = models.PositiveSmallIntegerField(
+        "Ro'yxatdan o'tganda bepul PRO (kun)", default=12,
+        help_text="Telegram orqali yangi hisob ochganda beriladigan bepul PRO. "
+                  "0 — sovg'a yo'q: bo'limlar darhol yopiladi va to'lov taklif qilinadi.",
+    )
+    paywall_after_signup = models.BooleanField(
+        "Ro'yxatdan o'tgach to'lov oynasini ko'rsatish", default=False,
+        help_text="Yoqilsa, yangi hisob ochilgan zahoti ilova tariflar oynasini ochadi "
+                  "(PRO'si bo'lmasa).",
+    )
+    locked_sections = models.JSONField(
+        "PRO'siz yopiq bo'limlar", default=default_locked, blank=True,
+        help_text="Belgilangan bo'limlar PRO'siz foydalanuvchiga qulf bilan ko'rinadi.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ilova sozlamalari"
+        verbose_name_plural = "Ilova sozlamalari"
+
+    def __str__(self) -> str:
+        return "Ilova sozlamalari"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # yagona yozuv
+        allowed = set(Section.values)
+        self.locked_sections = [s for s in (self.locked_sections or []) if s in allowed]
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def current(cls) -> "AppSettings":
+        obj = cls.objects.filter(pk=1).first()
+        return obj if obj is not None else cls(pk=1)

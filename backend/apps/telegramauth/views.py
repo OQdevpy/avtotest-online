@@ -22,6 +22,8 @@ from rest_framework.views import APIView
 
 from common.net import client_ip
 
+from apps.releases.models import AppSettings
+
 from . import claim, verification
 from .serializers import TelegramClaimSerializer, TelegramStartSerializer
 
@@ -103,7 +105,10 @@ class TelegramClaimView(APIView):
                 return Response({"detail": DEVICE_LIMIT_MESSAGE},
                                 status=status.HTTP_403_FORBIDDEN)
         return Response(
-            {"user": UserSerializer(user).data, "tokens": tokens, "created": created},
+            {"user": UserSerializer(user).data, "tokens": tokens, "created": created,
+             # Ilova shu bayroq bilan ro'yxatdan o'tgan zahoti tariflar oynasini ochadi
+             "show_paywall": bool(created and AppSettings.current().paywall_after_signup
+                                  and not user.pro_active)},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 

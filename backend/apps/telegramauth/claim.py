@@ -18,8 +18,13 @@ from apps.billing.models import Student
 from . import legacy
 from .models import TelegramAccount
 
-# Yangi hisobga beriladigan PRO sovg'a (avvalgi ro'yxatdan o'tish qoidasi).
-WELCOME_PRO_DAYS = 12
+
+
+def welcome_pro_days() -> int:
+    """Yangi hisobga beriladigan bepul PRO kunlari — admin'dagi «Ilova sozlamalari»dan."""
+    from apps.releases.models import AppSettings
+
+    return AppSettings.current().welcome_pro_days
 
 
 def is_blocked(user: User) -> bool:
@@ -53,8 +58,14 @@ def user_for_phone(phone: str, full_name: str, lang: str,
         user = User(phone=phone, role=User.Role.STUDENT, language=lang)
     user.full_name = full_name[:120]
     user.set_unusable_password()
-    user.is_pro = True
-    user.pro_until = timezone.now() + timedelta(days=WELCOME_PRO_DAYS)
+    days = welcome_pro_days()
+    if days:
+        user.is_pro = True
+        user.pro_until = timezone.now() + timedelta(days=days)
+    else:
+        # Sovg'a yo'q — mehmon sinovidagi PRO ham davom etmaydi
+        user.is_pro = False
+        user.pro_until = None
 
     # Eski avtotest ilovasidagi hisob — ism, til, PRO muddati ko'chiriladi.
     old = legacy.legacy_user(phone)
@@ -65,8 +76,9 @@ def user_for_phone(phone: str, full_name: str, lang: str,
         if old["date_joined"]:
             user.date_joined = min(user.date_joined, old["date_joined"])
         if legacy.pro_active(old) and (
-            old["pro_until"] is None or old["pro_until"] > user.pro_until
+            not user.is_pro or old["pro_until"] is None or old["pro_until"] > user.pro_until
         ):
+            user.is_pro = True
             user.pro_until = old["pro_until"]
     user.save()
     TelegramAccount.objects.filter(phone=phone, user__isnull=True).update(user=user)

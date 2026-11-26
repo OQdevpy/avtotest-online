@@ -5,7 +5,9 @@ from django.db.models import Count
 from django.utils import timezone
 
 from apps.accounts.models import Device
-from .models import AppRelease, UserAppVersion
+from django import forms
+
+from .models import AppRelease, AppSettings, Section, UserAppVersion
 
 ACTIVE_DAYS = 30
 
@@ -41,3 +43,27 @@ class UserAppVersionAdmin(admin.ModelAdmin):
         messages.info(request, f"Oxirgi {ACTIVE_DAYS} kunda faol — {summary}. "
                                f"Versiya yubormaydigan eski ilovada: {old}.")
         return super().changelist_view(request, extra_context)
+
+
+class AppSettingsForm(forms.ModelForm):
+    locked_sections = forms.MultipleChoiceField(
+        label="PRO'siz yopiq bo'limlar", choices=Section.choices, required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Belgilangan bo'limlar PRO'siz foydalanuvchiga qulf bilan ko'rinadi.",
+    )
+
+    class Meta:
+        model = AppSettings
+        fields = ("guest_days", "welcome_pro_days", "paywall_after_signup", "locked_sections")
+
+
+@admin.register(AppSettings)
+class AppSettingsAdmin(admin.ModelAdmin):
+    form = AppSettingsForm
+    list_display = ("__str__", "guest_days", "welcome_pro_days", "paywall_after_signup", "updated_at")
+
+    def has_add_permission(self, request):
+        return not AppSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
