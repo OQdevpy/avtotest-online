@@ -57,10 +57,56 @@ class AppSettingsForm(forms.ModelForm):
         fields = ("guest_days", "welcome_pro_days", "paywall_after_signup", "locked_sections")
 
 
+def conversion_stats(days: int) -> dict:
+    """So'nggi `days` kunda kelganlar: mehmon → Telegram → to'lov."""
+    from django.db.models import Q
+
+    from apps.accounts.models import User
+    from apps.payments.models import ProOrder
+
+    since = timezone.now() - timedelta(days=days)
+    joined = User.objects.filter(date_joined__gte=since)
+    guests = joined.filter(Q(role=User.Role.GUEST) | Q(guest_converted_at__isnull=False)).count()
+    converted_ids = list(joined.filter(guest_converted_at__isnull=False).values_list("pk", flat=True))
+    direct = joined.filter(role=User.Role.STUDENT, guest_converted_at__isnull=True).count()
+    paid = (ProOrder.objects.filter(user_id__in=converted_ids, status=ProOrder.Status.PAID)
+            .values("user_id").distinct().count())
+    converted = len(converted_ids)
+    return {"guests": guests, "converted": converted, "direct": direct, "paid": paid,
+            "rate": round(converted * 100 / guests) if guests else 0,
+            "paid_rate": round(paid * 100 / converted) if converted else 0}
+
+
 @admin.register(AppSettings)
 class AppSettingsAdmin(admin.ModelAdmin):
     form = AppSettingsForm
     list_display = ("__str__", "guest_days", "welcome_pro_days", "paywall_after_signup", "updated_at")
+    readonly_fields = ("conversion",)
+
+    def get_fieldsets(self, request, obj=None):
+        return (
+            (None, {"fields": ("guest_days", "welcome_pro_days", "paywall_after_signup",
+                               "locked_sections")}),
+            ("Konversiya", {"fields": ("conversion",)}),
+        )
+
+    @admin.display(description="Mehmon → Telegram → to'lov")
+    def conversion(self, obj):
+        from django.utils.html import format_html, format_html_join
+
+        rows = []
+        for days in (1, 7, 30):
+            st = conversion_stats(days)
+            rows.append((f"So'nggi {days} kun", st["guests"], st["converted"], st["rate"],
+                         st["paid"], st["paid_rate"], st["direct"]))
+        body = format_html_join("", "<tr><td>{}</td><td>{}</td><td>{} ({}%)</td><td>{} ({}%)</td><td>{}</td></tr>", rows)
+        return format_html(
+            '<table style="border-collapse:collapse"><thead><tr>'
+            "<th>Davr</th><th>Mehmon bo'lib kirgan</th><th>Telegram'dan o'tgan</th>"
+            "<th>Ulardan to'lagan</th><th>To'g'ridan-to'g'ri ro'yxat</th></tr></thead>"
+            "<tbody>{}</tbody></table>"
+            '<p style="margin-top:8px">Mehmondan o\'tganlar ro\'yxati: Foydalanuvchilar → '
+            "«Mehmondan o'tganmi» filtri.</p>", body)
 
     def has_add_permission(self, request):
         return not AppSettings.objects.exists()

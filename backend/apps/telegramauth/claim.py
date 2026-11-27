@@ -53,6 +53,7 @@ def user_for_phone(phone: str, full_name: str, lang: str,
         user = guest
         user.phone = phone
         user.role = User.Role.STUDENT
+        user.guest_converted_at = timezone.now()
         Device.objects.filter(user=user, is_active=True).update(is_active=False)
     else:
         user = User(phone=phone, role=User.Role.STUDENT, language=lang)

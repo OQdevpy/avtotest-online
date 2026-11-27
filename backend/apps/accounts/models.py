@@ -93,6 +93,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         "Do'kon tekshiruvi hisobi", default=False,
         help_text="Faqat Apple/Google tekshiruvchisiga beriladigan test hisob uchun yoqing.",
     )
+    # Mehmon rejimidan Telegram orqali o'quvchiga o'tgan vaqt (to'g'ridan-to'g'ri
+    # ro'yxatdan o'tganlarda bo'sh) — konversiyani o'lchash uchun.
+    guest_converted_at = models.DateTimeField(
+        "Mehmondan o'tgan", null=True, blank=True, db_index=True)
     is_pro = models.BooleanField(default=False)
     pro_until = models.DateTimeField(null=True, blank=True)
     # Shu vaqtdan oldin chiqarilgan JWT'lar qabul qilinmaydi (common.authentication).

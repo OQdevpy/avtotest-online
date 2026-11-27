@@ -10,13 +10,28 @@ from apps.notifications.admin import (
 from .models import AccessCode, Device, SocialAccount, User
 
 
+class GuestConvertedFilter(admin.SimpleListFilter):
+    title = "Mehmondan o'tganmi"
+    parameter_name = "from_guest"
+
+    def lookups(self, request, model_admin):
+        return (("yes", "Ha, mehmondan o'tgan"), ("no", "Yo'q, to'g'ridan-to'g'ri"))
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.filter(guest_converted_at__isnull=False)
+        if self.value() == "no":
+            return queryset.filter(guest_converted_at__isnull=True).exclude(role=User.Role.GUEST)
+        return queryset
+
+
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
     ordering = ("-date_joined",)
     list_display = ("phone", "full_name", "role", "branch", "hujjat",
-                    "is_pro", "is_active", "date_joined", "guest_until")
-    list_filter = ("role", "branch", "is_active", "is_staff", "is_pro", "hujjat", "language",
-                   HasPushDeviceFilter)
+                    "is_pro", "is_active", "date_joined", "guest_until", "guest_converted_at")
+    list_filter = ("role", GuestConvertedFilter, "branch", "is_active", "is_staff", "is_pro",
+                   "hujjat", "language", HasPushDeviceFilter)
     search_fields = ("phone", "full_name")
     list_select_related = ("branch",)
     actions = (send_notification,)
@@ -37,7 +52,7 @@ class UserAdmin(BaseUserAdmin):
                                     "standart limit amal qiladi."}),
         ("Ruxsatlar", {"fields": ("is_active", "is_staff", "is_superuser",
                                   "groups", "user_permissions")}),
-        ("Sanalar", {"fields": ("last_login", "date_joined")}),
+        ("Sanalar", {"fields": ("last_login", "date_joined", "guest_converted_at")}),
     )
     @admin.display(description="Mehmon muddati")
     def guest_until(self, obj):

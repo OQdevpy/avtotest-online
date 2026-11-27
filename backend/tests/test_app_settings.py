@@ -85,3 +85,29 @@ def test_legacy_pro_kept_when_no_gift(api, db, fake_redis, monkeypatch):
     api.post(CLAIM, {"token": verified_token()}, format="json")
     user = User.objects.get(phone=PHONE)
     assert user.pro_active and user.pro_until == until
+
+
+def test_guest_conversion_is_recorded_and_counted(api, db, fake_redis, client, django_user_model, settings):
+    from apps.releases.admin import conversion_stats
+
+    guest = api.post("/api/v1/auth/guest/", {"device_id": "d" * 32}, format="json").data
+    api.post("/api/v1/auth/guest/", {"device_id": "e" * 32}, format="json")  # o'tmagan mehmon
+    api.post(CLAIM, {"token": verified_token(), "guest_refresh": guest["tokens"]["refresh"]},
+             format="json")
+    api.post(CLAIM, {"token": verified_token("+998905556677")}, format="json")  # to'g'ridan-to'g'ri
+
+    converted = User.objects.get(phone=PHONE)
+    assert converted.guest_converted_at is not None
+    assert User.objects.get(phone="+998905556677").guest_converted_at is None
+
+    st = conversion_stats(7)
+    assert (st["guests"], st["converted"], st["rate"], st["direct"], st["paid"]) == (2, 1, 50, 1, 0)
+
+    settings.STORAGES = {**settings.STORAGES, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
+    client.force_login(django_user_model.objects.create_superuser(phone="+998900000881", password="x"))
+    r = client.get("/admin/accounts/user/?from_guest=yes")
+    assert r.status_code == 200 and PHONE in r.content.decode()
+    assert "+998905556677" not in r.content.decode()
+    AppSettings().save()
+    r = client.get("/admin/releases/appsettings/1/change/")
+    assert r.status_code == 200 and "Telegram" in r.content.decode()
