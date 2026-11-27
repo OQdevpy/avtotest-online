@@ -69,8 +69,15 @@ class UserAdmin(BaseUserAdmin):
         now = timezone.now()
         if obj.pro_until <= now:
             return f"Tugagan ({date_format(timezone.localtime(obj.pro_until), 'd.m.Y')})"
-        days = (obj.pro_until - now).days
-        left = f"{days} kun qoldi" if days else "bugun tugaydi"
+        # To'liq kun va soat — "1 kun 23 soat" ni "1 kun" deb ko'rsatmaslik uchun
+        rest = obj.pro_until - now
+        hours = rest.seconds // 3600
+        if rest.days:
+            left = f"{rest.days} kun {hours} soat qoldi"
+        elif hours:
+            left = f"{hours} soat qoldi"
+        else:
+            left = f"{max(1, rest.seconds // 60)} daqiqa qoldi"
         return f"{date_format(timezone.localtime(obj.pro_until), 'd.m.Y H:i')} · {left}"
 
     @admin.display(description="Mehmon muddati")

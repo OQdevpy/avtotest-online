@@ -123,4 +123,4 @@ def test_user_admin_shows_pro_until(db, client, django_user_model, settings):
     client.force_login(django_user_model.objects.create_superuser(phone="+998900000882", password="x"))
     html = client.get("/admin/accounts/user/?o=-6").content.decode()
     assert "PRO muddati" in html
-    assert "10 kun qoldi" in html and "Muddatsiz" in html and "Tugagan" in html
+    assert "10 kun 1 soat qoldi" in html and "Muddatsiz" in html and "Tugagan" in html
