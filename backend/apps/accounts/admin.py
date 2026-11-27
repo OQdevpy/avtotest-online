@@ -29,7 +29,7 @@ class GuestConvertedFilter(admin.SimpleListFilter):
 class UserAdmin(BaseUserAdmin):
     ordering = ("-date_joined",)
     list_display = ("phone", "full_name", "role", "branch", "hujjat",
-                    "is_pro", "is_active", "date_joined", "guest_until", "guest_converted_at")
+                    "is_pro", "pro_left", "is_active", "date_joined", "guest_until", "guest_converted_at")
     list_filter = ("role", GuestConvertedFilter, "branch", "is_active", "is_staff", "is_pro",
                    "hujjat", "language", HasPushDeviceFilter)
     search_fields = ("phone", "full_name")
@@ -54,6 +54,25 @@ class UserAdmin(BaseUserAdmin):
                                   "groups", "user_permissions")}),
         ("Sanalar", {"fields": ("last_login", "date_joined", "guest_converted_at")}),
     )
+    @admin.display(description="PRO muddati", ordering="pro_until")
+    def pro_left(self, obj):
+        """PRO qachongacha va necha kun qoldi (PRO'siz — —)."""
+        from django.utils import timezone
+        from django.utils.formats import date_format
+
+        if obj.is_guest:
+            return "Mehmon sinovi"
+        if not obj.is_pro:
+            return "—"
+        if obj.pro_until is None:
+            return "Muddatsiz"
+        now = timezone.now()
+        if obj.pro_until <= now:
+            return f"Tugagan ({date_format(timezone.localtime(obj.pro_until), 'd.m.Y')})"
+        days = (obj.pro_until - now).days
+        left = f"{days} kun qoldi" if days else "bugun tugaydi"
+        return f"{date_format(timezone.localtime(obj.pro_until), 'd.m.Y H:i')} · {left}"
+
     @admin.display(description="Mehmon muddati")
     def guest_until(self, obj):
         """Mehmon sessiyasi qachon tugaydi (mehmon bo'lmasa —)."""

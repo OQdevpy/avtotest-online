@@ -111,3 +111,16 @@ def test_guest_conversion_is_recorded_and_counted(api, db, fake_redis, client, d
     AppSettings().save()
     r = client.get("/admin/releases/appsettings/1/change/")
     assert r.status_code == 200 and "Telegram" in r.content.decode()
+
+
+def test_user_admin_shows_pro_until(db, client, django_user_model, settings):
+    settings.STORAGES = {**settings.STORAGES, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
+    User.objects.create(phone="+998907770001", role="student", is_pro=True,
+                        pro_until=timezone.now() + timedelta(days=10, hours=2))
+    User.objects.create(phone="+998907770002", role="student", is_pro=True, pro_until=None)
+    User.objects.create(phone="+998907770003", role="student", is_pro=True,
+                        pro_until=timezone.now() - timedelta(days=1))
+    client.force_login(django_user_model.objects.create_superuser(phone="+998900000882", password="x"))
+    html = client.get("/admin/accounts/user/?o=-6").content.decode()
+    assert "PRO muddati" in html
+    assert "10 kun qoldi" in html and "Muddatsiz" in html and "Tugagan" in html
